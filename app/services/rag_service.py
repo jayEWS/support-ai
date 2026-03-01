@@ -62,7 +62,7 @@ class RAGService:
                     # Initialize BM25 retriever
                     texts = [doc.page_content for doc in self.all_documents]
                     self.bm25_retriever = BM25Okapi(texts)
-                    logger.info(f"✅ Hybrid search initialized with {len(self.all_documents)} documents")
+                    logger.info(f"[OK] Hybrid search initialized with {len(self.all_documents)} documents")
         except Exception as e:
             logger.warning(f"Hybrid search initialization failed: {e}")
 

@@ -11,31 +11,47 @@ git fetch origin main
 git reset --hard origin/main
 
 echo "=== [2/6] Update .env ==="
-# BASE_URL
-sed -i 's|^BASE_URL=.*|BASE_URL=http://136-110-61-119.nip.io:8000|' .env
 
-# GOOGLE_REDIRECT_URI - add if missing, update if exists
+# BASE_URL (Main Portal on GCP)
+GCP_IP="136.110.61.119"
+PORT="8000"
+sed -i "s|^BASE_URL=.*|BASE_URL=http://$GCP_IP.nip.io:$PORT|" .env
+
+# GOOGLE_REDIRECT_URI (Must match Google Cloud Console)
+REDIRECT_URI="http://$GCP_IP.nip.io:$PORT/api/auth/google/callback"
 if grep -q "^GOOGLE_REDIRECT_URI=" .env; then
-    sed -i 's|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback|' .env
+    sed -i "s|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=$REDIRECT_URI|" .env
 else
-    echo "GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback" >> .env
+    echo "GOOGLE_REDIRECT_URI=$REDIRECT_URI" >> .env
 fi
 
-# Supabase pooler URL (IPv4, port 6543)
-if grep -q "aws-0-ap-southeast-1.pooler.supabase.com:5432" .env; then
-    sed -i 's|aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres|aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres|' .env
-    sed -i 's|postgresql+psycopg2://postgres:|postgresql+psycopg2://postgres.wjsaltebtbmnysgcdsoh:|' .env
+# AI & LLM CONFIGURATION (Ngrok for Chat/AI if provided)
+# Note: Set NGROK_URL environment variable before running this script
+if [ ! -z "$NGROK_URL" ]; then
+    echo "Updating AI_BASE_URL to Ngrok: $NGROK_URL"
+    sed -i "s|^AI_BASE_URL=.*|AI_BASE_URL=$NGROK_URL|" .env
 fi
+
+# ALLOWED_ORIGINS (CORS fix)
+ALLOW_ORIGIN="\"http://$GCP_IP.nip.io:$PORT\", \"http://localhost:8000\""
+if [ ! -z "$NGROK_URL" ]; then
+    ALLOW_ORIGIN="$ALLOW_ORIGIN, \"$NGROK_URL\""
+fi
+sed -i "s|^ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=[$ALLOW_ORIGIN]|" .env
+
+# Supabase direct connection for stability on VM
+sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres|' .env
 
 echo "--- .env preview (sensitive values masked) ---"
-grep -E "^(BASE_URL|GOOGLE_REDIRECT_URI|DATABASE_URL|EMAIL_PROVIDER)" .env | sed 's|://[^@]*@|://***@|'
+grep -E "^(BASE_URL|GOOGLE_REDIRECT_URI|DATABASE_URL|AI_BASE_URL)" .env | sed 's|://[^@]*@|://***@|'
 
 echo "=== [3/6] Stop & remove old container ==="
 sudo docker stop support-ai 2>/dev/null || true
 sudo docker rm support-ai 2>/dev/null || true
 
 echo "=== [4/6] Build new Docker image ==="
-sudo docker build -t support-ai .
+# Using --no-cache to ensure fresh build with updated requirements
+sudo docker build --no-cache -t support-ai .
 
 echo "=== [5/6] Upload knowledge files to data/knowledge ==="
 mkdir -p ~/support-portal/data/knowledge
@@ -44,7 +60,6 @@ mkdir -p ~/support-portal/data/db_storage
 # Run vm_upload.sh if it exists (uploads base64-encoded knowledge TXT files)
 if [ -f ~/support-portal/vm_upload.sh ]; then
     echo "Running vm_upload.sh to restore knowledge files..."
-    # Extract files to local data dir, then they'll be mounted via volume
     bash ~/support-portal/vm_upload.sh 2>/dev/null || true
 fi
 
@@ -68,5 +83,5 @@ curl -sf http://localhost:8000/health && echo " <- OK" || echo " <- FAILED"
 
 echo ""
 echo "============================================"
-echo "Done! App running at http://136-110-61-119.nip.io:8000"
+echo "Done! App running at http://$GCP_IP.nip.io:$PORT"
 echo "============================================"

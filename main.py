@@ -44,26 +44,26 @@ def validate_production_config():
             missing_vars.append(f"  - {var}: {description}")
     
     if missing_vars:
-        error_msg = "❌ PRODUCTION CONFIGURATION ERROR - Missing critical environment variables:\n" + "\n".join(missing_vars)
+        error_msg = "PRODUCTION CONFIGURATION ERROR - Missing critical environment variables:\n" + "\n".join(missing_vars)
         logger.error(error_msg)
-        logger.error("\n⚠️  DEPLOYMENT BLOCKED: Please configure all required environment variables in .env file.")
+        logger.error("\nWARNING: DEPLOYMENT BLOCKED: Please configure all required environment variables in .env file.")
         raise ValueError(error_msg)
     
     # Warn about optional but recommended settings
     if not settings.OPENAI_API_KEY:
-        logger.info("ℹ️  INFO: OPENAI_API_KEY not set. Using Groq fallback for LLM responses.")
+        logger.info("INFO: OPENAI_API_KEY not set. Using Groq fallback for LLM responses.")
     
     # Warn about insecure defaults
     if not settings.COOKIE_SECURE:
-        logger.warning("⚠️  WARNING: COOKIE_SECURE is False. Set to True in production.")
+        logger.warning("WARNING: COOKIE_SECURE is False. Set to True in production.")
     
     if settings.ALLOWED_ORIGINS == ["*"]:
-        logger.warning("⚠️  WARNING: ALLOWED_ORIGINS is ['*']. Restrict to specific domains in production.")
+        logger.warning("WARNING: ALLOWED_ORIGINS is ['*']. Restrict to specific domains in production.")
     
     if settings.MFA_DEV_RETURN_CODE:
-        logger.warning("⚠️  WARNING: MFA_DEV_RETURN_CODE is True. Set to False in production.")
+        logger.warning("WARNING: MFA_DEV_RETURN_CODE is True. Set to False in production.")
     
-    logger.info("✅ Production configuration validated successfully.")
+    logger.info("[OK] Production configuration validated successfully.")
 
 validate_production_config()
 
@@ -430,6 +430,79 @@ async def google_oauth_callback(request: Request, code: str = None, state: str =
     except Exception as e:
         logger.error(f"Google OAuth callback error: {e}")
         return RedirectResponse(url="/login?error=oauth_failed")
+
+
+@app.post("/api/auth/google/login")
+@limiter.limit("10/minute")
+async def google_login_token(request: Request):
+    """Handle Google Login via ID token (from GIS/One Tap)"""
+    try:
+        data = await request.json()
+        id_token_str = data.get("id_token")
+        if not id_token_str:
+            raise HTTPException(status_code=400, detail="Missing ID token")
+
+        # Verify the ID token with Google
+        from google.oauth2 import id_token as google_id_token_lib
+        from google.auth.transport import requests as google_requests
+        
+        try:
+            id_info = google_id_token_lib.verify_oauth2_token(
+                id_token_str,
+                google_requests.Request(),
+                settings.GOOGLE_CLIENT_ID,
+            )
+        except Exception as verify_err:
+            logger.error(f"Google ID token verification failed: {verify_err}")
+            raise HTTPException(status_code=401, detail="Invalid Google token")
+
+        google_sub = id_info["sub"]
+        email = id_info.get("email", "")
+        name = id_info.get("name", email.split("@")[0] if email else "Agent")
+
+        db = _require_db()
+        agent = db.get_agent_by_google_id(google_sub)
+        if not agent:
+            # Check if an agent with this email already exists
+            agent_data = db.get_agent_by_email(email)
+            if agent_data:
+                # Link existing agent
+                db.update_agent_auth(agent_data["user_id"], google_id=google_sub)
+                agent = db.get_agent(agent_data["user_id"])
+            else:
+                # Create new agent
+                agent = db.create_or_get_agent(
+                    user_id=f"google_{uuid.uuid4().hex[:16]}",
+                    name=name,
+                    email=email,
+                    department="Support",
+                    google_id=google_sub,
+                )
+        else:
+            # Ensure details are updated if needed
+            db.update_agent_auth(agent["user_id"], google_id=google_sub)
+
+        access_token = create_access_token(data={"sub": agent["user_id"], "role": agent.get("role", "agent")})
+        refresh_token = create_refresh_token()
+        refresh_hash = hash_token(refresh_token)
+        refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
+        db.log_action(agent["user_id"], "login_google_token", "agent", agent["user_id"])
+
+        response = JSONResponse({
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": agent.get("role", "agent"),
+            "name": agent.get("name", agent["user_id"])
+        })
+        _set_auth_cookies(response, access_token, refresh_token)
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google token login error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during Google login")
 
 # ============ MAGIC LINK LOGIN ============
 @app.post("/api/auth/magic-link/request")

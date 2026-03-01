@@ -67,7 +67,7 @@ class RAGEngine:
     async def _initialize_knowledge_base(self):
         try:
             if os.path.exists(settings.DB_DIR) and os.path.exists(os.path.join(settings.DB_DIR, "index.faiss")) and self.embeddings:
-                logger.info("✅ Loading existing Knowledge Base (FAISS)...")
+                logger.info("[OK] Loading existing Knowledge Base (FAISS)...")
                 try:
                     self.vector_store = FAISS.load_local(settings.DB_DIR, self.embeddings, allow_dangerous_deserialization=True)
                 except Exception as e:
@@ -76,7 +76,7 @@ class RAGEngine:
                 # Still run ingestion to populate BM25/all_documents with fresh dates
                 await self.ingest_documents()
             else:
-                logger.info("🔧 No index found. Starting initial ingestion...")
+                logger.info("[INIT] No index found. Starting initial ingestion...")
                 await self.ingest_documents()
         except Exception as e:
             logger.error(f"Failed to initialize knowledge base: {e}")
@@ -129,7 +129,7 @@ class RAGEngine:
                 logger.info("Skipping FAISS vector indexing (no embeddings available).")
             
             self.hybrid_retriever = HybridRetriever(self.all_documents)
-            logger.info(f"✅ Re-indexing complete: {len(self.all_documents)} chunks with dates.")
+            logger.info(f"[OK] Re-indexing complete: {len(self.all_documents)} chunks with dates.")
         except Exception as e:
             logger.error(f"Ingestion Error: {e}")
         finally:
