@@ -804,6 +804,11 @@ async def get_audit_logs(agent: Annotated[dict, Depends(get_current_agent)]):
 async def get_chat_history(request: Request, user_id: str = "web_portal_user"):
     return {"history": _require_db().get_messages(user_id)}
 
+@app.get("/api/history/sessions")
+@limiter.limit("10/minute")
+async def get_history_sessions(request: Request, user_id: str = "web_portal_user"):
+    return {"sessions": _require_db().get_unified_history(user_id)}
+
 @app.post("/api/chat")
 @limiter.limit("5/minute")
 async def chat_directly(

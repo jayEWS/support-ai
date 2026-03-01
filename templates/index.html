@@ -142,7 +142,7 @@
             <p class="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Enterprise Edition</p>
         </div>
         <nav class="flex-1 px-4 space-y-2">
-            <a href="#"
+            <a href="#" onclick="showChat()" id="nav-chat"
                 class="sidebar-link active flex items-center px-4 py-3 text-slate-600 rounded-xl font-semibold transition">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -151,15 +151,13 @@
                 Conversations
             </a>
 
-            <a href="#" onclick="showHistory()"
-                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition group">
-                <span
-                    class="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-md font-black uppercase tracking-tighter mr-3 border border-slate-200">history</span>
-                <!-- Blurred placeholders as seen in screenshot -->
-                <div class="space-y-1 opacity-20 group-hover:opacity-40 transition-opacity">
-                    <div class="h-1.5 w-20 bg-slate-400 rounded"></div>
-                    <div class="h-1.5 w-12 bg-slate-300 rounded"></div>
-                </div>
+            <a href="#" onclick="showHistory()" id="nav-history"
+                class="sidebar-link flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
+                <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                History
             </a>
 
             <!-- Only visible for Agents -->
@@ -188,7 +186,7 @@
     </aside>
 
     <!-- Main Chat Workspace -->
-    <main class="flex-1 flex flex-col relative overflow-hidden">
+    <main id="chat-workspace" class="flex-1 flex flex-col relative overflow-hidden">
         <!-- Drag Overlay -->
         <div id="drag-overlay" class="drag-overlay">
             <div class="text-center">
@@ -262,7 +260,31 @@
                 </form>
             </div>
         </div>
-        </div>
+    </main>
+
+    <!-- History View (Hidden by default) -->
+    <main id="history-view" class="flex-1 flex flex-col relative overflow-hidden hidden bg-[#0f1114]">
+        <header class="h-20 bg-[#1a1d21] border-b border-white/5 flex items-center justify-between px-8">
+            <div class="flex items-center">
+                <div class="h-10 w-10 bg-blue-600/20 rounded-xl flex items-center justify-center mr-4 text-blue-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-white text-lg">Support History</h2>
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">All past interactions</p>
+                </div>
+            </div>
+            <button onclick="showChat()"
+                class="px-5 py-2.5 border border-white/10 text-white/60 rounded-xl font-bold text-xs hover:bg-white/5 transition uppercase tracking-widest">
+                Back to Chat
+            </button>
+        </header>
+
+        <div id="history-list" class="flex-1 overflow-y-auto p-8 space-y-4">
+            <!-- History items will be injected here -->
         </div>
     </main>
 
@@ -296,11 +318,6 @@
             } catch (err) {
                 console.log("Not an agent or not logged in.");
             }
-        }
-
-        function showHistory() {
-            // Simply scrolls chat to top if there is content
-            chatbox.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         initPortal();
@@ -404,13 +421,124 @@
             kbModal.classList.toggle('translate-x-0');
         }
 
+        function showChat() {
+            document.getElementById('chat-workspace').classList.remove('hidden');
+            document.getElementById('history-view').classList.add('hidden');
+            document.getElementById('nav-chat').classList.add('active');
+            document.getElementById('nav-history').classList.remove('active');
+
+            // Re-enable input
+            userInput.disabled = false;
+            userInput.placeholder = "Type your message...";
+            document.querySelector('#chat-form button[type="submit"]').disabled = false;
+            document.getElementById('close-chat').classList.remove('hidden');
+        }
+
+        async function showHistory() {
+            document.getElementById('chat-workspace').classList.add('hidden');
+            const historyView = document.getElementById('history-view');
+            historyView.classList.remove('hidden');
+            document.getElementById('nav-chat').classList.remove('active');
+            document.getElementById('nav-history').classList.add('active');
+
+            const list = document.getElementById('history-list');
+            list.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 text-slate-500">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
+                    <p class="font-bold text-xs uppercase tracking-widest opacity-50">Synchronizing History...</p>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`/api/history/sessions?user_id=${userId}`);
+                const data = await res.json();
+
+                if (!data.sessions || data.sessions.length === 0) {
+                    list.innerHTML = `
+                        <div class="p-20 text-center bg-[#1a1d21] rounded-3xl border border-white/5 border-dashed">
+                            <p class="text-white/40 font-medium">No past history found for this identifier.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = data.sessions.map(s => `
+                    <div onclick="loadSession('${s.session_id}', ${s.ticket_id}, '${s.summary.replace(/'/g, "\\'")}')" 
+                         class="bg-[#1a1d21] p-8 rounded-3xl border border-white/5 hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all cursor-pointer group text-left">
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="flex items-center gap-3">
+                                <span class="px-4 py-1.5 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase rounded-xl border border-blue-500/20">Ticket #${s.ticket_id}</span>
+                                <span class="px-4 py-1.5 ${s.status === 'open' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/5 text-white/40 border-white/10'} text-[10px] font-black uppercase rounded-xl border">${s.status}</span>
+                                <span class="px-4 py-1.5 bg-purple-500/10 text-purple-400 text-[10px] font-black uppercase rounded-xl border border-purple-500/20">${s.category || 'Support'}</span>
+                            </div>
+                            <span class="text-[11px] text-white/30 font-bold uppercase tracking-widest">${new Date(s.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors uppercase tracking-tight">${s.summary}</h4>
+                        
+                        <div class="flex flex-wrap items-center gap-6 mt-8 pt-6 border-t border-white/5">
+                            <div class="flex items-center">
+                                <div class="h-8 w-8 bg-white/5 text-white/40 rounded-full flex items-center justify-center text-xs font-bold mr-3 border border-white/5">A</div>
+                                <div>
+                                    <p class="text-[9px] text-white/30 font-black uppercase tracking-tighter">Assigned Agent</p>
+                                    <p class="text-sm text-white/70 font-bold">${s.agent_name}</p>
+                                </div>
+                            </div>
+                            <div class="ml-auto flex items-center gap-2">
+                                <div class="text-[10px] font-black text-blue-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">View transcript</div>
+                                <div class="h-8 w-8 bg-blue-600 text-white rounded-xl flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to synchronize history.</div>`;
+            }
+        }
+
+        async function loadSession(sessionId, ticketId, summary) {
+            showChat();
+            chatbox.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-10 opacity-50">
+                    <div class="px-4 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase rounded-full border border-blue-500/20 mb-4">History Mode (Read Only)</div>
+                    <h3 class="text-white font-bold text-lg">${summary}</h3>
+                    <p class="text-white/40 text-xs">Case #${ticketId}</p>
+                </div>
+                <div class="border-b border-white/5 my-8"></div>
+            `;
+
+            // Disable input
+            userInput.disabled = true;
+            userInput.placeholder = "Reading history - click 'Conversations' to restart";
+            document.querySelector('#chat-form button[type="submit"]').disabled = true;
+            document.getElementById('close-chat').classList.add('hidden');
+
+            try {
+                const res = await fetch(`/api/history?user_id=${userId}&ticket_id=${ticketId}`);
+                const data = await res.json();
+                if (data.history) {
+                    data.history.forEach(msg => {
+                        let attachment = null;
+                        if (msg.attachments) {
+                            try { attachment = JSON.parse(msg.attachments); } catch (e) { }
+                        }
+                        addMessage(msg.content, msg.role, attachment);
+                    });
+                }
+            } catch (err) {
+                addMessage("Failed to load transcript.", 'ai');
+            }
+        }
+
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const message = userInput.value.trim();
 
             if (!message && !pendingFile) return;
 
-            // Show user message in chat
             const attachmentInfo = pendingFile ? {
                 original_name: pendingFile.name,
                 category: getFileCategoryFromName(pendingFile.name),
@@ -424,7 +552,6 @@
             try {
                 let res;
                 if (pendingFile) {
-                    // Send as multipart/form-data
                     const formData = new FormData();
                     formData.append('message', message);
                     formData.append('user_id', userId);
@@ -434,7 +561,6 @@
                         body: formData
                     });
                 } else {
-                    // Send as JSON (legacy)
                     res = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

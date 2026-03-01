@@ -489,7 +489,14 @@ class DatabaseManager:
         session = self.get_session()
         try:
             u = session.query(User).get(identifier)
-            return { "identifier": u.identifier, "name": u.name, "company": u.company, "state": u.state } if u else None
+            return { 
+                "identifier": u.identifier, 
+                "name": u.name, 
+                "company": u.company, 
+                "position": u.position,
+                "outlet_pos": u.outlet_pos,
+                "state": u.state 
+            } if u else None
         finally:
             self.Session.remove()
 
@@ -497,20 +504,28 @@ class DatabaseManager:
         session = self.get_session()
         try:
             users = session.query(User).all()
-            return [ { "identifier": u.identifier, "name": u.name, "company": u.company } for u in users ]
+            return [ { 
+                "identifier": u.identifier, 
+                "name": u.name, 
+                "company": u.company,
+                "position": u.position,
+                "outlet_pos": u.outlet_pos
+            } for u in users ]
         finally:
             self.Session.remove()
 
-    def create_or_update_user(self, identifier: str, name: str = None, company: str = None, state: str = 'idle'):
+    def create_or_update_user(self, identifier: str, name: str = None, company: str = None, position: str = None, outlet_pos: str = None, state: str = 'idle'):
         session = self.get_session()
         try:
             user = session.query(User).get(identifier)
             if user:
                 if name: user.name = name
                 if company: user.company = company
+                if position: user.position = position
+                if outlet_pos: user.outlet_pos = outlet_pos
                 user.state = state
             else:
-                user = User(identifier=identifier, name=name, company=company, state=state)
+                user = User(identifier=identifier, name=name, company=company, position=position, outlet_pos=outlet_pos, state=state)
                 session.add(user)
             session.commit()
         except Exception as e:

@@ -107,6 +107,8 @@ class User(Base):
     identifier = Column("UserID", Unicode(100), primary_key=True)
     name = Column("DisplayName", Unicode(255))
     company = Column("Company", Unicode(255))
+    position = Column("Position", Unicode(100)) # NEW: Cashier, SPV, Manager, etc.
+    outlet_pos = Column("OutletPOS", Unicode(100)) # NEW: Outlet name or ID
     state = Column("CurrentState", Unicode(20), default="idle")
     created_at = Column("CreatedDate", DateTime, server_default=func.now())
 
@@ -129,6 +131,7 @@ class Ticket(Base):
     full_history = Column("FullHistory", UnicodeText)
     status = Column("Status", Unicode(20), default="open")
     priority = Column("Priority", Unicode(20), default="Medium")
+    category = Column("TicketType", Unicode(50), default="Support") # NEW: Category/Issue Type
     assigned_to = Column("AssignedToAgent", Unicode(100), ForeignKey("app.Agents.Username"))
     asana_task_id = Column("AsanaTaskID", Unicode(100))
     due_at = Column("DueAt", DateTime)
