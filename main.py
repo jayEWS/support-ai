@@ -227,7 +227,9 @@ app.mount("/uploads", StaticFiles(directory=os.path.join("data", "uploads")), na
 
 @app.get("/", response_class=HTMLResponse)
 async def portal_dashboard(request: Request):
-    return templates.TemplateResponse(request, "index.html")
+    response = templates.TemplateResponse(request, "index.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 @app.get("/chat", response_class=HTMLResponse)
 async def live_chat_demo(request: Request):
@@ -235,7 +237,9 @@ async def live_chat_demo(request: Request):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html")
+    response = templates.TemplateResponse(request, "login.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
@@ -404,16 +408,40 @@ async def google_oauth_callback(request: Request, code: str = None, state: str =
 
         db = _require_db()
         agent = db.get_agent_by_google_id(google_sub)
+        
+        # Designated System Admins
+        system_admins = ["support@edgeworks.com.sg", "jay@edgeworks.com.sg"]
+        is_sys_admin = email.lower() in system_admins
+
         if not agent:
-            agent = db.create_or_get_agent(
-                user_id=f"google_{uuid.uuid4().hex[:16]}",
-                name=name,
-                email=email,
-                department="Support",
-                google_id=google_sub,
-            )
+            # Check if an agent with this email already exists
+            agent_data = db.get_agent_by_email(email)
+            if agent_data:
+                # Link existing agent
+                db.update_agent_auth(agent_data["user_id"], google_id=google_sub)
+                agent = db.get_agent(agent_data["user_id"])
+            else:
+                # STRICT: Only auto-create designate admins via Google. 
+                # Others must use Magic Link (Token verification) first.
+                if is_sys_admin:
+                    agent = db.create_or_get_agent(
+                        user_id=f"google_{uuid.uuid4().hex[:16]}",
+                        name=name,
+                        email=email,
+                        department="Management",
+                        google_id=google_sub,
+                    )
+                else:
+                    logger.warning(f"Unauthorized Google registration attempt: {email}")
+                    return RedirectResponse(url="/login?error=use_magic_link")
         else:
             db.update_agent_auth(agent["user_id"], google_id=google_sub)
+            
+        # Ensure System Admin role for designated emails
+        if is_sys_admin:
+            db.create_role("System Admin", "Full system access")
+            db.assign_role_to_agent(agent["user_id"], "System Admin")
+            agent = db.get_agent(agent["user_id"])
 
         access_token = create_access_token(data={"sub": agent["user_id"], "role": agent.get("role", "agent")})
         refresh_token = create_refresh_token()
@@ -474,6 +502,11 @@ async def google_login_token(request: Request):
 
         db = _require_db()
         agent = db.get_agent_by_google_id(google_sub)
+
+        # Designated System Admins
+        system_admins = ["support@edgeworks.com.sg", "jay@edgeworks.com.sg"]
+        is_sys_admin = email.lower() in system_admins
+
         if not agent:
             # Check if an agent with this email already exists
             agent_data = db.get_agent_by_email(email)
@@ -482,17 +515,26 @@ async def google_login_token(request: Request):
                 db.update_agent_auth(agent_data["user_id"], google_id=google_sub)
                 agent = db.get_agent(agent_data["user_id"])
             else:
-                # Create new agent
-                agent = db.create_or_get_agent(
-                    user_id=f"google_{uuid.uuid4().hex[:16]}",
-                    name=name,
-                    email=email,
-                    department="Support",
-                    google_id=google_sub,
-                )
+                # STRICT: Only designate admins can register via Token Login.
+                # Others must use Magic Link flow first.
+                if is_sys_admin:
+                    agent = db.create_or_get_agent(
+                        user_id=f"google_{uuid.uuid4().hex[:16]}",
+                        name=name,
+                        email=email,
+                        department="Management",
+                        google_id=google_sub,
+                    )
+                else:
+                    raise HTTPException(status_code=403, detail="First-time registration must use Magic Link verification.")
         else:
-            # Ensure details are updated if needed
             db.update_agent_auth(agent["user_id"], google_id=google_sub)
+
+        # Ensure System Admin role for designated emails
+        if is_sys_admin:
+            db.create_role("System Admin", "Full system access")
+            db.assign_role_to_agent(agent["user_id"], "System Admin")
+            agent = db.get_agent(agent["user_id"])
 
         access_token = create_access_token(data={"sub": agent["user_id"], "role": agent.get("role", "agent")})
         refresh_token = create_refresh_token()

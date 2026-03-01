@@ -456,11 +456,12 @@
                 const errorEl = document.getElementById('errorMessage');
                 const errorMap = {
                     'missing_code': 'Google login was cancelled.',
-                    'invalid_state': 'Security check failed. Please try again.',
-                    'token_exchange_failed': 'Google login failed. Please try again.',
-                    'invalid_token': 'Google token invalid. Please try again.',
-                    'invalid_domain': 'Only @edgeworks.com.sg accounts are allowed.',
-                    'oauth_failed': 'Google login error. Please try again.',
+                    'invalid_state': 'Security session expired. Please try again.',
+                    'token_exchange_failed': 'Failed to communicate with Google.',
+                    'invalid_token': 'The Google token was invalid or expired.',
+                    'invalid_domain': 'Only @edgeworks.com.sg accounts are permitted.',
+                    'oauth_failed': 'Google authentication failed.',
+                    'use_magic_link': 'First access? Please use Magic Link to verify your account first.',
                     'verification_failed': 'Magic link verification failed.',
                     'Invalid or expired magic link': 'This magic link is invalid or has expired.',
                     'Magic link expired': 'This magic link has expired. Please request a new one.',
