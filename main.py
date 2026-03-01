@@ -341,9 +341,12 @@ async def google_oauth_redirect(request: Request):
 @limiter.limit("10/minute")
 async def google_oauth_callback(request: Request, code: str = None, state: str = None, error: str = None):
     """Handle Google OAuth callback, exchange code for tokens, log user in"""
+    import urllib.parse as _up
+    import httpx as _httpx
+
     if error:
-        return RedirectResponse(url=f"/login?error={urllib.parse.quote(error)}")
-    
+        return RedirectResponse(url=f"/login?error={_up.quote(error)}")
+
     if not code:
         return RedirectResponse(url="/login?error=missing_code")
 
@@ -352,7 +355,6 @@ async def google_oauth_callback(request: Request, code: str = None, state: str =
     if not stored_state or stored_state != state:
         return RedirectResponse(url="/login?error=invalid_state")
 
-    import urllib.parse, httpx as _httpx
     try:
         # Exchange code for tokens
         async with _httpx.AsyncClient() as client:
@@ -412,14 +414,13 @@ async def google_oauth_callback(request: Request, code: str = None, state: str =
         db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
         db.log_action(agent["user_id"], "login_google", "agent", agent["user_id"])
 
-        # Redirect to admin with token stored via JS
-        import urllib.parse as _up
-        params = _up.urlencode({
+        # Redirect to login page so JS can store token and go to /admin
+        qs = _up.urlencode({
             "access_token": access_token,
             "role": agent.get("role", "agent"),
             "name": agent.get("name", agent["user_id"]),
         })
-        response = RedirectResponse(url=f"/login?oauth_success=1&{params}")
+        response = RedirectResponse(url=f"/login?oauth_success=1&{qs}")
         response.delete_cookie("oauth_state")
         _set_auth_cookies(response, access_token, refresh_token)
         return response
@@ -473,6 +474,7 @@ async def request_magic_link(request: Request, background_tasks: BackgroundTasks
 @app.get("/api/auth/magic-link/verify")
 async def verify_magic_link(token: str, email: str, request: Request):
     """Verify magic link and log in user"""
+    import urllib.parse as _up
     try:
         # Check magic link validity
         magic_hash = hash_token(token)
@@ -516,14 +518,13 @@ async def verify_magic_link(token: str, email: str, request: Request):
         
         db.log_action(agent["user_id"], "login_magic_link", "agent", agent["user_id"])
         
-        # Redirect to login page with token in URL fragment so JS can store it and go to /admin
-        import urllib.parse as _up
-        params = _up.urlencode({
+        # Redirect to login page with token in URL so JS can store it and go to /admin
+        qs = _up.urlencode({
             "access_token": access_token,
             "role": agent.get("role", "agent"),
             "name": agent.get("name", agent["user_id"]),
         })
-        response = RedirectResponse(url=f"/login?magic_success=1&{params}", status_code=302)
+        response = RedirectResponse(url=f"/login?magic_success=1&{qs}", status_code=302)
         _set_auth_cookies(response, access_token, refresh_token)
         return response
     except HTTPException as he:
