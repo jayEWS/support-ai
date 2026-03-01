@@ -138,7 +138,7 @@
     <aside class="w-72 bg-white border-r flex flex-col shadow-sm">
         <div class="p-8">
             <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Support <span
-                    class="text-blue-600">Edgeworks</span> !!</h1>
+                    class="text-blue-600">AI</span></h1>
             <p class="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Enterprise Edition</p>
         </div>
         <nav class="flex-1 px-4 space-y-2">
@@ -152,12 +152,14 @@
             </a>
 
             <a href="#" onclick="showHistory()"
-                class="sidebar-link flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                History
+                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition group">
+                <span
+                    class="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-md font-black uppercase tracking-tighter mr-3 shadow-sm shadow-red-200">history</span>
+                <!-- Blurred placeholders as seen in screenshot -->
+                <div class="space-y-1 opacity-20 group-hover:opacity-40 transition-opacity">
+                    <div class="h-1.5 w-20 bg-slate-400 rounded"></div>
+                    <div class="h-1.5 w-12 bg-slate-300 rounded"></div>
+                </div>
             </a>
 
             <!-- Only visible for Agents -->
@@ -216,39 +218,51 @@
             </div>
         </div>
 
-        <div class="p-8 bg-white/80 backdrop-blur-md border-t">
-            <div class="max-w-4xl mx-auto flex flex-col gap-3">
+        <div class="p-8 bg-[#121417]/95 backdrop-blur-xl border-t border-white/5 py-10">
+            <div class="max-w-5xl mx-auto flex flex-col gap-4">
                 <!-- Pending file bar -->
-                <div id="pending-file" class="pending-file-bar">
-                    <span id="pending-file-icon">📎</span>
-                    <span id="pending-file-name" class="font-semibold truncate"></span>
-                    <span id="pending-file-size" class="text-xs text-blue-400"></span>
-                    <span class="remove-file" onclick="clearPendingFile()" title="Remove file">✕</span>
+                <div id="pending-file"
+                    class="pending-file-bar bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-2xl hidden items-center gap-3">
+                    <span id="pending-file-icon" class="text-xl">📎</span>
+                    <div class="flex-1 min-w-0">
+                        <p id="pending-file-name" class="font-bold text-white text-sm truncate"></p>
+                        <p id="pending-file-size" class="text-[10px] text-blue-400 font-bold uppercase"></p>
+                    </div>
+                    <button type="button" onclick="clearPendingFile()"
+                        class="text-white/40 hover:text-red-500 transition px-2">✕</button>
                 </div>
 
                 <form id="chat-form" class="relative group">
-                    <input type="text" id="user-input" placeholder="Type your message..."
-                        class="w-full pl-6 pr-52 py-5 bg-slate-50 border-0 rounded-3xl focus:ring-4 focus:ring-blue-100 transition text-lg shadow-inner" />
-                    <div class="absolute right-2 top-2 bottom-2 flex gap-2">
-                        <!-- File attach button -->
-                        <button type="button" id="attach-btn"
-                            class="px-4 bg-white text-slate-500 border border-slate-100 font-bold rounded-2xl hover:bg-slate-50 hover:text-blue-600 transition"
-                            title="Attach file">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                            </svg>
-                        </button>
-                        <input type="file" id="file-input" class="hidden"
-                            accept=".pdf,.txt,.doc,.docx,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.ogg,.m4a,.mp4,.mov,.webm" />
-                        <button type="submit"
-                            class="px-8 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">Send</button>
-                        <button type="button" id="close-chat"
-                            class="px-6 bg-white text-red-600 border border-red-50 font-bold rounded-2xl hover:bg-red-50 transition">End
-                            Chat</button>
+                    <div
+                        class="flex items-center bg-[#1e2023] rounded-3xl p-2 pl-6 shadow-2xl border border-white/5 focus-within:ring-4 focus-within:ring-blue-500/20 transition-all">
+                        <input type="text" id="user-input" placeholder="Type your message..."
+                            class="flex-1 bg-transparent border-0 text-white focus:ring-0 text-lg py-4 placeholder-white/20" />
+
+                        <div class="flex items-center gap-2 pr-2">
+                            <!-- File attach button -->
+                            <button type="button" id="attach-btn"
+                                class="w-12 h-12 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 rounded-2xl transition"
+                                title="Attach file or Paste here">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                            </button>
+                            <input type="file" id="file-input" class="hidden"
+                                accept=".pdf,.txt,.doc,.docx,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.ogg,.m4a,.mp4,.mov,.webm,$*.*" />
+
+                            <button type="submit"
+                                class="px-8 py-3 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 uppercase text-xs tracking-widest">Send</button>
+
+                            <button type="button" id="close-chat"
+                                class="px-6 py-3 bg-[#2a0e0e] text-red-500 border border-red-500/20 font-black rounded-2xl hover:bg-red-500 hover:text-white transition uppercase text-xs tracking-widest">End
+                                Chat</button>
+                        </div>
                     </div>
                 </form>
             </div>
+        </div>
+        </div>
         </div>
     </main>
 
@@ -290,6 +304,17 @@
         }
 
         initPortal();
+
+        // Paste support for files/images
+        userInput.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    setPendingFile(file);
+                }
+            }
+        });
 
 
         // File category helpers
