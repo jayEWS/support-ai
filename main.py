@@ -249,6 +249,9 @@ async def login(request: Request):
     try:
         data = await request.json()
         email, password = data.get("email"), data.get("password")
+        if not email or not email.lower().endswith("@edgeworks.com.sg"):
+            raise HTTPException(status_code=403, detail="Only @edgeworks.com.sg accounts are allowed")
+            
         db = _require_db()
         agent = db.get_agent_by_email(email)
         if not agent or not verify_password(password, agent.get("hashed_password")):
@@ -330,6 +333,7 @@ async def google_oauth_redirect(request: Request):
         "access_type": "offline",
         "state": state,
         "prompt": "select_account",
+        "hd": "edgeworks.com.sg",
     }
     google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
     response = RedirectResponse(url=google_auth_url)
@@ -392,6 +396,10 @@ async def google_oauth_callback(request: Request, code: str = None, state: str =
 
         google_sub = id_info["sub"]
         email = id_info.get("email", "")
+        if not email or not email.lower().endswith("@edgeworks.com.sg"):
+            logger.warning(f"Google login domain mismatch: {email}")
+            return RedirectResponse(url="/login?error=invalid_domain")
+            
         name = id_info.get("name", email.split("@")[0] if email else "Agent")
 
         db = _require_db()
@@ -458,6 +466,10 @@ async def google_login_token(request: Request):
 
         google_sub = id_info["sub"]
         email = id_info.get("email", "")
+        if not email or not email.lower().endswith("@edgeworks.com.sg"):
+            logger.warning(f"Google token domain mismatch: {email}")
+            raise HTTPException(status_code=403, detail="Only @edgeworks.com.sg accounts are allowed")
+
         name = id_info.get("name", email.split("@")[0] if email else "Agent")
 
         db = _require_db()
@@ -512,6 +524,8 @@ async def request_magic_link(request: Request, background_tasks: BackgroundTasks
     try:
         data = await request.json()
         email = data.get("email")
+        if not email or not email.lower().endswith("@edgeworks.com.sg"):
+            raise HTTPException(status_code=403, detail="Only @edgeworks.com.sg accounts are allowed")
         
         if not email:
             raise HTTPException(status_code=400, detail="Email required")
