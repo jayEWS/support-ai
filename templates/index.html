@@ -40,7 +40,7 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 0.75rem;
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 0.75rem;
             margin-top: 0.5rem;
             font-size: 0.85rem;
@@ -69,10 +69,25 @@
             flex-shrink: 0;
         }
 
-        .file-icon.doc { background: #dbeafe; color: #2563eb; }
-        .file-icon.img { background: #fce7f3; color: #db2777; }
-        .file-icon.audio { background: #ede9fe; color: #7c3aed; }
-        .file-icon.video { background: #d1fae5; color: #059669; }
+        .file-icon.doc {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .file-icon.img {
+            background: #fce7f3;
+            color: #db2777;
+        }
+
+        .file-icon.audio {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
+        .file-icon.video {
+            background: #d1fae5;
+            color: #059669;
+        }
 
         /* Drag overlay */
         .drag-overlay {
@@ -123,7 +138,7 @@
     <aside class="w-72 bg-white border-r flex flex-col shadow-sm">
         <div class="p-8">
             <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Support <span
-                    class="text-blue-600">AI</span></h1>
+                    class="text-blue-600">Edgeworks</span> !!</h1>
             <p class="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Enterprise Edition</p>
         </div>
         <nav class="flex-1 px-4 space-y-2">
@@ -135,31 +150,36 @@
                 </svg>
                 Conversations
             </a>
-            <button onclick="toggleKnowledgeBase()"
-                class="w-full flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition text-left">
+
+            <a href="#" onclick="showHistory()"
+                class="sidebar-link flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Knowledge Base
-            </button>
-            <a href="/admin"
-                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Agent Dashboard
+                History
             </a>
+
+            <!-- Only visible for Agents -->
+            <div id="agent-links" class="hidden pt-4 mt-4 border-t border-slate-100">
+                <a href="/admin"
+                    class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Agent Dashboard
+                </a>
+            </div>
         </nav>
         <div class="p-6 mt-auto border-t bg-slate-50 rounded-t-3xl">
             <div class="flex items-center">
-                <div
+                <div id="user-initial"
                     class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
                     U</div>
                 <div class="ml-3">
-                    <p class="text-sm font-bold text-slate-800">Welcome User</p>
-                    <p class="text-xs text-slate-500">Self Service</p>
+                    <p id="user-name-display" class="text-sm font-bold text-slate-800">Welcome User</p>
+                    <p id="user-role-display" class="text-xs text-slate-500">Self Service</p>
                 </div>
             </div>
         </div>
@@ -179,39 +199,6 @@
                 <p class="text-blue-700 font-bold text-lg">Drop file to attach</p>
                 <p class="text-blue-400 text-sm">Images, Documents, Audio, Video</p>
             </div>
-        </div>
-
-        <!-- Knowledge Base Modal (Hidden by default) -->
-        <div id="kb-modal"
-            class="absolute inset-0 z-50 bg-white transform translate-x-full transition-transform duration-300 p-10 flex flex-col">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-extrabold text-slate-800">Knowledge Ingestion</h2>
-                <button onclick="toggleKnowledgeBase()" class="p-2 hover:bg-slate-100 rounded-full"><svg class="w-8 h-8"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg></button>
-            </div>
-            <form id="upload-form" class="max-w-xl">
-                <div
-                    class="border-4 border-dashed border-slate-100 rounded-3xl p-16 flex flex-col items-center justify-center hover:border-blue-100 hover:bg-blue-50/30 transition group text-center">
-                    <div
-                        class="h-20 w-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 transition group-hover:scale-110">
-                        <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                    </div>
-                    <p class="text-slate-600 font-semibold">Drop PDF, DOCX, TXT, XLSX, CSV, or media files here</p>
-                    <p class="text-slate-400 text-sm mt-1">All file types supported</p>
-                    <input type="file" name="file"
-                        accept=".pdf,.txt,.doc,.docx,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.mp3,.wav,.mp4,.mov,.webm"
-                        class="mt-4 text-sm file:bg-blue-600 file:text-white file:border-0 file:px-6 file:py-2 file:rounded-full file:font-bold hover:file:bg-blue-700 cursor-pointer mx-auto" />
-                </div>
-                <button type="submit"
-                    class="w-full mt-6 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition shadow-xl">Update
-                    Training Model</button>
-            </form>
         </div>
 
         <div id="chatbox" class="flex-1 overflow-y-auto p-10 space-y-6">
@@ -267,11 +254,9 @@
 
     <script>
         const chatForm = document.getElementById('chat-form');
-        const uploadForm = document.getElementById('upload-form');
         const closeBtn = document.getElementById('close-chat');
         const chatbox = document.getElementById('chatbox');
         const userInput = document.getElementById('user-input');
-        const kbModal = document.getElementById('kb-modal');
         const attachBtn = document.getElementById('attach-btn');
         const fileInput = document.getElementById('file-input');
         const pendingFileBar = document.getElementById('pending-file');
@@ -282,6 +267,30 @@
         const userId = "web_portal_user";
 
         let pendingFile = null;
+
+        // AUTH & PERMISSIONS CHECK
+        async function initPortal() {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const agent = await res.json();
+                    document.getElementById('agent-links').classList.remove('hidden');
+                    document.getElementById('user-name-display').innerText = agent.name;
+                    document.getElementById('user-role-display').innerText = agent.role;
+                    document.getElementById('user-initial').innerText = agent.name.charAt(0).toUpperCase();
+                }
+            } catch (err) {
+                console.log("Not an agent or not logged in.");
+            }
+        }
+
+        function showHistory() {
+            // Simply scrolls chat to top if there is content
+            chatbox.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        initPortal();
+
 
         // File category helpers
         function getFileIcon(category) {
@@ -419,9 +428,9 @@
 
         closeBtn.addEventListener('click', async () => {
             const opt = prompt("How would you like to close the chat?\n\n1. Create ticket summary and status automatically (sent to user)\n2. Close, create ticket, send ticket number and status\n\nEnter 1 or 2:");
-            
+
             if (opt !== '1' && opt !== '2') {
-                if(opt !== null) alert("Invalid selection. Chat not closed.");
+                if (opt !== null) alert("Invalid selection. Chat not closed.");
                 return;
             }
 
@@ -440,29 +449,7 @@
             finally { closeBtn.disabled = false; }
         });
 
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(uploadForm);
-            const btn = uploadForm.querySelector('button');
-            btn.innerText = "Processing...";
-            btn.disabled = true;
-            try {
-                // Correct endpoint: /api/knowledge/upload
-                const res = await fetch('/api/knowledge/upload', {
-                    method: 'POST',
-                    // Auth handled via session cookies for portal
-                    body: formData
-                });
-                const data = await res.json();
-                alert(res.ok ? "Success: Knowledge base updated" : "Error: " + (data.detail || data.error || "Unknown error"));
-            } catch (err) { alert("Upload error."); }
-            finally {
-                btn.innerText = "Update Training Model";
-                btn.disabled = false;
-                uploadForm.reset();
-                toggleKnowledgeBase();
-            }
-        });
+
 
         function addMessage(text, type, attachment) {
             const wrapper = document.createElement('div');
@@ -548,9 +535,9 @@
                         if (msg.attachments) {
                             try {
                                 attachment = JSON.parse(msg.attachments);
-                            } catch (e) {}
+                            } catch (e) { }
                         }
-                        
+
                         // Fix text formatting for uploaded files
                         let text = msg.content;
                         if (text && text.startsWith('[User uploaded a ') && attachment) {
