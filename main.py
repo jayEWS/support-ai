@@ -312,57 +312,123 @@ async def refresh_token_route(request: Request):
     return response
 
 # ============ GOOGLE OAUTH LOGIN ============
-@app.post("/api/auth/google/login")
-@limiter.limit("5/minute")
-async def google_login(request: Request):
-    """Google OAuth callback - exchanges Google token for app access token"""
+@app.get("/api/auth/google")
+@limiter.limit("10/minute")
+async def google_oauth_redirect(request: Request):
+    """Redirect user to Google OAuth consent screen"""
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=501, detail="Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
+    
+    import urllib.parse, secrets
+    state = secrets.token_urlsafe(16)
+    # Store state in session cookie for CSRF protection
+    params = {
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "state": state,
+        "prompt": "select_account",
+    }
+    google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
+    response = RedirectResponse(url=google_auth_url)
+    response.set_cookie("oauth_state", state, max_age=300, httponly=True, samesite="lax")
+    return response
+
+
+@app.get("/api/auth/google/callback")
+@limiter.limit("10/minute")
+async def google_oauth_callback(request: Request, code: str = None, state: str = None, error: str = None):
+    """Handle Google OAuth callback, exchange code for tokens, log user in"""
+    if error:
+        return RedirectResponse(url=f"/login?error={urllib.parse.quote(error)}")
+    
+    if not code:
+        return RedirectResponse(url="/login?error=missing_code")
+
+    # Validate state for CSRF protection
+    stored_state = request.cookies.get("oauth_state")
+    if not stored_state or stored_state != state:
+        return RedirectResponse(url="/login?error=invalid_state")
+
+    import urllib.parse, httpx as _httpx
     try:
-        data = await request.json()
-        google_id_token = data.get("id_token") or data.get("token")
-        
-        if not google_id_token:
-            raise HTTPException(status_code=400, detail="Missing Google token")
+        # Exchange code for tokens
+        async with _httpx.AsyncClient() as client:
+            token_resp = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+                    "grant_type": "authorization_code",
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=10,
+            )
+        if token_resp.status_code != 200:
+            logger.error(f"Google token exchange failed: {token_resp.text}")
+            return RedirectResponse(url="/login?error=token_exchange_failed")
+
+        token_data = token_resp.json()
+        id_token_str = token_data.get("id_token")
+
+        # Verify the ID token with Google
+        from google.oauth2 import id_token as google_id_token_lib
+        from google.auth.transport import requests as google_requests
+        try:
+            id_info = google_id_token_lib.verify_oauth2_token(
+                id_token_str,
+                google_requests.Request(),
+                settings.GOOGLE_CLIENT_ID,
+            )
+        except Exception as verify_err:
+            logger.error(f"Google ID token verification failed: {verify_err}")
+            return RedirectResponse(url="/login?error=invalid_token")
+
+        google_sub = id_info["sub"]
+        email = id_info.get("email", "")
+        name = id_info.get("name", email.split("@")[0] if email else "Agent")
+
         db = _require_db()
-        # Try to get/create agent with Google ID
-        agent = db.get_agent_by_google_id(google_id_token.split(".")[0][:50])
-        
+        agent = db.get_agent_by_google_id(google_sub)
         if not agent:
-            # Create new agent from Google data
-            email = data.get("email") or f"google_{uuid.uuid4().hex[:8]}@support.local"
             agent = db.create_or_get_agent(
                 user_id=f"google_{uuid.uuid4().hex[:16]}",
-                name=data.get("name", "Support Agent"),
+                name=name,
                 email=email,
                 department="Support",
-                google_id=google_id_token.split(".")[0][:50]
+                google_id=google_sub,
             )
         else:
-            # Update agent's last login
-            db.update_agent_auth(agent["user_id"], google_id=google_id_token.split(".")[0][:50])
-        
-        # Create session tokens
+            db.update_agent_auth(agent["user_id"], google_id=google_sub)
+
         access_token = create_access_token(data={"sub": agent["user_id"], "role": agent.get("role", "agent")})
         refresh_token = create_refresh_token()
         refresh_hash = hash_token(refresh_token)
         refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
-        
         db.log_action(agent["user_id"], "login_google", "agent", agent["user_id"])
-        
-        response = JSONResponse({
+
+        # Redirect to admin with token stored via JS
+        import urllib.parse as _up
+        params = _up.urlencode({
             "access_token": access_token,
-            "token_type": "bearer",
             "role": agent.get("role", "agent"),
             "name": agent.get("name", agent["user_id"]),
-            "email": agent.get("email")
         })
+        response = RedirectResponse(url=f"/login?oauth_success=1&{params}")
+        response.delete_cookie("oauth_state")
         _set_auth_cookies(response, access_token, refresh_token)
         return response
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Google login error: {e}")
-        raise HTTPException(status_code=500, detail="Google authentication failed")
+        logger.error(f"Google OAuth callback error: {e}")
+        return RedirectResponse(url="/login?error=oauth_failed")
 
 # ============ MAGIC LINK LOGIN ============
 @app.post("/api/auth/magic-link/request")
@@ -450,20 +516,21 @@ async def verify_magic_link(token: str, email: str, request: Request):
         
         db.log_action(agent["user_id"], "login_magic_link", "agent", agent["user_id"])
         
-        response = JSONResponse({
+        # Redirect to login page with token in URL fragment so JS can store it and go to /admin
+        import urllib.parse as _up
+        params = _up.urlencode({
             "access_token": access_token,
-            "token_type": "bearer",
             "role": agent.get("role", "agent"),
             "name": agent.get("name", agent["user_id"]),
-            "email": agent.get("email")
         })
+        response = RedirectResponse(url=f"/login?magic_success=1&{params}", status_code=302)
         _set_auth_cookies(response, access_token, refresh_token)
         return response
-    except HTTPException:
-        raise
+    except HTTPException as he:
+        return RedirectResponse(url=f"/login?error={_up.quote(he.detail)}", status_code=302)
     except Exception as e:
         logger.error(f"Magic link verification error: {e}")
-        raise HTTPException(status_code=500, detail="Magic link verification failed")
+        return RedirectResponse(url="/login?error=verification_failed", status_code=302)
 
 # ============ Management APIs ============
 
