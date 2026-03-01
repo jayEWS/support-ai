@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # WhatsApp / Bird Settings
     BIRD_API_KEY: str = ""
     BIRD_CHANNEL_ID: str = ""
-    BIRD_WORKSPACE_ID: str = "4932e6f4-906c-49fb-989f-ed4185e84e57"
+    BIRD_WORKSPACE_ID: str = ""  # Set via environment variable
     BIRD_WEBHOOK_SECRET: str = ""
     
     # Email / Mailgun Settings

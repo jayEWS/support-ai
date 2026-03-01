@@ -16,8 +16,8 @@ def test_complete_flow():
     
     # Set environment variables
     env = os.environ.copy()
-    env['BASE_URL'] = 'http://localhost:8001'
-    env['DATABASE_URL'] = 'postgresql+psycopg2://kfkneyixgmvhud:p1cbfb16ba62f8e1f9a8c7e4a33e91b43@ep-shrill-mouse-a5a8p8yq.us-east-1.rds.supabase.co:5432/postgres'
+    env['BASE_URL'] = os.environ.get('BASE_URL', 'http://localhost:8001')
+    # DATABASE_URL must be set in environment or .env file - never hardcode credentials here
     
     # Start server
     print("Starting server...")

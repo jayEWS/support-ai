@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Fix encoding for Windows
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-# Set database URL
-os.environ['DATABASE_URL'] = 'postgresql+psycopg2://kfkneyixgmvhud:p1cbfb16ba62f8e1f9a8c7e4a33e91b43@ep-shrill-mouse-a5a8p8yq.us-east-1.rds.supabase.co:5432/postgres'
+# Set database URL - must be provided via environment variable or .env file
+# os.environ['DATABASE_URL'] = 'set via .env file or shell environment'
 
 from app.core.database import DatabaseManager
 from app.core.logging import logger

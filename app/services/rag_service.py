@@ -3,7 +3,6 @@ import asyncio
 from typing import List, Optional
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
-from langchain.retrievers.ensemble import EnsembleRetriever
 from rank_bm25 import BM25Okapi
 from app.core.config import settings
 from app.core.logging import logger
