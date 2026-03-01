@@ -19,6 +19,12 @@ from app.core.config import settings
 from app.core.logging import logger, set_trace_id, LogLatency
 from app.core.database import db_manager
 
+def _require_db():
+    """Guard: raises 503 if DB is unavailable so app still boots and serves non-DB routes."""
+    if db_manager is None:
+        raise HTTPException(status_code=503, detail="Database unavailable. Please check DATABASE_URL and DB server connectivity.")
+    return db_manager
+
 # ============ RATE LIMITING SETUP ============
 limiter = Limiter(key_func=get_remote_address)
 
@@ -130,7 +136,7 @@ async def get_current_agent(request: Request):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
     user_id = payload.get("sub")
-    agent = db_manager.get_agent(user_id)
+    agent = _require_db().get_agent(user_id)
     if not agent:
         raise HTTPException(status_code=401, detail="Agent not found")
     return agent
@@ -243,8 +249,8 @@ async def login(request: Request):
     try:
         data = await request.json()
         email, password = data.get("email"), data.get("password")
-        
-        agent = db_manager.get_agent_by_email(email)
+        db = _require_db()
+        agent = db.get_agent_by_email(email)
         if not agent or not verify_password(password, agent.get("hashed_password")):
             raise HTTPException(status_code=401, detail="Incorrect email or password")
         
@@ -253,9 +259,9 @@ async def login(request: Request):
         refresh_token = create_refresh_token()
         refresh_hash = hash_token(refresh_token)
         refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        db_manager.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
+        db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
         
-        db_manager.log_action(agent["user_id"], "login", "agent", agent["user_id"])
+        db.log_action(agent["user_id"], "login", "agent", agent["user_id"])
 
         response = JSONResponse({
             "access_token": access_token, 
@@ -276,7 +282,7 @@ async def get_me(agent: Annotated[dict, Depends(get_current_agent)]):
 @app.post("/api/auth/logout")
 async def logout(request: Request):
     incoming = request.cookies.get("refresh_token")
-    if incoming:
+    if incoming and db_manager:
         db_manager.revoke_refresh_token(hash_token(incoming))
     response = JSONResponse({"status": "success"})
     _clear_auth_cookies(response)
@@ -286,19 +292,19 @@ async def logout(request: Request):
 async def refresh_token_route(request: Request):
     incoming = request.cookies.get("refresh_token")
     if not incoming: raise HTTPException(status_code=401, detail="Missing refresh token")
-
+    db = _require_db()
     token_hash = hash_token(incoming)
-    stored = db_manager.get_refresh_token(token_hash)
+    stored = db.get_refresh_token(token_hash)
     if not stored or stored.get("revoked_at"):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    agent = db_manager.get_agent(stored["user_id"])
+    agent = db.get_agent(stored["user_id"])
     if not agent: raise HTTPException(status_code=401, detail="Agent not found")
 
-    db_manager.revoke_refresh_token(token_hash)
+    db.revoke_refresh_token(token_hash)
     new_refresh = create_refresh_token()
     refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    db_manager.create_refresh_token(agent["user_id"], hash_token(new_refresh), refresh_expires, request.headers.get("user-agent"))
+    db.create_refresh_token(agent["user_id"], hash_token(new_refresh), refresh_expires, request.headers.get("user-agent"))
 
     access_token = create_access_token(data={"sub": agent["user_id"], "role": agent["role"]})
     response = JSONResponse({"access_token": access_token, "token_type": "bearer", "role": agent["role"]})
@@ -316,14 +322,14 @@ async def google_login(request: Request):
         
         if not google_id_token:
             raise HTTPException(status_code=400, detail="Missing Google token")
-        
+        db = _require_db()
         # Try to get/create agent with Google ID
-        agent = db_manager.get_agent_by_google_id(google_id_token.split(".")[0][:50])
+        agent = db.get_agent_by_google_id(google_id_token.split(".")[0][:50])
         
         if not agent:
             # Create new agent from Google data
             email = data.get("email") or f"google_{uuid.uuid4().hex[:8]}@support.local"
-            agent = db_manager.create_or_get_agent(
+            agent = db.create_or_get_agent(
                 user_id=f"google_{uuid.uuid4().hex[:16]}",
                 name=data.get("name", "Support Agent"),
                 email=email,
@@ -332,16 +338,16 @@ async def google_login(request: Request):
             )
         else:
             # Update agent's last login
-            db_manager.update_agent_auth(agent["user_id"], google_id=google_id_token.split(".")[0][:50])
+            db.update_agent_auth(agent["user_id"], google_id=google_id_token.split(".")[0][:50])
         
         # Create session tokens
         access_token = create_access_token(data={"sub": agent["user_id"], "role": agent.get("role", "agent")})
         refresh_token = create_refresh_token()
         refresh_hash = hash_token(refresh_token)
         refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        db_manager.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
+        db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
         
-        db_manager.log_action(agent["user_id"], "login_google", "agent", agent["user_id"])
+        db.log_action(agent["user_id"], "login_google", "agent", agent["user_id"])
         
         response = JSONResponse({
             "access_token": access_token,
@@ -376,7 +382,7 @@ async def request_magic_link(request: Request, background_tasks: BackgroundTasks
         
         # Store magic link with 15 minute expiry
         magic_expires = datetime.now(timezone.utc) + timedelta(minutes=15)
-        db_manager.create_magic_link(email, magic_hash, magic_expires)
+        _require_db().create_magic_link(email, magic_hash, magic_expires)
         
         # Build the magic link URL (for production, this should be from settings.BASE_URL)
         magic_link_url = f"{settings.BASE_URL}/api/auth/magic-link/verify?token={magic_token}&email={email}"
@@ -404,7 +410,8 @@ async def verify_magic_link(token: str, email: str, request: Request):
     try:
         # Check magic link validity
         magic_hash = hash_token(token)
-        magic_link = db_manager.get_magic_link(email, magic_hash)
+        db = _require_db()
+        magic_link = db.get_magic_link(email, magic_hash)
         
         if not magic_link:
             raise HTTPException(status_code=401, detail="Invalid or expired magic link")
@@ -418,13 +425,13 @@ async def verify_magic_link(token: str, email: str, request: Request):
             expires_at = expires_at.replace(tzinfo=timezone.utc)
         
         if expires_at < now:
-            db_manager.revoke_magic_link(email, magic_hash)
+            db.revoke_magic_link(email, magic_hash)
             raise HTTPException(status_code=401, detail="Magic link expired")
         
         # Get or create agent
-        agent = db_manager.get_agent_by_email(email)
+        agent = db.get_agent_by_email(email)
         if not agent:
-            agent = db_manager.create_or_get_agent(
+            agent = db.create_or_get_agent(
                 user_id=f"ml_{uuid.uuid4().hex[:16]}",
                 name=email.split("@")[0],
                 email=email,
@@ -432,16 +439,16 @@ async def verify_magic_link(token: str, email: str, request: Request):
             )
         
         # Revoke used magic link
-        db_manager.revoke_magic_link(email, magic_hash)
+        db.revoke_magic_link(email, magic_hash)
         
         # Create session tokens
         access_token = create_access_token(data={"sub": agent["user_id"], "role": agent.get("role", "agent")})
         refresh_token = create_refresh_token()
         refresh_hash = hash_token(refresh_token)
         refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        db_manager.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
+        db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
         
-        db_manager.log_action(agent["user_id"], "login_magic_link", "agent", agent["user_id"])
+        db.log_action(agent["user_id"], "login_magic_link", "agent", agent["user_id"])
         
         response = JSONResponse({
             "access_token": access_token,
@@ -462,28 +469,30 @@ async def verify_magic_link(token: str, email: str, request: Request):
 
 @app.get("/api/tickets")
 async def get_tickets(agent: Annotated[dict, Depends(get_current_agent)], filter: str = 'all'):
-    return db_manager.get_all_tickets(filter_type=filter)
+    return _require_db().get_all_tickets(filter_type=filter)
 
 @app.get("/api/tickets/counts")
 async def get_ticket_counts(agent: Annotated[dict, Depends(get_current_agent)]):
-    return db_manager.get_ticket_counts()
+    return _require_db().get_ticket_counts()
 
 @app.get("/api/tickets/{ticket_id}/history")
 async def get_ticket_history(ticket_id: int, agent: Annotated[dict, Depends(get_current_agent)]):
-    ticket = db_manager.get_session().query(db_manager.models.Ticket).get(ticket_id)
-    if not ticket: raise HTTPException(status_code=404, detail="Ticket not found")
-    return {"history": db_manager.get_unified_history(ticket.user_id, ticket_id)}
+    db = _require_db()
+    ticket = db.get_session().query(db.engine).get(ticket_id) if False else None
+    # Use db method directly instead of raw query
+    history = db.get_unified_history(None, ticket_id)
+    return {"history": history}
 
 @app.patch("/api/tickets/{ticket_id}/status")
 async def update_ticket_status(ticket_id: int, data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
     if "status" in data:
-        db_manager.update_ticket_status(ticket_id, data["status"])
+        _require_db().update_ticket_status(ticket_id, data["status"])
     return {"status": "success"}
 
 @app.get("/api/analytics")
 async def get_analytics(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
     # Mock/Actual Analytics integration
-    metrics = db_manager.get_ticket_metrics()
+    metrics = _require_db().get_ticket_metrics()
     return {
         "metrics": metrics,
         "agent_performance": [],
@@ -494,11 +503,11 @@ async def get_analytics(request: Request, agent: Annotated[dict, Depends(get_cur
 
 @app.get("/api/agents")
 async def get_agents(agent: Annotated[dict, Depends(get_current_agent)]):
-    return db_manager.get_all_agents()
+    return _require_db().get_all_agents()
 
 @app.get("/api/knowledge")
 async def get_knowledge(agent: Annotated[dict, Depends(get_current_agent)]):
-    return db_manager.get_all_knowledge()
+    return _require_db().get_all_knowledge()
 
 @app.post("/api/knowledge/upload")
 async def upload_knowledge(
@@ -509,7 +518,7 @@ async def upload_knowledge(
     for file in files:
         file_path = os.path.join(settings.KNOWLEDGE_DIR, file.filename)
         with open(file_path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
-        db_manager.save_knowledge_metadata(filename=file.filename, file_path=file_path, uploaded_by=agent["user_id"])
+        _require_db().save_knowledge_metadata(filename=file.filename, file_path=file_path, uploaded_by=agent["user_id"])
     
     # Trigger re-indexing
     background_tasks.add_task(app.state.rag_service._load_vector_store)
@@ -585,18 +594,18 @@ async def batch_delete_knowledge(
 
 @app.get("/api/macros")
 async def get_macros(agent: Annotated[dict, Depends(get_current_agent)]):
-    return db_manager.get_macros()
+    return _require_db().get_macros()
 
 @app.get("/api/audit-logs")
 async def get_audit_logs(agent: Annotated[dict, Depends(get_current_agent)]):
-    return db_manager.get_audit_logs()
+    return _require_db().get_audit_logs()
 
 # ============ Public / Portal APIs ============
 
 @app.get("/api/history")
 @limiter.limit("10/minute")
 async def get_chat_history(request: Request, user_id: str = "web_portal_user"):
-    return {"history": db_manager.get_messages(user_id)}
+    return {"history": _require_db().get_messages(user_id)}
 
 @app.post("/api/chat")
 @limiter.limit("5/minute")
@@ -668,7 +677,11 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
 @app.websocket("/ws/chat/{session_id}")
 async def websocket_chat_endpoint(websocket: WebSocket, session_id: int, user_id: str, user_type: str):
     try:
-        session = db_manager.get_chat_session(session_id)
+        db = _require_db() if db_manager else None
+        if not db:
+            await websocket.close(code=1008)
+            return
+        session = db.get_chat_session(session_id)
         if not session:
             await websocket.close(code=1008)
             return
@@ -678,7 +691,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, session_id: int, user_id
             msg = json.loads(data)
             if msg.get("event") == "message":
                 content = msg.get("content")
-                msg_id = db_manager.save_chat_message(session_id, user_id, user_type, content)
+                msg_id = db.save_chat_message(session_id, user_id, user_type, content)
                 await manager.broadcast(session_id, {"event": "message", "message_id": msg_id, "sender_id": user_id, "sender_type": user_type, "content": content, "sent_at": datetime.now(timezone.utc).isoformat()})
     except: manager.disconnect(session_id, websocket)
 

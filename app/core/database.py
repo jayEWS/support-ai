@@ -10,11 +10,14 @@ from typing import List, Optional
 class DatabaseManager:
     def __init__(self):
         # SQL Server Engine
+        # pool_pre_ping disabled at startup to avoid blocking when DB is unreachable
+        # The app will still boot and retry connections on each request
         self.engine = create_engine(
             settings.DATABASE_URL,
-            pool_pre_ping=True,
-            pool_size=10,
-            max_overflow=20
+            pool_pre_ping=False,
+            pool_size=5,
+            max_overflow=10,
+            connect_args={"connect_timeout": 10}  # 10s timeout instead of default 2 min
         )
         self.session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(self.session_factory)
@@ -898,4 +901,9 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-db_manager = DatabaseManager()
+try:
+    db_manager = DatabaseManager()
+except Exception as e:
+    import logging
+    logging.getLogger(__name__).error(f"Failed to initialize DatabaseManager: {e}. App will start but DB features will be unavailable.")
+    db_manager = None
