@@ -12,13 +12,13 @@ git reset --hard origin/main
 
 echo "=== [2/6] Update .env ==="
 # BASE_URL
-sed -i 's|^BASE_URL=.*|BASE_URL=http://136.110.61.119:8000|' .env
+sed -i 's|^BASE_URL=.*|BASE_URL=http://136-110-61-119.nip.io:8000|' .env
 
 # GOOGLE_REDIRECT_URI - add if missing, update if exists
 if grep -q "^GOOGLE_REDIRECT_URI=" .env; then
-    sed -i 's|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=http://136.110.61.119:8000/api/auth/google/callback|' .env
+    sed -i 's|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback|' .env
 else
-    echo "GOOGLE_REDIRECT_URI=http://136.110.61.119:8000/api/auth/google/callback" >> .env
+    echo "GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback" >> .env
 fi
 
 # Supabase pooler URL (IPv4, port 6543)
@@ -68,5 +68,5 @@ curl -sf http://localhost:8000/health && echo " <- OK" || echo " <- FAILED"
 
 echo ""
 echo "============================================"
-echo "Done! App running at http://136.110.61.119:8000"
+echo "Done! App running at http://136-110-61-119.nip.io:8000"
 echo "============================================"
