@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Dashboard | Support Portal Edgeworks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        .sidebar-link.active { background-color: #f3f4f6; color: #2563eb; border-right: 4px solid #2563eb; }
+        .status-badge { padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .status-open { background-color: #fee2e2; color: #991b1b; }
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-resolved { background-color: #d1fae5; color: #065f46; }
+        .priority-urgent { color: #dc2626; font-weight: 800; }
+        .priority-high { color: #ea580c; font-weight: 700; }
+        .priority-medium { color: #2563eb; font-weight: 600; }
+        .priority-low { color: #64748b; font-weight: 500; }
+        .conversation-list { scrollbar-width: thin; }
+        .conversation-list::-webkit-scrollbar { width: 4px; }
+        .conversation-list::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 2px; }
+        .message-bubble { max-width: 80%; word-wrap: break-word; }
+        #macro-picker { position: absolute; bottom: 80px; left: 20px; right: 20px; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 100; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .submenu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .submenu.open { max-height: 500px; }
+        .count-badge { background: #f1f5f9; color: #64748b; padding: 1px 6px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+        .active .count-badge { background: #2563eb; color: white; }
+        
+        .sortable-ghost { opacity: 0.4; background: #ebf2ff; border: 2px dashed #2563eb; }
+        .drag-handle { cursor: grab; opacity: 0; transition: opacity 0.2s; }
+        .sidebar-item:hover .drag-handle { opacity: 0.5; }
+        .pin-btn { font-size: 10px; opacity: 0.3; transition: all 0.2s; }
+        .pin-btn.pinned { opacity: 1; color: #2563eb; transform: rotate(45deg); }
+    </style>
+</head>
+
+<body class="bg-gray-50 h-screen flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r flex flex-col z-20">
+        <div class="p-6 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">Support <span class="text-blue-600">Edgeworks</span></h1>
+            <i class="fas fa-grip-vertical text-gray-300 text-xs"></i>
+        </div>
+        
+        <nav id="sidebar-nav" class="flex-1 px-4 space-y-1 overflow-y-auto">
+            <!-- Menus will be rendered by JS to support persistent sorting -->
+        </nav>
+        
+        <div class="p-4 border-t bg-gray-50"><div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold" id="profile-initials">--</div><div><p class="text-sm font-bold text-gray-800 truncate w-32" id="profile-name">Loading...</p><p class="text-[10px] text-gray-500 uppercase font-bold" id="profile-role">...</p></div></div><button onclick="logout()" class="w-full text-left text-xs font-bold text-red-500 p-2 hover:bg-red-50 rounded-lg transition text-center border border-red-100 uppercase tracking-widest">Sign Out</button></div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        
+        <!-- View: Overview -->
+        <section id="overview-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight">Performance Command Center</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="overview-stats"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest"><i class="fas fa-chart-line text-blue-600"></i> Conversation Volume</h3><canvas id="volumeChart" height="150"></canvas></div>
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest"><i class="fas fa-chart-pie text-blue-600"></i> Priorities</h3><canvas id="priorityChart"></canvas></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest"><i class="fas fa-trophy text-amber-500"></i> Leaderboard</h3><div class="overflow-hidden"><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-[10px] uppercase text-gray-400">Agent</th><th class="px-4 py-2 text-center text-[10px] uppercase text-gray-400">Tickets</th><th class="px-4 py-2 text-right text-[10px] uppercase text-gray-400">CSAT</th></tr></thead><tbody id="agent-leaderboard" class="divide-y divide-gray-100"></tbody></table></div></div>
+                <div class="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden"><div class="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-16 -mt-16"></div><h3 class="font-bold mb-6 flex items-center gap-2 relative z-10 uppercase text-xs tracking-widest"><i class="fas fa-brain text-blue-400"></i> AI Strategic Insights</h3><div id="ai-trends" class="text-sm text-blue-100/80 leading-relaxed whitespace-pre-wrap relative z-10">Analyzing...</div></div>
+            </div>
+        </section>
+
+        <!-- View: Chat -->
+        <section id="inbox-view" class="flex-1 flex overflow-hidden hidden">
+            <aside class="w-80 bg-white border-r flex flex-col">
+                <div class="p-4 border-b"><h2 class="font-bold text-gray-800" id="inbox-title">Conversations</h2></div>
+                <div id="conversation-list" class="flex-1 overflow-y-auto conversation-list"></div>
+            </aside>
+            <div class="flex-1 flex flex-col bg-[#f8f9fb] relative">
+                <header class="bg-white border-b p-4 flex justify-between items-center h-16 shrink-0">
+                    <div class="flex items-center gap-3"><div id="active-avatar" class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">?</div><div><h3 id="active-name" class="font-bold text-sm">Select a ticket</h3><p id="active-meta" class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">No active session</p></div></div>
+                    <div id="chat-actions" class="hidden"><button onclick="resolveCurrentTicket()" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm uppercase tracking-widest">Resolve</button></div>
+                </header>
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+                <div id="macro-picker" class="hidden"></div>
+                <footer class="p-4 bg-white border-t"><div class="flex items-end gap-2"><textarea id="reply-box" rows="1" placeholder="Type '/' for macros..." class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition resize-none text-sm"></textarea><button onclick="sendReply()" class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 active:scale-95 transition-all"><i class="fas fa-paper-plane"></i></button></div></footer>
+            </div>
+            <aside class="w-72 bg-white border-l overflow-y-auto hidden lg:block"><div class="p-6 border-b text-center"><div id="sidebar-avatar" class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20 uppercase">?</div><h3 id="sidebar-name" class="font-bold text-lg">Contact Name</h3><p id="sidebar-company" class="text-sm text-gray-500 italic">--</p></div><div class="p-6 space-y-6"><div><h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Context</h4><div class="space-y-3 text-xs"><p class="flex justify-between"><strong>Priority:</strong> <span id="sidebar-priority" class="uppercase font-bold">--</span></p><p class="flex justify-between"><strong>Status:</strong> <span id="sidebar-status" class="uppercase">--</span></p><p class="flex justify-between"><strong>Ticket ID:</strong> <span id="sidebar-id">--</span></p></div></div></div></aside>
+        </section>
+
+        <!-- View: Team -->
+        <section id="team-view" class="p-8 overflow-y-auto flex-1 hidden"><div class="flex justify-between items-center mb-8"><h2 class="text-2xl font-bold uppercase tracking-tight">Support Team: <span id="current-dept-label" class="text-blue-600">All</span></h2><span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-widest" id="member-count">0 Members</span></div><div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6" id="team-list"></div></section>
+        <section id="tickets-view" class="p-8 overflow-y-auto flex-1 hidden"><div class="bg-white rounded-xl border overflow-hidden"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Summary</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th><th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th></tr></thead><tbody id="tickets-list" class="bg-white divide-y divide-gray-200"></tbody></table></div></section>
+        <section id="macros-view" class="p-8 overflow-y-auto flex-1 hidden"><div class="mb-8 bg-white p-6 rounded-xl border shadow-sm"><h3 class="font-bold text-gray-800 mb-4">Add Macro</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><input id="macro-name" type="text" placeholder="Shortcut" class="border rounded p-2 text-sm"><input id="macro-category" type="text" placeholder="Category" class="border rounded p-2 text-sm"><button onclick="saveMacro()" class="bg-blue-600 text-white rounded font-bold text-sm px-4 py-2 uppercase tracking-widest">Save</button></div><textarea id="macro-content" placeholder="Content..." class="w-full border rounded p-2 text-sm min-h-[100px]"></textarea></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="macros-list"></div></section>
+        
+        <!-- Knowledge View -->
+        <section id="knowledge-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Knowledge Base</h2>
+                <div class="flex gap-3">
+                    <div class="flex bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <input type="text" id="kb-url-input" placeholder="Enter URL to crawl..." class="px-4 py-2 text-xs w-64 focus:outline-none">
+                        <button onclick="handleURLCrawl()" class="bg-gray-100 px-4 py-2 text-[10px] font-black uppercase hover:bg-gray-200 transition">Fetch</button>
+                    </div>
+                    <button id="bulk-delete-btn" onclick="deleteSelectedKnowledge()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-xs disabled:opacity-50 uppercase tracking-widest transition-all hover:bg-red-100" disabled>Delete Selected</button>
+                    <button onclick="document.getElementById('kb-upload-input').click()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-2">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload Document
+                    </button>
+                    <input type="file" id="kb-upload-input" class="hidden" multiple onchange="handleKBUpload(this)">
+                </div>
+            </div>
+            <div id="upload-status-box" class="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-2xl hidden">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-blue-600 uppercase tracking-widest" id="upload-status-text">Uploading...</span>
+                    <span class="text-xs font-black text-blue-600" id="upload-percent">0%</span>
+                </div>
+                <div class="w-full bg-blue-200 rounded-full h-1.5">
+                    <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" id="upload-progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50/50">
+                        <tr>
+                            <th class="px-6 py-4 text-left w-12"><input type="checkbox" onchange="toggleAllKnowledge(this)" class="rounded border-gray-300"></th>
+                            <th class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Document Name</th>
+                            <th class="px-6 py-4 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="knowledge-list" class="divide-y divide-gray-50"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- User Master View -->
+        <section id="usermst-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight text-gray-800">User Master (Agent Management)</h2>
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50/50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Agent</th>
+                            <th class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Email</th>
+                            <th class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Roles (Groups)</th>
+                            <th class="px-6 py-4 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usermst-list" class="divide-y divide-gray-50"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Group Privileges View -->
+        <section id="groupperms-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight text-gray-800">Role & Group Privileges</h2>
+            <div id="roles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- Privilege Setup View -->
+        <section id="privsetup-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight text-gray-800">System Privilege Setup</h2>
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+                <div class="space-y-8" id="perms-category-list"></div>
+            </div>
+        </section>
+
+        <section id="settings-view" class="p-8 overflow-y-auto flex-1 hidden"><h2 class="text-2xl font-bold mb-8 uppercase tracking-tight">System Settings</h2><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6"><div><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest"><i class="fas fa-robot text-blue-600"></i> AI Preferences</h3><div class="space-y-4"><div class="flex items-center justify-between"><div><p class="text-sm font-bold text-gray-700">Auto-Summarization</p><p class="text-xs text-gray-400">Generate ticket summaries</p></div><input type="checkbox" checked class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all"></div></div></div></div></div></section>
+        <section id="audit-view" class="p-8 overflow-y-auto flex-1 hidden"><div class="bg-white rounded-xl border overflow-hidden"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-slate-900 text-white"><tr><th class="px-6 py-3 text-left text-xs uppercase font-bold tracking-widest">Time</th><th class="px-6 py-3 text-left text-xs uppercase font-bold tracking-widest">Agent</th><th class="px-6 py-3 text-left text-xs uppercase font-bold tracking-widest">Action</th></tr></thead><tbody id="audit-list"></tbody></table></div></section>
+    </main>
+
+    <div id="profile-modal" class="modal-overlay hidden"><div class="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-fade-in"><div class="bg-blue-600 p-8 text-center relative"><button onclick="closeProfile()" class="absolute top-4 right-4 text-white/60 hover:text-white"><i class="fas fa-times"></i></button><div id="modal-avatar" class="w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold border border-white/30 uppercase shadow-lg">?</div><h3 id="modal-name" class="text-white font-bold text-xl uppercase tracking-tight">Agent Name</h3><p id="modal-role" class="text-blue-100 text-xs font-bold uppercase mt-1">Role</p></div><div class="p-8 space-y-6"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i class="fas fa-building"></i></div><div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Department</p><p id="modal-dept" class="font-bold text-gray-800 text-sm uppercase">--</p></div></div><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i class="fas fa-envelope"></i></div><div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email</p><p id="modal-email" class="font-bold text-gray-800 text-sm">--</p></div></div><div id="modal-skills" class="flex flex-wrap gap-2 text-[10px] font-bold pt-4 border-t"></div></div></div></div>
+
+    <script>
+        let currentTicketId = null, currentSessionId = null, currentUser = null, ws = null, macros = [], allAgents = [], currentInboxFilter = 'all';
+        let volumeChart = null, priorityChart = null;
+
+        // --- Persistent Menu Logic ---
+        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'security', 'tickets', 'macros', 'knowledge', 'settings', 'audit'];
+        let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
+        let pinnedMenus = JSON.parse(localStorage.getItem('support_portal_pinned')) || [];
+
+        async function refreshAccessToken() {
+            try {
+                const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+                if (!res.ok) return false;
+                const data = await res.json();
+                if (data.access_token) localStorage.setItem('support_portal_token', data.access_token);
+                if (data.role) localStorage.setItem('support_portal_role', data.role);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function fetchWithAuth(url, options = {}, allowRetry = true) {
+            const token = localStorage.getItem('support_portal_token');
+            const headers = { ...options.headers };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            options.headers = headers;
+            options.credentials = 'include';
+            const res = await fetch(url, options);
+            if (res.status === 401 && allowRetry) {
+                const refreshed = await refreshAccessToken();
+                if (refreshed) return fetchWithAuth(url, options, false);
+                await logout();
+                return null;
+            }
+            return res;
+        }
+
+        async function logout() {
+            try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+
+        async function init() {
+            const res = await fetchWithAuth('/api/auth/me'); if (!res) return;
+            currentUser = await res.json();
+            document.getElementById('profile-name').innerText = currentUser.name;
+            document.getElementById('profile-role').innerText = currentUser.role;
+            document.getElementById('profile-initials').innerText = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+            
+            renderSidebar();
+            loadMacros(); 
+            updateSidebarCounts(); 
+            switchTab('overview'); 
+            setupMacroTriggers();
+            initSortable();
+        }
+
+        function renderSidebar() {
+            const nav = document.getElementById('sidebar-nav');
+            const menuDefs = {
+                overview: { icon: 'fa-chart-pie', label: 'Overview', onClick: "switchTab('overview')" },
+                chat: { icon: 'fa-comments', label: 'Chat', isDropdown: true, id: 'chat' },
+                team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
+                security: { icon: 'fa-shield-halved', label: 'Security', isDropdown: true, id: 'security', adminOnly: true },
+                tickets: { icon: 'fa-ticket-alt', label: 'All Tickets', onClick: "switchTab('tickets')" },
+                macros: { icon: 'fa-bolt', label: 'Macros', onClick: "switchTab('macros')" },
+                knowledge: { icon: 'fa-book', label: 'Knowledge', onClick: "switchTab('knowledge')" },
+                settings: { icon: 'fa-cog', label: 'Settings', onClick: "switchTab('settings')" },
+                audit: { icon: 'fa-shield-alt', label: 'Audit Logs', onClick: "switchTab('audit')", adminOnly: true }
+            };
+
+            const sortedKeys = [...menuOrder].sort((a, b) => {
+                const aPinned = pinnedMenus.includes(a), bPinned = pinnedMenus.includes(b);
+                if (aPinned && !bPinned) return -1;
+                if (!aPinned && bPinned) return 1;
+                return 0;
+            });
+
+            nav.innerHTML = sortedKeys.map(key => {
+                const m = menuDefs[key];
+                if (!m || (m.adminOnly && currentUser?.role !== 'admin')) return '';
+                const isPinned = pinnedMenus.includes(key);
+                
+                if (m.isDropdown) {
+                    return `
+                    <div class="sidebar-item mb-1" data-id="${key}">
+                        <div class="flex items-center group">
+                            <i class="fas fa-grip-vertical drag-handle mr-2 text-gray-200"></i>
+                            <button onclick="toggleSubmenu('${m.id}')" class="flex-1 flex items-center justify-between px-4 py-3 text-gray-600 hover:bg-gray-50 transition rounded-lg text-sm font-bold uppercase tracking-tighter">
+                                <span class="flex items-center"><i class="fas ${m.icon} w-5 mr-3 text-blue-500"></i> ${m.label}</span>
+                                <i class="fas fa-chevron-down text-[10px] transition-transform" id="${m.id}-chevron"></i>
+                            </button>
+                            <button onclick="togglePin('${key}')" class="pin-btn px-2 ${isPinned ? 'pinned' : ''}"><i class="fas fa-thumbtack"></i></button>
+                        </div>
+                        <div id="${m.id}-submenu" class="submenu pl-8 space-y-1 mt-1">${renderSubContent(m.id)}</div>
+                    </div>`;
+                }
+
+                return `
+                <div class="sidebar-item flex items-center group mb-1" data-id="${key}">
+                    <i class="fas fa-grip-vertical drag-handle mr-2 text-gray-200"></i>
+                    <a href="#" onclick="${m.onClick}" id="tab-${key}" class="sidebar-link flex-1 flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 transition rounded-lg text-sm font-bold uppercase tracking-tighter">
+                        <i class="fas ${m.icon} w-5 mr-3 text-blue-500"></i> ${m.label}
+                    </a>
+                    <button onclick="togglePin('${key}')" class="pin-btn px-2 ${isPinned ? 'pinned' : ''}"><i class="fas fa-thumbtack"></i></button>
+                </div>`;
+            }).join('');
+        }
+
+        function renderSubContent(id) {
+            if (id === 'chat') return `
+                <a href="#" onclick="switchTab('inbox', 'all')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">All chat <span id="count-all" class="count-badge">0</span></a>
+                <a href="#" onclick="switchTab('inbox', 'unassigned')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">Unassigned <span id="count-unassigned" class="count-badge">0</span></a>
+                <a href="#" onclick="switchTab('inbox', 'no_reply')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">No reply <span id="count-no-reply" class="count-badge">0</span></a>
+                <a href="#" onclick="switchTab('inbox', 'assigned')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">Assigned <span id="count-assigned" class="count-badge">0</span></a>
+            `;
+            if (id === 'team') {
+                const depts = ["Support", "Product specialist", "Project manager", "Sales", "HR", "developer", "QA", "Deployment", "Intern"];
+                return depts.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('');
+            }
+            if (id === 'security') return `
+                <a href="#" onclick="switchTab('usermst')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">User Master</a>
+                <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">Group Privileges</a>
+                <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">Privilege Setup</a>
+            `;
+            return '';
+        }
+
+        function switchTab(tab, subOption = null) {
+            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+            if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
+            ['overview', 'inbox', 'team', 'tickets', 'macros', 'knowledge', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
+                if (document.getElementById(`${t}-view`)) document.getElementById(`${t}-view`).classList.toggle('hidden', t !== tab);
+            });
+            if (tab === 'overview') loadAnalytics(); 
+            else if (tab === 'inbox') loadInbox(subOption); 
+            else if (tab === 'team') loadTeam(subOption); 
+            else if (tab === 'tickets') loadAllTickets(); 
+            else if (tab === 'macros') loadMacros(); 
+            else if (tab === 'audit') loadAuditLogs(); 
+            else if (tab === 'knowledge') loadKnowledge();
+            else if (tab === 'usermst') loadUserMaster();
+            else if (tab === 'groupperms') loadGroupPrivileges();
+            else if (tab === 'privsetup') loadPrivilegeSetup();
+        }
+
+        function initSortable() {
+            const el = document.getElementById('sidebar-nav');
+            Sortable.create(el, {
+                animation: 150, handle: '.drag-handle', ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    menuOrder = Array.from(el.children).map(item => item.getAttribute('data-id'));
+                    localStorage.setItem('support_portal_menu_order', JSON.stringify(menuOrder));
+                }
+            });
+        }
+
+        function togglePin(key) {
+            pinnedMenus = pinnedMenus.includes(key) ? pinnedMenus.filter(k => k !== key) : [...pinnedMenus, key];
+            localStorage.setItem('support_portal_pinned', JSON.stringify(pinnedMenus));
+            renderSidebar(); initSortable();
+        }
+
+        function toggleSubmenu(id) {
+            const menu = document.getElementById(`${id}-submenu`), chevron = document.getElementById(`${id}-chevron`);
+            menu.classList.toggle('open'); chevron.classList.toggle('rotate-180');
+        }
+
+        async function updateSidebarCounts() {
+            const res = await fetchWithAuth('/api/tickets/counts');
+            if (!res) return;
+            const c = await res.json();
+            document.getElementById('count-all').innerText = c.all;
+            document.getElementById('count-unassigned').innerText = c.unassigned;
+            document.getElementById('count-no-reply').innerText = c.no_reply;
+            document.getElementById('count-assigned').innerText = c.assigned;
+        }
+
+        async function loadAnalytics() {
+            const res = await fetchWithAuth('/api/analytics');
+            if (!res) return;
+            const data = await res.json();
+            const metrics = [
+                { label: 'Open', val: data.metrics.open, color: 'text-blue-600' },
+                { label: 'Resolved', val: data.metrics.resolved, color: 'text-green-600' },
+                { label: 'SLA Breach', val: data.metrics.overdue, color: 'text-red-600' },
+                { label: 'Avg CSAT', val: data.metrics.csat_avg.toFixed(1), color: 'text-amber-500' }
+            ];
+            document.getElementById('overview-stats').innerHTML = metrics.map(m => `<div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">${m.label}</p><p class="${m.color} text-3xl font-black">${m.val}</p></div>`).join('');
+
+            const ctxVol = document.getElementById('volumeChart').getContext('2d');
+            if (volumeChart) volumeChart.destroy();
+            volumeChart = new Chart(ctxVol, { type: 'line', data: { labels: data.volume_trends.map(v => v.date), datasets: [{ data: data.volume_trends.map(v => v.count), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', fill: true, tension: 0.4, borderWidth: 3 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } } });
+
+            const ctxPrio = document.getElementById('priorityChart').getContext('2d');
+            if (priorityChart) priorityChart.destroy();
+            priorityChart = new Chart(ctxPrio, { type: 'doughnut', data: { labels: Object.keys(data.priority_distribution), datasets: [{ data: Object.values(data.priority_distribution), backgroundColor: ['#dc2626', '#ea580c', '#2563eb', '#64748b'] }] }, options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } } });
+
+            document.getElementById('agent-leaderboard').innerHTML = data.agent_performance.map(a => `<tr class="text-sm"><td class="px-4 py-3 font-bold text-gray-700">${a.name}</td><td class="px-4 py-3 text-center text-gray-500">${a.tickets}</td><td class="px-4 py-3 text-right"><span class="font-black text-amber-600">${a.csat}</span><i class="fas fa-star text-[10px] text-amber-400 ml-1"></i></td></tr>`).join('');
+            document.getElementById('ai-trends').innerText = data.ai_trends;
+        }
+
+        async function loadInbox(filter = 'all') {
+            currentInboxFilter = filter;
+            const res = await fetchWithAuth(`/api/tickets?filter=${filter}`);
+            const data = await res.json();
+            document.getElementById('conversation-list').innerHTML = data.map(t => `
+                <div onclick="selectTicket(${t.id})" class="p-4 border-b hover:bg-blue-50 cursor-pointer transition ${currentTicketId === t.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold uppercase">${(t.name || 'A').charAt(0)}</div>
+                        <div class="flex-1 min-w-0"><p class="font-bold text-sm text-gray-900 truncate uppercase tracking-tighter">${t.name || 'Anonymous'}</p><p class="text-xs text-gray-500 truncate">${t.summary}</p></div>
+                        <div class="text-[10px] text-gray-400 font-bold uppercase">${t.priority}</div>
+                    </div>
+                    <div class="mt-2 flex justify-between items-center"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span><span class="text-[10px] text-gray-400 font-medium">${new Date(t.created_at).toLocaleTimeString()}</span></div>
+                </div>`).join('');
+        }
+
+        async function selectTicket(id) {
+            if (ws) ws.close(); currentTicketId = id;
+            const res = await fetchWithAuth(`/api/tickets/${id}/history`); 
+            const data = await res.json();
+            
+            const tRes = await fetchWithAuth('/api/tickets');
+            const tickets = await tRes.json();
+            const t = tickets.find(x => x.id === id);
+
+            document.getElementById('active-name').innerText = t.name || 'Anonymous';
+            document.getElementById('active-meta').innerText = `Ticket #${t.id} • ${t.company || 'No Company'}`;
+            document.getElementById('active-avatar').innerText = (t.name || 'A').charAt(0).toUpperCase();
+            document.getElementById('chat-actions').classList.toggle('hidden', t.status === 'resolved');
+            
+            document.getElementById('sidebar-name').innerText = t.name || 'Anonymous';
+            document.getElementById('sidebar-company').innerText = t.company || 'No Company';
+            document.getElementById('sidebar-priority').innerText = t.priority;
+            document.getElementById('sidebar-status').innerText = t.status;
+            document.getElementById('sidebar-id').innerText = t.id;
+            document.getElementById('sidebar-avatar').innerText = (t.name || 'A').charAt(0).toUpperCase();
+
+            const area = document.getElementById('chat-messages');
+            if (!data.history || data.history.length === 0) {
+                area.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs uppercase font-bold tracking-widest opacity-50">Empty Archive</div>';
+            } else {
+                area.innerHTML = data.history.map(m => {
+                    const isMe = m.role === 'agent' || m.role === 'bot';
+                    return `<div class="flex ${isMe ? 'justify-end' : ''} gap-3 fade-in">
+                        <div class="message-bubble ${isMe ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-4 text-sm rounded-2xl">
+                            ${m.content}
+                            ${m.source === 'bot' ? '<div class="text-[8px] mt-1 opacity-50 uppercase font-black tracking-tighter">AI Assistant</div>' : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+            area.scrollTop = area.scrollHeight;
+
+            if (t.session_id) { currentSessionId = t.session_id; connectWebSocket(t.session_id); } else { currentSessionId = null; }
+            loadInbox(currentInboxFilter);
+        }
+
+        function connectWebSocket(sessionId) {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/chat/${sessionId}?user_id=${currentUser.user_id}&user_type=agent`);
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.event === 'session_started') {
+                    document.getElementById('chat-messages').innerHTML = '';
+                    fetchWithAuth(`/api/history?user_id=${data.customer_id}`).then(r => r.json()).then(h => { h.history.forEach(m => addMessageToUI(m.role === 'user' ? 'customer' : 'agent', m.content)); });
+                } else if (data.event === 'message') { addMessageToUI(data.sender_type, data.content); }
+            };
+        }
+
+        function addMessageToUI(type, content) {
+            const area = document.getElementById('chat-messages'); const isMe = type === 'agent' || type === 'assistant'; const div = document.createElement('div');
+            div.className = `flex ${isMe ? 'justify-end' : ''} gap-3 fade-in`;
+            div.innerHTML = `<div class="message-bubble ${isMe ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-4 text-sm rounded-2xl">${content}</div>`;
+            area.appendChild(div); area.scrollTop = area.scrollHeight;
+        }
+
+        function sendReply() {
+            const box = document.getElementById('reply-box'); if (!box.value.trim() || !ws) return;
+            ws.send(JSON.stringify({ event: 'message', content: box.value.trim() }));
+            box.value = ''; box.style.height = 'auto';
+        }
+
+        async function resolveCurrentTicket() {
+            if (!currentTicketId || !confirm("Mark Resolved?")) return;
+            await fetchWithAuth(`/api/tickets/${currentTicketId}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'resolved' }) });
+            if (currentSessionId) await fetchWithAuth(`/api/chat-sessions/${currentSessionId}/close`, { method: 'POST' });
+            updateSidebarCounts(); switchTab('overview');
+        }
+
+        async function loadTeam(dept = null) {
+            document.getElementById('current-dept-label').innerText = dept || 'All Members';
+            const res = await fetchWithAuth('/api/agents'); allAgents = await res.json();
+            const filtered = dept ? allAgents.filter(a => (a.department || 'Support') === dept) : allAgents;
+            document.getElementById('member-count').innerText = `${filtered.length} Members`;
+            document.getElementById('team-list').innerHTML = filtered.map(a => `<div onclick="showAgentProfile('${a.user_id}')" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center cursor-pointer hover:border-blue-300 transition group relative overflow-hidden"><div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-150 group-hover:bg-blue-600"></div><div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 text-blue-600 text-xl font-bold group-hover:bg-white transition-all uppercase relative z-10">${a.name.charAt(0)}</div><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 relative z-10 uppercase">${a.name}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4 relative z-10">${a.department || 'Support'}</p><div class="flex justify-center gap-2 relative z-10"><span class="text-[10px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded-full uppercase tracking-tighter">${a.availability_status}</span></div></div>`).join('');
+        }
+
+        function showAgentProfile(uid) {
+            const a = allAgents.find(x => x.user_id === uid); if (!a) return;
+            document.getElementById('modal-name').innerText = a.name; document.getElementById('modal-role').innerText = a.role; document.getElementById('modal-dept').innerText = a.department || 'Support';
+            document.getElementById('modal-email').innerText = a.email || '--'; document.getElementById('modal-avatar').innerText = a.name.charAt(0);
+            const skills = JSON.parse(a.skills || '[]'); document.getElementById('modal-skills').innerHTML = skills.length ? skills.map(s => `<span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg">#${s}</span>`).join('') : '<span class="text-gray-400 italic text-xs">No skills listed</span>';
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+        function closeProfile() { document.getElementById('profile-modal').classList.add('hidden'); }
+
+        async function loadAllTickets() { const res = await fetchWithAuth('/api/tickets'); const data = await res.json(); document.getElementById('tickets-list').innerHTML = data.map(t => `<tr class="hover:bg-gray-50 border-b"><td class="px-6 py-4"><div class="text-sm font-bold text-gray-900 uppercase">${t.name || 'Anon'}</div><div class="text-[10px] text-gray-400">${t.company || '-'}</div></td><td class="px-6 py-4 text-xs text-gray-600 line-clamp-1">${t.summary}</td><td class="px-6 py-4 uppercase text-[10px] font-bold priority-${t.priority.toLowerCase()}">${t.priority}</td><td class="px-6 py-4"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span></td><td class="px-6 py-4 text-right"><button onclick="selectTicket(${t.id}); switchTab('inbox');" class="text-blue-600 font-bold text-xs uppercase tracking-tighter hover:underline">View</button></td></tr>`).join(''); }
+        async function loadMacros() { const res = await fetchWithAuth('/api/macros'); macros = await res.json(); document.getElementById('macros-list').innerHTML = macros.map(m => `<div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 group hover:border-blue-200 transition-all"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-all">${m.name}</h4><span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded uppercase">${m.category}</span></div><p class="text-xs text-gray-500 italic mb-4 line-clamp-2">"${m.content}"</p><button onclick="deleteMacro(${m.id})" class="text-[10px] font-bold text-red-500 hover:underline">Delete</button></div>`).join(''); }
+        async function saveMacro() { const n = document.getElementById('macro-name').value, c = document.getElementById('macro-content').value, cat = document.getElementById('macro-category').value; if (!n || !c) return alert("Missing fields"); await fetchWithAuth('/api/macros', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, content: c, category: cat }) }); document.getElementById('macro-name').value = ''; document.getElementById('macro-content').value = ''; loadMacros(); }
+        async function deleteMacro(id) { if (confirm("Delete?")) { await fetchWithAuth(`/api/macros/${id}`, { method: 'DELETE' }); loadMacros(); } }
+        function setupMacroTriggers() { const b = document.getElementById('reply-box'), p = document.getElementById('macro-picker'); b.oninput = () => { b.style.height = 'auto'; b.style.height = b.scrollHeight + 'px'; if (b.value.startsWith('/')) { const q = b.value.substring(1).toLowerCase(), f = macros.filter(m => m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q)); if (f.length) { p.classList.remove('hidden'); p.innerHTML = f.map(m => `<div onclick="applyMacro('${m.content.replace(/'/g, "\\'")}')" class="p-3 border-b hover:bg-blue-50 cursor-pointer transition"><p class="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">${m.category}</p><p class="text-xs font-bold text-gray-800">${m.name}</p></div>`).join(''); } else p.classList.add('hidden'); } else p.classList.add('hidden'); }; b.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); } }; }
+        function applyMacro(c) { const b = document.getElementById('reply-box'); b.value = c; document.getElementById('macro-picker').classList.add('hidden'); b.focus(); }
+        async function loadAuditLogs() { const res = await fetchWithAuth('/api/audit-logs'); const data = await res.json(); document.getElementById('audit-list').innerHTML = data.map(l => `<tr class="text-[10px] hover:bg-gray-50 border-b"><td class="px-6 py-4 text-gray-500">${new Date(l.timestamp).toLocaleString()}</td><td class="px-6 py-4 font-bold text-gray-700 uppercase">${l.agent_name || 'System'}</td><td class="px-6 py-4 text-blue-600 uppercase font-extrabold tracking-widest">${l.action}</td></tr>`).join(''); }
+        async function loadKnowledge() { 
+            const res = await fetchWithAuth('/api/knowledge'); 
+            const data = await res.json(); 
+            document.getElementById('knowledge-list').innerHTML = data.map(k => `
+                <tr class="text-xs border-b hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4"><input type="checkbox" class="knowledge-checkbox" value="${k.filename}" onchange="updateBulkDeleteButton()"></td>
+                    <td class="px-6 py-4 font-bold text-gray-900">${k.filename}</td>
+                    <td class="px-6 py-4 text-gray-500 uppercase font-black text-[9px]">${k.uploaded_by || 'System'}</td>
+                    <td class="px-6 py-4 text-gray-400 text-[9px]">${k.upload_date ? new Date(k.upload_date).toLocaleString() : '--'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ${k.status === 'Indexed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
+                            ${k.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteKnowledge('${k.filename}')" class="text-red-600 font-bold uppercase tracking-widest hover:underline">Delete</button>
+                    </td>
+                </tr>`).join(''); 
+        }
+        
+        async function handleKBUpload(input) {
+            if (!input.files || input.files.length === 0) return;
+            const box = document.getElementById('upload-status-box');
+            const bar = document.getElementById('upload-progress-bar');
+            const percentText = document.getElementById('upload-percent');
+            const statusText = document.getElementById('upload-status-text');
+            box.classList.remove('hidden');
+            statusText.innerText = `Processing ${input.files.length} file(s)...`;
+            const formData = new FormData();
+            for (const file of input.files) { formData.append('files', file); }
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/knowledge/upload', true);
+                xhr.withCredentials = true;
+                const token = localStorage.getItem('support_portal_token');
+                if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        bar.style.width = percent + '%';
+                        percentText.innerText = percent + '%';
+                        if (percent === 100) statusText.innerText = "Re-indexing Knowledge Base... Please wait.";
+                    }
+                };
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        statusText.innerText = "Upload & Re-indexing Successful!";
+                        setTimeout(() => { box.classList.add('hidden'); bar.style.width = '0%'; }, 3000);
+                        loadKnowledge();
+                    } else { alert("Upload failed: " + xhr.responseText); box.classList.add('hidden'); }
+                };
+                xhr.send(formData);
+            } catch (err) { console.error(err); box.classList.add('hidden'); }
+        }
+
+        async function loadUserMaster() {
+            const res = await fetchWithAuth('/api/agents');
+            const data = await res.json();
+            document.getElementById('usermst-list').innerHTML = data.map(a => `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="px-6 py-4 font-bold text-gray-800 uppercase text-xs">${a.name}</td>
+                    <td class="px-6 py-4 text-gray-500 text-xs">${a.email}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex flex-wrap gap-1">
+                            ${a.roles.map(r => `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase">${r}</span>`).join('')}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="editUserRoles('${a.user_id}', ${JSON.stringify(a.roles).replace(/"/g, '&quot;')})" class="text-blue-600 font-bold text-[10px] uppercase hover:underline">Groups</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function editUserRoles(username, currentRoles) {
+            const res = await fetchWithAuth('/api/admin/roles');
+            const allRoles = await res.json();
+            const selectedRoles = prompt(`Enter Groups (comma separated) for ${username}:\nOptions: ${allRoles.map(r => r.name).join(', ')}`, currentRoles.join(', '));
+            if (selectedRoles !== null) {
+                const rolesArray = selectedRoles.split(',').map(s => s.trim()).filter(s => s);
+                await fetchWithAuth(`/api/admin/agents/${username}/roles`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roles: rolesArray })
+                });
+                loadUserMaster();
+            }
+        }
+
+        async function loadGroupPrivileges() {
+            const res = await fetchWithAuth('/api/admin/roles');
+            const roles = await res.json();
+            document.getElementById('roles-grid').innerHTML = roles.map(r => `
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-blue-300 transition-all">
+                    <h3 class="font-black text-gray-800 uppercase text-sm mb-2">${r.name}</h3>
+                    <p class="text-xs text-gray-400 mb-4">${r.description || 'No description'}</p>
+                    <div class="flex flex-wrap gap-1 mb-6">
+                        ${r.perms.map(p => `<span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-[9px] font-bold">${p}</span>`).join('')}
+                    </div>
+                    <button onclick="editRolePerms('${r.name}', ${JSON.stringify(r.perms).replace(/"/g, '&quot;')})" class="w-full py-2 bg-blue-600 text-white font-black text-[10px] uppercase rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition">Setup Privileges</button>
+                </div>
+            `).join('');
+        }
+
+        async function editRolePerms(roleName, currentPerms) {
+            const res = await fetchWithAuth('/api/admin/permissions');
+            const allPerms = await res.json();
+            const selected = prompt(`Assign Privileges to ${roleName} (comma separated):\nAvailable: ${allPerms.map(p => p.name).join(', ')}`, currentPerms.join(', '));
+            if (selected !== null) {
+                const permsArray = selected.split(',').map(s => s.trim()).filter(s => s);
+                await fetchWithAuth(`/api/admin/roles/${roleName}/permissions`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ permissions: permsArray })
+                });
+                loadGroupPrivileges();
+            }
+        }
+
+        async function loadPrivilegeSetup() {
+            const res = await fetchWithAuth('/api/admin/permissions');
+            const perms = await res.json();
+            const categories = {};
+            perms.forEach(p => {
+                if (!categories[p.category]) categories[p.category] = [];
+                categories[p.category].push(p);
+            });
+            document.getElementById('perms-category-list').innerHTML = Object.keys(categories).map(cat => `
+                <div>
+                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 border-b pb-2">${cat} Privileges</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${categories[cat].map(p => `
+                            <div class="flex items-center justify-between p-4 bg-gray-50 border border-transparent hover:border-blue-100 hover:bg-white transition-all rounded-2xl group">
+                                <div><p class="text-xs font-bold text-gray-700 group-hover:text-blue-600 transition-colors">${p.name}</p><p class="text-[10px] text-gray-400">${p.description}</p></div>
+                                <i class="fas fa-check-circle text-green-500 opacity-20"></i>
+                            </div>`).join('')}
+                    </div>
+                </div>`).join('');
+        }
+
+        function toggleAllKnowledge(m) { document.querySelectorAll('.knowledge-checkbox').forEach(c => c.checked = m.checked); updateBulkDeleteButton(); }
+        function updateBulkDeleteButton() { const c = document.querySelectorAll('.knowledge-checkbox:checked').length, b = document.getElementById('bulk-delete-btn'); b.disabled = c === 0; b.innerText = `Delete Selected (${c})`; }
+        async function deleteSelectedKnowledge() { const s = Array.from(document.querySelectorAll('.knowledge-checkbox:checked')).map(c => c.value); if (confirm(`Delete ${s.length} files?`)) { await fetchWithAuth('/api/knowledge/batch-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filenames: s }) }); loadKnowledge(); } }
+        async function deleteKnowledge(f) { if (confirm(`Delete ${f}?`)) { await fetchWithAuth(`/api/knowledge/${f}`, { method: 'DELETE' }); loadKnowledge(); } }
+
+        async function handleURLCrawl() {
+            const input = document.getElementById('kb-url-input');
+            const url = input.value.trim();
+            if (!url) return alert("Please enter a URL");
+
+            const box = document.getElementById('upload-status-box');
+            const statusText = document.getElementById('upload-status-text');
+            const bar = document.getElementById('upload-progress-bar');
+            
+            box.classList.remove('hidden');
+            statusText.innerText = `Crawling ${url}...`;
+            bar.style.width = '50%';
+
+            try {
+                const res = await fetchWithAuth('/api/knowledge/url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                if (res.ok) {
+                    statusText.innerText = "URL Content Fetched! AI is indexing...";
+                    bar.style.width = '100%';
+                    input.value = '';
+                    setTimeout(() => { box.classList.add('hidden'); }, 3000);
+                    loadKnowledge();
+                } else {
+                    const data = await res.json();
+                    alert("Crawl failed: " + (data.error || "Unknown error"));
+                    box.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Request error");
+                box.classList.add('hidden');
+            }
+        }
+
+        init(); setInterval(() => { updateSidebarCounts(); if (document.getElementById('tab-overview').classList.contains('active')) loadAnalytics(); }, 15000);
+    </script>
+</body>
+</html>

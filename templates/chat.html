@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Support | Support Edgeworks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        .chat-bubble-received { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px 12px 12px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .chat-bubble-sent { background: #2563eb; color: white; border-radius: 12px 12px 0 12px; box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        
+        .widget-closed { transform: translateY(100%) scale(0.8); opacity: 0; pointer-events: none; }
+        .widget-open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans h-screen overflow-hidden">
+
+    <!-- Background Decoration -->
+    <div class="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 z-0"></div>
+
+    <!-- Floating Chat Widget Button -->
+    <button id="widget-trigger" class="fixed bottom-6 right-6 w-16 h-16 bg-blue-600 rounded-full shadow-2xl flex items-center justify-center text-white text-2xl hover:scale-110 transition-all active:scale-95 z-50">
+        <i class="fas fa-comment-dots" id="trigger-icon"></i>
+    </button>
+
+    <!-- Main Widget Container -->
+    <div id="chat-widget" class="fixed bottom-24 right-6 w-96 h-[600px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 widget-closed z-50 border border-gray-100">
+        
+        <!-- Header -->
+        <header class="bg-blue-600 p-6 text-white shrink-0 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-bold backdrop-blur-md">S</div>
+                <div>
+                    <h2 id="widget-title" class="font-bold text-lg">Support Assistant</h2>
+                    <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-blue-100">
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        We typically reply in minutes
+                    </div>
+                </div>
+            </div>
+            <button onclick="toggleWidget()" class="absolute top-6 right-6 text-white/60 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
+        </header>
+
+        <!-- Messages Area -->
+        <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
+            <!-- Messages injected here -->
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="typing-indicator" class="px-6 py-2 hidden">
+            <div class="bg-white border border-gray-100 rounded-full px-4 py-2 w-fit shadow-sm flex gap-1">
+                <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce"></span>
+                <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce delay-100"></span>
+                <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce delay-200"></span>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <footer class="p-4 bg-white border-t border-gray-100">
+            <div class="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-2 transition-all focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+                <textarea id="chat-input" rows="1" placeholder="Type a message..." class="flex-1 bg-transparent border-none outline-none p-2 text-sm resize-none max-h-32 min-h-[40px]"></textarea>
+                <button id="send-btn" class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 active:scale-90">
+                    <i class="fas fa-paper-plane text-sm"></i>
+                </button>
+            </div>
+            <div class="mt-3 flex items-center justify-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <span>⚡ Powered by Support Edgeworks</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Language Selection Overlay -->
+    <div id="lang-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white w-80 rounded-3xl p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
+                <i class="fas fa-globe"></i>
+            </div>
+            <h3 class="font-bold text-xl mb-2">Choose Language</h3>
+            <p class="text-sm text-gray-500 mb-8">Select your preferred language to start chatting.</p>
+            <div class="space-y-3">
+                <button onclick="selectLanguage('en')" class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">English</button>
+                <button onclick="selectLanguage('id')" class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Bahasa Indonesia</button>
+                <button onclick="selectLanguage('zh')" class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Mandarin (中文)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let userId = localStorage.getItem('support_portal_user_id') || `cust_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('support_portal_user_id', userId);
+        
+        let selectedLang = localStorage.getItem('support_portal_lang');
+        let isWidgetOpen = false;
+        let isFirstTime = true;
+        let ws = null;
+        let activeSessionId = null;
+
+        const i18n = {
+            en: { title: "Support Assistant", welcome: "Hi there! 👋 How can we help you today?", placeholder: "Type a message..." },
+            id: { title: "Asisten Dukungan", welcome: "Halo! 👋 Ada yang bisa kami bantu hari ini?", placeholder: "Ketik pesan..." },
+            zh: { title: "AI 助手", welcome: "您好！👋 今天有什么可以帮您的吗？", placeholder: "输入消息..." }
+        };
+
+        // --- UI Logic ---
+        function toggleWidget() {
+            const widget = document.getElementById('chat-widget');
+            const icon = document.getElementById('trigger-icon');
+            isWidgetOpen = !isWidgetOpen;
+            
+            widget.classList.toggle('widget-open', isWidgetOpen);
+            widget.classList.toggle('widget-closed', !isWidgetOpen);
+            icon.className = isWidgetOpen ? 'fas fa-chevron-down' : 'fas fa-comment-dots';
+
+            if (isWidgetOpen && isFirstTime) {
+                if (!selectedLang) {
+                    document.getElementById('lang-overlay').classList.remove('hidden');
+                } else {
+                    startSession();
+                }
+                isFirstTime = false;
+            }
+        }
+
+        function selectLanguage(lang) {
+            selectedLang = lang;
+            localStorage.setItem('support_portal_lang', lang);
+            document.getElementById('lang-overlay').classList.add('hidden');
+            applyI18n();
+            startSession();
+        }
+
+        function applyI18n() {
+            const t = i18n[selectedLang] || i18n.en;
+            document.getElementById('widget-title').innerText = t.title;
+            document.getElementById('chat-input').placeholder = t.placeholder;
+        }
+
+        async function startSession() {
+            applyI18n();
+            addMessageUI('received', i18n[selectedLang].welcome);
+            
+            // Fetch bot history
+            const hRes = await fetch(`${API_URL}/api/history?user_id=${userId}`);
+            const hData = await hRes.json();
+            if (hData.history.length > 0) {
+                document.getElementById('message-container').innerHTML = '';
+                hData.history.forEach(m => addMessageUI(m.role === 'user' ? 'sent' : 'received', m.content));
+            }
+        }
+
+        function addMessageUI(type, text) {
+            const container = document.getElementById('message-container');
+            const div = document.createElement('div');
+            div.className = `flex ${type === 'sent' ? 'justify-end' : ''} fade-in`;
+            div.innerHTML = `
+                <div class="max-w-[85%] p-4 text-sm shadow-sm ${type === 'sent' ? 'chat-bubble-sent' : 'chat-bubble-received text-gray-800'}">
+                    ${text}
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function connectWebSocket(sessionId) {
+            if (ws) ws.close();
+            activeSessionId = sessionId;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/chat/${sessionId}?user_id=${userId}&user_type=customer`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.event === 'message') {
+                    if (data.sender_id !== userId) {
+                        addMessageUI('received', data.content);
+                    }
+                } else if (data.event === 'session_closed') {
+                    ws.close();
+                    ws = null;
+                    activeSessionId = null;
+                }
+            };
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            addMessageUI('sent', text);
+            input.value = '';
+            input.style.height = 'auto';
+
+            // If we have an active live session, use WebSocket
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ event: 'message', content: text }));
+                return;
+            }
+
+            document.getElementById('typing-indicator').classList.remove('hidden');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, user_id: userId, language: selectedLang })
+                });
+                const data = await res.json();
+                document.getElementById('typing-indicator').classList.add('hidden');
+                
+                // If AI suggests opening a live session or it's a specific trigger
+                if (data.answer.includes("Live Session Started") || activeSessionId) {
+                    // This logic would be triggered by rag_engine or session creation
+                }
+                
+                addMessageUI('received', data.answer);
+            } catch (err) {
+                document.getElementById('typing-indicator').classList.add('hidden');
+            }
+        }
+
+        // --- Listeners ---
+        document.getElementById('widget-trigger').onclick = toggleWidget;
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('chat-input').onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        };
+        document.getElementById('chat-input').oninput = function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        };
+
+        if (selectedLang) {
+            applyI18n();
+        }
+    </script>
+</body>
+</html>

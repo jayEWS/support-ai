@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: support-portal-ai
+    runtime: docker
+    region: singapore
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MODEL_NAME
+        value: llama-3.3-70b-versatile
+      - key: AI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: EMBEDDINGS_TYPE
+        value: local
+      - key: EMBEDDINGS_MODEL_NAME
+        value: all-MiniLM-L6-v2
+      - key: BIRD_API_KEY
+        sync: false
+      - key: WHATSAPP_CHANNEL_ID
+        sync: false
+      - key: API_SECRET_KEY
+        sync: false

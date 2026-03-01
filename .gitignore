@@ -1,0 +1,82 @@
+# Environment variables - CRITICAL: Never commit these!
+.env
+.env.local
+.env.production
+.env.*.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.venv*/
+build/
+dist/
+*.egg-info/
+
+# Data and Storage
+data/
+db/
+*.db
+index.faiss
+index.pkl
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Logs and temporary files
+*.log
+*.err
+ngrok.log
+server.log
+server.err
+*.tmp
+.pytest_cache/
+
+# Secrets and credentials
+*.pem
+*.key
+*.crt
+secret*
+credentials*
+
+# Vendor and dependencies
+node_modules/
+package-lock.json
+
+# Testing and coverage
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+.pytest_cache/
+
+# IDE workspace
+.vscode/settings.json
+.vscode/launch.json
+
+# OS-specific
+.vscode-server/
+.DS_Store
+Thumbs.db
+
+# Deployment
+docker-compose.override.yml
+*.backup
+*.bak
+
