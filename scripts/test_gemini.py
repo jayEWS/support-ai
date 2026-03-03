@@ -22,13 +22,15 @@ def test_gemini_direct():
         return False
     
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
+        from google import genai
+        client = genai.Client(api_key=api_key)
         
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content("Jawab dalam 1 kalimat: Apa itu POS (Point of Sale)?")
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents="Jawab dalam 1 kalimat: Apa itu POS (Point of Sale)?"
+        )
         
-        print(f"✅ Model: gemini-2.0-flash")
+        print(f"✅ Model: gemini-2.5-flash")
         print(f"✅ Response: {response.text[:200]}")
         return True
     except Exception as e:
@@ -50,7 +52,7 @@ def test_gemini_langchain():
         from langchain_google_genai import ChatGoogleGenerativeAI
         
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             google_api_key=api_key,
             temperature=0.2,
             convert_system_message_to_human=True,
@@ -79,7 +81,7 @@ def test_gemini_rag_simulation():
         from langchain_google_genai import ChatGoogleGenerativeAI
         
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             google_api_key=api_key,
             temperature=0.1,
             convert_system_message_to_human=True,

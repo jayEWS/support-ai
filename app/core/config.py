@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     
     # Google Gemini Config
     GOOGLE_GEMINI_API_KEY: str = ""  # from https://aistudio.google.com/
-    GEMINI_MODEL_NAME: str = "gemini-2.0-flash"  # gemini-2.0-flash (free), gemini-1.5-pro
+    GEMINI_MODEL_NAME: str = "gemini-2.5-flash"  # or gemini-2.5-pro, gemini-2.0-flash-001
     LLM_PROVIDER: str = "groq"  # gemini | groq | openai | ollama
     
     # Embeddings Config
