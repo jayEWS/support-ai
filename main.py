@@ -4,7 +4,7 @@ import uuid
 import asyncio
 import shutil
 from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
@@ -1099,6 +1099,15 @@ async def close_session(request: Request):
     return result
 
 # ============ WhatsApp Webhook ============
+
+@app.get("/webhook/whatsapp")
+async def whatsapp_webhook_verify(request: Request):
+    """Handle Bird webhook verification (GET) and health checks."""
+    # Bird may send challenge-based verification
+    params = dict(request.query_params)
+    if "challenge" in params:
+        return PlainTextResponse(params["challenge"])
+    return {"status": "ok", "message": "WhatsApp webhook is active"}
 
 @app.post("/webhook/whatsapp")
 @limiter.limit("10/minute")  # NEW: Rate limit to prevent abuse
