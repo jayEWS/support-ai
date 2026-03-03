@@ -300,7 +300,10 @@
         const pendingFileSize = document.getElementById('pending-file-size');
         const pendingFileIcon = document.getElementById('pending-file-icon');
         const dragOverlay = document.getElementById('drag-overlay');
-        const userId = "web_portal_user";
+        const userId = localStorage.getItem('ews_user_id') || `cust_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        localStorage.setItem('ews_user_id', userId);
+        let customerProfile = JSON.parse(localStorage.getItem('ews_customer_profile') || 'null');
+        let onboardingState = customerProfile ? 'complete' : 'new'; // new -> asking_name -> asking_company -> asking_outlet -> complete
 
         let pendingFile = null;
 
@@ -316,7 +319,12 @@
                     document.getElementById('user-initial').innerText = agent.name.charAt(0).toUpperCase();
                 }
             } catch (err) {
-                console.log("Not an agent or not logged in.");
+                // Not an agent - show customer profile if available
+                if (customerProfile && customerProfile.name) {
+                    document.getElementById('user-name-display').innerText = customerProfile.name;
+                    document.getElementById('user-role-display').innerText = 'Customer';
+                    document.getElementById('user-initial').innerText = customerProfile.name.charAt(0).toUpperCase();
+                }
             }
         }
 
@@ -570,6 +578,20 @@
 
                 const data = await res.json();
                 addMessage(data.answer, 'ai');
+
+                // Update customer profile from onboarding response
+                if (data.customer_name) {
+                    customerProfile = { name: data.customer_name };
+                    localStorage.setItem('ews_customer_profile', JSON.stringify(customerProfile));
+                    document.getElementById('user-name-display').innerText = data.customer_name;
+                    document.getElementById('user-initial').innerText = data.customer_name.charAt(0).toUpperCase();
+                    document.getElementById('user-role-display').innerText = 'Customer';
+                }
+                if (data.onboarding === true) {
+                    onboardingState = 'in_progress';
+                } else if (data.customer_name) {
+                    onboardingState = 'complete';
+                }
             } catch (err) {
                 addMessage("Connection error.", 'ai');
             }

@@ -30,12 +30,16 @@ class CustomerInfo(BaseModel):
     identifier: str
     name: Optional[str] = None
     company: Optional[str] = None
+    outlet: Optional[str] = None
+    position: Optional[str] = None
     is_new: bool = False
 
 class RAGResponse(BaseModel):
     answer: str
     confidence: float
     source_documents: List[str] = []
+    retrieval_method: Optional[str] = None
+    num_retrieved: Optional[int] = None
 
 class TicketCreate(BaseModel):
     user_id: str

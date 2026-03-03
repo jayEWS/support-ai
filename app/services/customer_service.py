@@ -29,5 +29,5 @@ class CustomerService:
     @staticmethod
     def get_personalized_greeting(customer: CustomerInfo) -> str:
         if customer.is_new:
-            return f"Halo {customer.name}! Selamat datang di layanan bantuan Edgeworks. Agar kami dapat membantu dengan cepat, mohon informasikan Nama, Perusahaan/Outlet, serta detail kendala yang dialami."
-        return f"Halo {customer.name}! Senang melihat Anda kembali. Ada kendala baru di Outlet atau ada yang bisa saya bantu terkait produk Edgeworks?"
+            return f"Halo Kak! 👋 Selamat datang di Edgeworks Support.\nSebelum mulai, boleh kenalan dulu? Siapa nama kamu?"
+        return f"Hai {customer.name}! 👋 Senang ketemu lagi. Ada yang bisa saya bantu hari ini?"

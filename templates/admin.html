@@ -444,6 +444,101 @@
             </div>
         </section>
 
+        <!-- Customer Management View -->
+        <section id="customers-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Customer Data</h2>
+                    <p class="text-xs text-gray-400 mt-1">Manage customer profiles. Import existing customers so AI recognizes them automatically.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('customer-import-input').click()"
+                        class="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-green-600/20 hover:bg-green-700 transition flex items-center gap-2">
+                        <i class="fas fa-file-import"></i> Import CSV/Excel
+                    </button>
+                    <input type="file" id="customer-import-input" class="hidden" accept=".csv,.xlsx,.xls" onchange="handleCustomerImport(this)">
+                    <button onclick="showAddCustomerModal()"
+                        class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center gap-2">
+                        <i class="fas fa-user-plus"></i> Add Customer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Customers</p>
+                    <p class="text-2xl font-black text-blue-600" id="cust-stat-total">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Onboarded</p>
+                    <p class="text-2xl font-black text-green-600" id="cust-stat-onboarded">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Pending Onboard</p>
+                    <p class="text-2xl font-black text-amber-500" id="cust-stat-pending">--</p>
+                </div>
+            </div>
+
+            <!-- Import Status -->
+            <div id="customer-import-status" class="mb-6 bg-green-50 border border-green-100 p-4 rounded-2xl hidden">
+                <span class="text-xs font-bold text-green-600 uppercase tracking-widest" id="customer-import-text">Importing...</span>
+            </div>
+
+            <!-- Search -->
+            <div class="mb-4">
+                <input type="text" id="customer-search" placeholder="Search by name, company, or ID..."
+                    class="w-full px-5 py-3 text-sm border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    oninput="filterCustomerTable()">
+            </div>
+
+            <!-- Customer Table -->
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50/50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Name</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Company / Outlet</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">ID / Phone</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Position</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Status</th>
+                            <th class="px-6 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customer-list" class="divide-y divide-gray-50"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Add/Edit Customer Modal -->
+        <div id="customer-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-6 uppercase tracking-tight" id="customer-modal-title">Add Customer</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Name *</label>
+                        <input type="text" id="cust-name" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="Customer name">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Company / Outlet</label>
+                        <input type="text" id="cust-company" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="PT ABC / Outlet XYZ">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Phone / ID *</label>
+                        <input type="text" id="cust-identifier" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="628123456789">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Position</label>
+                        <input type="text" id="cust-position" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="Owner / Manager / Kasir">
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button onclick="saveCustomer()" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition">Save</button>
+                    <button onclick="closeCustomerModal()" class="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- User Master View -->
         <section id="usermst-view" class="p-8 overflow-y-auto flex-1 hidden">
             <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight text-gray-800">User Master (Agent Management)
@@ -559,7 +654,7 @@
         let volumeChart = null, priorityChart = null;
 
         // --- Persistent Menu Logic ---
-        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'security', 'tickets', 'macros', 'knowledge', 'settings', 'audit'];
+        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'security', 'tickets', 'customers', 'macros', 'knowledge', 'settings', 'audit'];
         let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
         let pinnedMenus = JSON.parse(localStorage.getItem('support_portal_pinned')) || [];
 
@@ -621,6 +716,7 @@
                 team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
                 security: { icon: 'fa-shield-halved', label: 'Security', isDropdown: true, id: 'security', adminOnly: true },
                 tickets: { icon: 'fa-ticket-alt', label: 'All Tickets', onClick: "switchTab('tickets')" },
+                customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
                 knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
                 macros: { icon: 'fa-bolt', label: 'Macros', onClick: "switchTab('macros')" },
                 settings: { icon: 'fa-cog', label: 'Settings', onClick: "switchTab('settings')" },
@@ -687,7 +783,7 @@
         function switchTab(tab, subOption = null) {
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
-            ['overview', 'inbox', 'team', 'tickets', 'macros', 'knowledge', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
+            ['overview', 'inbox', 'team', 'tickets', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
                 if (document.getElementById(`${t}-view`)) document.getElementById(`${t}-view`).classList.toggle('hidden', t !== tab);
             });
             if (tab === 'overview') loadAnalytics();
@@ -697,6 +793,7 @@
             else if (tab === 'macros') loadMacros();
             else if (tab === 'audit') loadAuditLogs();
             else if (tab === 'knowledge') { loadKnowledge(); loadKBStats(); }
+            else if (tab === 'customers') loadCustomers();
             else if (tab === 'usermst') loadUserMaster();
             else if (tab === 'groupperms') loadGroupPrivileges();
             else if (tab === 'privsetup') loadPrivilegeSetup();
@@ -1058,6 +1155,165 @@
                     vectorEl.className = 'text-2xl font-black text-red-500';
                 }
             } catch (e) { console.error('Stats load failed:', e); }
+        }
+
+        // ============ Customer Management ============
+        let allCustomers = [];
+
+        async function loadCustomers() {
+            try {
+                const res = await fetchWithAuth('/api/customers');
+                if (!res) return;
+                allCustomers = await res.json();
+
+                // Update stats
+                const total = allCustomers.length;
+                const onboarded = allCustomers.filter(c => c.name && c.company).length;
+                const pending = total - onboarded;
+                document.getElementById('cust-stat-total').innerText = total;
+                document.getElementById('cust-stat-onboarded').innerText = onboarded;
+                document.getElementById('cust-stat-pending').innerText = pending;
+
+                renderCustomerTable(allCustomers);
+            } catch (e) { console.error('Load customers failed:', e); }
+        }
+
+        function renderCustomerTable(customers) {
+            const tbody = document.getElementById('customer-list');
+            if (!customers.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400 text-sm">No customers yet. Import data or wait for chat onboarding.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = customers.map(c => {
+                const hasProfile = c.name && c.company;
+                const statusBadge = hasProfile
+                    ? '<span class="px-2 py-1 text-[10px] font-bold uppercase bg-green-50 text-green-600 rounded-lg">Complete</span>'
+                    : '<span class="px-2 py-1 text-[10px] font-bold uppercase bg-amber-50 text-amber-600 rounded-lg">Pending</span>';
+                return `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">${(c.name || '?').charAt(0).toUpperCase()}</div>
+                            <span class="font-bold text-sm text-gray-800">${c.name || '<em class="text-gray-400">Not set</em>'}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-3 text-sm text-gray-600">${c.company || c.outlet_pos || '--'}</td>
+                    <td class="px-6 py-3 text-xs text-gray-500 font-mono">${c.identifier}</td>
+                    <td class="px-6 py-3 text-sm text-gray-500">${c.position || '--'}</td>
+                    <td class="px-6 py-3">${statusBadge}</td>
+                    <td class="px-6 py-3 text-right">
+                        <button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button>
+                        <button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterCustomerTable() {
+            const q = document.getElementById('customer-search').value.trim().toLowerCase();
+            if (!q) return renderCustomerTable(allCustomers);
+            const filtered = allCustomers.filter(c =>
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.company || '').toLowerCase().includes(q) ||
+                (c.identifier || '').toLowerCase().includes(q) ||
+                (c.outlet_pos || '').toLowerCase().includes(q)
+            );
+            renderCustomerTable(filtered);
+        }
+
+        function showAddCustomerModal() {
+            document.getElementById('customer-modal-title').innerText = 'Add Customer';
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-company').value = '';
+            document.getElementById('cust-identifier').value = '';
+            document.getElementById('cust-identifier').readOnly = false;
+            document.getElementById('cust-position').value = '';
+            document.getElementById('customer-modal').classList.remove('hidden');
+        }
+
+        function editCustomer(identifier) {
+            const c = allCustomers.find(x => x.identifier === identifier);
+            if (!c) return;
+            document.getElementById('customer-modal-title').innerText = 'Edit Customer';
+            document.getElementById('cust-name').value = c.name || '';
+            document.getElementById('cust-company').value = c.company || c.outlet_pos || '';
+            document.getElementById('cust-identifier').value = c.identifier;
+            document.getElementById('cust-identifier').readOnly = true;
+            document.getElementById('cust-position').value = c.position || '';
+            document.getElementById('customer-modal').classList.remove('hidden');
+        }
+
+        function closeCustomerModal() {
+            document.getElementById('customer-modal').classList.add('hidden');
+        }
+
+        async function saveCustomer() {
+            const name = document.getElementById('cust-name').value.trim();
+            const company = document.getElementById('cust-company').value.trim();
+            const identifier = document.getElementById('cust-identifier').value.trim();
+            const position = document.getElementById('cust-position').value.trim();
+
+            if (!name || !identifier) return alert('Name and Phone/ID are required.');
+
+            try {
+                const res = await fetchWithAuth('/api/customers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier, name, company, outlet: company, position })
+                });
+                if (res && res.ok) {
+                    closeCustomerModal();
+                    loadCustomers();
+                } else {
+                    const data = await res.json();
+                    alert('Error: ' + (data.error || 'Failed'));
+                }
+            } catch (e) { alert('Request failed'); }
+        }
+
+        async function deleteCustomer(identifier) {
+            if (!confirm(`Delete customer ${identifier}?`)) return;
+            try {
+                const res = await fetchWithAuth(`/api/customers/${encodeURIComponent(identifier)}`, { method: 'DELETE' });
+                if (res && res.ok) loadCustomers();
+                else alert('Delete failed');
+            } catch (e) { alert('Request failed'); }
+        }
+
+        async function handleCustomerImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const statusBox = document.getElementById('customer-import-status');
+            const statusText = document.getElementById('customer-import-text');
+            statusBox.classList.remove('hidden');
+            statusText.innerText = `Importing ${file.name}...`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetchWithAuth('/api/customers/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (res && res.ok) {
+                    const data = await res.json();
+                    statusText.innerText = `✅ Imported ${data.imported} customers (${data.skipped} skipped)`;
+                    statusBox.className = statusBox.className.replace('bg-green-50 border-green-100', 'bg-green-50 border-green-100');
+                    loadCustomers();
+                    setTimeout(() => statusBox.classList.add('hidden'), 5000);
+                } else {
+                    const data = await res.json();
+                    statusText.innerText = `❌ Import failed: ${data.error || 'Unknown error'}`;
+                    statusBox.className = statusBox.className.replace('bg-green-50 border-green-100', 'bg-red-50 border-red-100');
+                    setTimeout(() => statusBox.classList.add('hidden'), 5000);
+                }
+            } catch (e) {
+                statusText.innerText = '❌ Request failed';
+                setTimeout(() => statusBox.classList.add('hidden'), 3000);
+            }
+            input.value = '';
         }
 
         async function handleURLCrawl() {

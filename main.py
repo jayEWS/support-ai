@@ -852,6 +852,137 @@ async def batch_delete_knowledge(
         logger.error(f"Error batch deleting knowledge: {str(e)}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
+# ============ Customer Management APIs ============
+
+@app.get("/api/customers")
+async def get_customers(agent: Annotated[dict, Depends(get_current_agent)]):
+    """List all customers (users) from DB."""
+    return _require_db().get_all_users()
+
+@app.get("/api/customers/{identifier}")
+async def get_customer(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get single customer details."""
+    user = _require_db().get_user(identifier)
+    if not user:
+        return JSONResponse({"error": "Customer not found"}, status_code=404)
+    return user
+
+@app.post("/api/customers")
+async def create_customer(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Create or update a single customer."""
+    data = await request.json()
+    identifier = data.get("identifier") or data.get("phone") or data.get("id")
+    name = data.get("name")
+    company = data.get("company", "")
+    outlet = data.get("outlet") or data.get("outlet_pos") or company
+    position = data.get("position", "")
+    if not identifier or not name:
+        return JSONResponse({"error": "identifier and name are required"}, status_code=400)
+    _require_db().create_or_update_user(identifier, name=name, company=company, position=position, outlet_pos=outlet, state="complete")
+    return {"status": "success", "identifier": identifier, "name": name}
+
+@app.post("/api/customers/import")
+async def import_customers(
+    agent: Annotated[dict, Depends(get_current_agent)],
+    file: UploadFile = File(...)
+):
+    """Bulk import customers from CSV/Excel file.
+    Expected columns: name, company/outlet, phone/identifier, position (optional)
+    """
+    import csv
+    import io
+
+    filename = file.filename.lower()
+    content = await file.read()
+    rows = []
+
+    try:
+        if filename.endswith(".csv"):
+            text = content.decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+        elif filename.endswith((".xlsx", ".xls")):
+            try:
+                import openpyxl
+                wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True)
+                ws = wb.active
+                headers = [str(c.value or "").strip().lower() for c in next(ws.iter_rows(min_row=1, max_row=1))]
+                for row in ws.iter_rows(min_row=2, values_only=True):
+                    rows.append({headers[i]: (str(v).strip() if v else "") for i, v in enumerate(row) if i < len(headers)})
+                wb.close()
+            except ImportError:
+                return JSONResponse({"error": "openpyxl package not installed. Use CSV format or install openpyxl."}, status_code=400)
+        else:
+            return JSONResponse({"error": "Unsupported format. Use CSV or XLSX."}, status_code=400)
+    except Exception as e:
+        return JSONResponse({"error": f"Failed to parse file: {str(e)}"}, status_code=400)
+
+    if not rows:
+        return JSONResponse({"error": "File is empty or has no data rows"}, status_code=400)
+
+    imported = 0
+    skipped = 0
+    errors_list = []
+
+    for i, row in enumerate(rows, 1):
+        # Normalize column names (support various naming conventions)
+        r = {k.strip().lower().replace(" ", "_"): v for k, v in row.items()}
+        name = r.get("name") or r.get("nama") or r.get("customer_name") or r.get("full_name", "")
+        company = r.get("company") or r.get("perusahaan") or r.get("outlet") or r.get("outlet_pos") or r.get("toko", "")
+        identifier = r.get("identifier") or r.get("phone") or r.get("id") or r.get("nomor") or r.get("telepon") or r.get("whatsapp", "")
+        position = r.get("position") or r.get("jabatan", "")
+
+        if not name and not identifier:
+            skipped += 1
+            continue
+
+        # Auto-generate identifier if missing
+        if not identifier:
+            identifier = f"imp_{name.lower().replace(' ', '_')}_{i}"
+
+        try:
+            _require_db().create_or_update_user(
+                identifier=identifier.strip(),
+                name=name.strip(),
+                company=company.strip(),
+                position=position.strip(),
+                outlet_pos=(company or "").strip(),
+                state="complete"
+            )
+            imported += 1
+        except Exception as e:
+            errors_list.append(f"Row {i}: {str(e)}")
+            skipped += 1
+
+    return {
+        "status": "success",
+        "imported": imported,
+        "skipped": skipped,
+        "total_rows": len(rows),
+        "errors": errors_list[:10]  # Return first 10 errors max
+    }
+
+@app.delete("/api/customers/{identifier}")
+async def delete_customer(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Delete a customer record."""
+    db = _require_db()
+    user = db.get_user(identifier)
+    if not user:
+        return JSONResponse({"error": "Customer not found"}, status_code=404)
+    try:
+        session = db.get_session()
+        from app.models.models import User
+        u = session.query(User).get(identifier)
+        if u:
+            session.delete(u)
+            session.commit()
+        return {"status": "success", "message": f"Deleted customer {identifier}"}
+    except Exception as e:
+        logger.error(f"Delete customer error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        db.Session.remove()
+
 # ============ GCS (Google Cloud Storage) APIs ============
 
 @app.get("/api/gcs/status")
