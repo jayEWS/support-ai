@@ -47,7 +47,7 @@ async def process_incoming_message(data: dict):
     
     # Send response back via the same channel
     if channel == "whatsapp":
-        from app.adapters.whatsapp_bird import send_whatsapp_message
+        from app.adapters.whatsapp_meta import send_whatsapp_message
         await send_whatsapp_message(user_id, response)
     elif channel == "email":
         from app.adapters.email_handler import send_email_response

@@ -29,11 +29,12 @@ class Settings(BaseSettings):
     EMBEDDINGS_MODEL_NAME: str = "all-MiniLM-L6-v2"
     EMBEDDINGS_BASE_URL: Optional[str] = None
     
-    # WhatsApp / Bird Settings
-    BIRD_API_KEY: str = ""
-    BIRD_CHANNEL_ID: str = ""
-    BIRD_WORKSPACE_ID: str = ""  # Set via environment variable
-    BIRD_WEBHOOK_SECRET: str = ""
+    # WhatsApp / Meta Cloud API Settings
+    WHATSAPP_API_TOKEN: str = ""  # Meta permanent access token
+    WHATSAPP_PHONE_NUMBER_ID: str = ""  # Phone Number ID from Meta dashboard
+    WHATSAPP_BUSINESS_ACCOUNT_ID: str = ""  # WhatsApp Business Account ID
+    WHATSAPP_VERIFY_TOKEN: str = "edgeworks_wa_verify_2024"  # Webhook verification token (you set this)
+    WHATSAPP_APP_SECRET: str = ""  # Meta App Secret for signature validation
     
     # Email / Mailgun Settings
     MAILGUN_API_KEY: str = ""  # Set via environment variable

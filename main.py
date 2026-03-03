@@ -1113,24 +1113,43 @@ async def close_session(request: Request):
 
 @app.get("/webhook/whatsapp")
 async def whatsapp_webhook_verify(request: Request):
-    """Handle Bird webhook verification (GET) and health checks."""
-    # Bird may send challenge-based verification
+    """Handle Meta WhatsApp webhook verification (GET).
+    Meta sends: hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=<challenge>
+    """
     params = dict(request.query_params)
+    mode = params.get("hub.mode")
+    token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+    
+    if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
+        logger.info(f"✅ WhatsApp webhook verified successfully")
+        return PlainTextResponse(challenge)
+    
+    # Fallback for health checks
     if "challenge" in params:
         return PlainTextResponse(params["challenge"])
+    
+    logger.warning(f"❌ WhatsApp webhook verification failed. mode={mode}, token={token}")
     return {"status": "ok", "message": "WhatsApp webhook is active"}
 
 @app.post("/webhook/whatsapp")
-@limiter.limit("30/minute")  # Rate limit (Bird may burst messages)
+@limiter.limit("30/minute")
 async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     trace_id = set_trace_id()
     
     try:
         message = await WhatsAppWebhookService.normalize_payload(request)
     except HTTPException as e:
-        # Duplicates, outbound echoes, empty messages — return 200 so Bird doesn't retry
+        # Duplicates, status updates, empty messages — return 200 so Meta doesn't retry
         logger.info(f"Webhook filtered: {e.detail}")
         return {"status": "filtered", "reason": e.detail}
+    
+    # Mark message as read (double blue ticks)
+    try:
+        from app.adapters.whatsapp_meta import mark_message_read
+        await mark_message_read(message.message_id)
+    except Exception:
+        pass  # Non-critical
     
     # Save inbound message to DB
     db = _require_db() if db_manager else None
@@ -1162,10 +1181,10 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     if customer.is_new:
         response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
 
-    # Send the reply back to WhatsApp via Bird API
+    # Send the reply back to WhatsApp via Meta Cloud API
     send_success = False
     try:
-        from app.adapters.whatsapp_bird import send_whatsapp_message
+        from app.adapters.whatsapp_meta import send_whatsapp_message
         send_success = await send_whatsapp_message(message.sender, response_text)
     except Exception as e:
         logger.error(f"Failed to send WhatsApp message back: {e}")
@@ -1214,7 +1233,7 @@ async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_cur
     if not phone or not message:
         raise HTTPException(status_code=400, detail="phone_number and message are required")
 
-    from app.adapters.whatsapp_bird import send_whatsapp_message
+    from app.adapters.whatsapp_meta import send_whatsapp_message
     send_success = await send_whatsapp_message(phone, message)
 
     db = _require_db()
@@ -1225,7 +1244,7 @@ async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_cur
         status="sent" if send_success else "failed"
     )
     if not send_success:
-        raise HTTPException(status_code=502, detail="Failed to send via Bird API")
+        raise HTTPException(status_code=502, detail="Failed to send via Meta WhatsApp API")
     return {"status": "sent", "message_id": msg_id}
 
 @app.post("/api/whatsapp/convert-ticket")
