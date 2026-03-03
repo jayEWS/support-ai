@@ -38,15 +38,27 @@ if grep -q "db.wjsaltebtbmnysgcdsoh.supabase.co" .env; then
     sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres.wjsaltebtbmnysgcdsoh:Tekansaja123@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres|' .env
 fi
 
-# GCS Config (Phase 2) — disabled by default, enable after GCS bucket setup
-if ! grep -q "^GCS_ENABLED=" .env; then
-    echo "GCS_ENABLED=False" >> .env
+# GCS Config (Phase 2) — auto-enable if sa-key.json exists
+if [ -f ~/support-portal/sa-key.json ]; then
+    echo "  → sa-key.json found, enabling GCS"
+    if grep -q "^GCS_ENABLED=" .env; then
+        sed -i 's|^GCS_ENABLED=.*|GCS_ENABLED=True|' .env
+    else
+        echo "GCS_ENABLED=True" >> .env
+    fi
+    if ! grep -q "^GOOGLE_APPLICATION_CREDENTIALS=" .env; then
+        echo "GOOGLE_APPLICATION_CREDENTIALS=/app/sa-key.json" >> .env
+    fi
+else
+    if ! grep -q "^GCS_ENABLED=" .env; then
+        echo "GCS_ENABLED=False" >> .env
+    fi
 fi
 if ! grep -q "^GCS_BUCKET_NAME=" .env; then
-    echo "GCS_BUCKET_NAME=" >> .env
+    echo "GCS_BUCKET_NAME=support-edgeworks-knowledge" >> .env
 fi
 if ! grep -q "^GCP_PROJECT_ID=" .env; then
-    echo "GCP_PROJECT_ID=" >> .env
+    echo "GCP_PROJECT_ID=tcare-edgeworks" >> .env
 fi
 
 echo "--- .env preview (sensitive values masked) ---"
@@ -71,11 +83,19 @@ if [ -f ~/support-portal/vm_upload.sh ]; then
 fi
 
 echo "=== [6/6] Start container with volume mount ==="
+# Mount sa-key.json for GCS access (Phase 2) if it exists
+SA_KEY_MOUNT=""
+if [ -f ~/support-portal/sa-key.json ]; then
+    SA_KEY_MOUNT="-v ~/support-portal/sa-key.json:/app/sa-key.json:ro"
+    echo "  → Mounting sa-key.json for GCS access"
+fi
+
 sudo docker run -d \
     --name support-ai \
     --restart always \
     -p 8000:8000 \
     -v ~/support-portal/data:/app/data \
+    $SA_KEY_MOUNT \
     --env-file ~/support-portal/.env \
     support-ai
 
