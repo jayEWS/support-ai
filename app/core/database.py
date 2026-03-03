@@ -226,7 +226,7 @@ class DatabaseManager:
             self.Session.remove()
 
     # ============ Knowledge Base ============
-    def save_knowledge_metadata(self, filename: str, file_path: str, uploaded_by: str = None, status: str = "Processing"):
+    def save_knowledge_metadata(self, filename: str, file_path: str, uploaded_by: str = None, status: str = "Processing", source_url: str = None):
         session = self.get_session()
         try:
             meta = session.query(KnowledgeMetadata).filter_by(filename=filename).first()
@@ -235,8 +235,10 @@ class DatabaseManager:
                 meta.upload_date = datetime.now(timezone.utc)
                 meta.uploaded_by = uploaded_by or meta.uploaded_by
                 meta.status = status
+                if source_url is not None:
+                    meta.source_url = source_url
             else:
-                meta = KnowledgeMetadata(filename=filename, file_path=file_path, uploaded_by=uploaded_by, status=status)
+                meta = KnowledgeMetadata(filename=filename, file_path=file_path, uploaded_by=uploaded_by, status=status, source_url=source_url)
                 session.add(meta)
             session.commit()
         except Exception as e:
@@ -255,7 +257,8 @@ class DatabaseManager:
                 "file_path": i.file_path, 
                 "upload_date": i.upload_date.isoformat() if i.upload_date else None,
                 "uploaded_by": i.uploaded_by,
-                "status": i.status
+                "status": i.status,
+                "source_url": getattr(i, 'source_url', None)
             } for i in items ]
         finally:
             self.Session.remove()

@@ -576,9 +576,9 @@
                             <i class="fas fa-cloud-upload-alt text-blue-500 text-xl"></i>
                         </div>
                         <p class="text-sm font-bold text-gray-700">Upload Documents</p>
-                        <p class="text-[10px] text-gray-400 mt-1">PDF, TXT, DOCX, CSV, XLSX</p>
+                        <p class="text-[10px] text-gray-400 mt-1">Any file type — AI will learn from it</p>
                     </div>
-                    <input type="file" id="kb-upload-input" class="hidden" multiple accept=".pdf,.txt,.docx,.csv,.xlsx" onchange="handleKBUpload(this)">
+                    <input type="file" id="kb-upload-input" class="hidden" multiple onchange="handleKBUpload(this)">
                 </div>
                 <!-- URL Fetch -->
                 <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -634,6 +634,7 @@
                         <tr>
                             <th class="px-6 py-3 text-left w-10"><input type="checkbox" onchange="toggleAllKnowledge(this)" class="rounded border-gray-300"></th>
                             <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Document Name</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Source</th>
                             <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Uploaded By</th>
                             <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Date</th>
                             <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Status</th>
@@ -980,7 +981,7 @@
         let volumeChart = null, priorityChart = null;
 
         // --- Persistent Menu Logic ---
-        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'security', 'tickets', 'customers', 'freshdesk', 'macros', 'knowledge', 'settings', 'audit'];
+        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'freshdesk', 'knowledge', 'settings'];
         let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
         let pinnedMenus = JSON.parse(localStorage.getItem('support_portal_pinned')) || [];
 
@@ -1040,14 +1041,11 @@
                 overview: { icon: 'fa-chart-pie', label: 'Overview', onClick: "switchTab('overview')" },
                 chat: { icon: 'fa-comments', label: 'Chat', isDropdown: true, id: 'chat' },
                 team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
-                security: { icon: 'fa-shield-halved', label: 'Security', isDropdown: true, id: 'security', adminOnly: true },
-                tickets: { icon: 'fa-ticket-alt', label: 'All Tickets', onClick: "switchTab('tickets')" },
+                tickets: { icon: 'fa-ticket-alt', label: 'Tickets', isDropdown: true, id: 'tickets' },
                 customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
                 freshdesk: { icon: 'fa-history', label: 'Freshdesk Data', onClick: "switchTab('freshdesk')" },
                 knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
-                macros: { icon: 'fa-bolt', label: 'Macros', onClick: "switchTab('macros')" },
-                settings: { icon: 'fa-cog', label: 'Settings', onClick: "switchTab('settings')" },
-                audit: { icon: 'fa-shield-alt', label: 'Audit Logs', onClick: "switchTab('audit')", adminOnly: true }
+                settings: { icon: 'fa-cog', label: 'Settings', isDropdown: true, id: 'settings' }
             };
 
             const sortedKeys = [...menuOrder].sort((a, b) => {
@@ -1090,21 +1088,36 @@
 
         function renderSubContent(id) {
             if (id === 'chat') return `
-                <a href="#" onclick="switchTab('inbox', 'all')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">All chat <span id="count-all" class="count-badge">0</span></a>
-                <a href="#" onclick="switchTab('inbox', 'unassigned')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">Unassigned <span id="count-unassigned" class="count-badge">0</span></a>
-                <a href="#" onclick="switchTab('inbox', 'no_reply')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">No reply <span id="count-no-reply" class="count-badge">0</span></a>
-                <a href="#" onclick="switchTab('inbox', 'assigned')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">Assigned <span id="count-assigned" class="count-badge">0</span></a>
+                <a href="#" onclick="switchTab('inbox', 'all')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fas fa-envelope text-blue-500'></i> Email</span> <span id="count-all" class="count-badge">0</span></a>
                 <a href="#" onclick="switchTab('whatsapp')" class="flex justify-between items-center px-4 py-2 text-xs text-green-600 hover:text-green-700 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp'></i> WhatsApp</span> <span id='count-whatsapp' class='count-badge' style='background:#dcfce7;color:#16a34a'>0</span></a>
+                <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-instagram text-pink-400'></i> Instagram</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
+                <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-facebook-messenger text-blue-300'></i> Inbox</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
+                <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp text-green-300'></i> WA Group</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
             `;
             if (id === 'team') {
                 const depts = ["Support", "Product specialist", "Project manager", "Sales", "HR", "developer", "QA", "Deployment", "Intern"];
                 return depts.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('');
             }
-            if (id === 'security') return `
-                <a href="#" onclick="switchTab('usermst')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">User Master</a>
-                <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">Group Privileges</a>
-                <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">Privilege Setup</a>
+            if (id === 'tickets') return `
+                <a href="#" onclick="switchTab('tickets', 'all')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-list text-blue-400'></i> All Tickets</span></a>
+                <a href="#" onclick="switchTab('tickets', 'unassigned')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-clock text-amber-400'></i> Unassigned</span></a>
+                <a href="#" onclick="switchTab('tickets', 'pending_investigator')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-search text-purple-400'></i> Pending Investigator</span></a>
+                <a href="#" onclick="switchTab('tickets', 'pending_programmer')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-code text-indigo-400'></i> Pending Programmer</span></a>
+                <a href="#" onclick="switchTab('tickets', 'closed')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-times-circle text-gray-400'></i> Closed</span></a>
+                <a href="#" onclick="switchTab('tickets', 'resolved')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-check-circle text-green-400'></i> Resolved</span></a>
             `;
+            if (id === 'settings') {
+                const isAdmin = currentUser?.role === 'admin';
+                return `
+                <a href="#" onclick="switchTab('settings')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-sliders-h text-gray-400'></i> General</span></a>
+                ${isAdmin ? `<a href="#" onclick="switchTab('usermst')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-shield text-blue-400'></i> User Master</span></a>
+                <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-users-cog text-blue-400'></i> Group Privileges</span></a>
+                <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-key text-blue-400'></i> Privilege Setup</span></a>` : ''}
+                <a href="#" onclick="switchTab('macros')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-bolt text-amber-400'></i> Macros</span></a>
+                <a href="#" onclick="switchTab('knowledge')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-brain text-purple-400'></i> Knowledge Base</span></a>
+                ${isAdmin ? `<a href="#" onclick="switchTab('audit')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-shield-alt text-red-400'></i> Audit Logs</span></a>` : ''}
+                `;
+            }
             return '';
         }
 
@@ -1114,12 +1127,13 @@
             // Stop WhatsApp polling when leaving that tab
             if (tab !== 'whatsapp' && waPollingInterval) { clearInterval(waPollingInterval); waPollingInterval = null; }
             ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'freshdesk', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
-                if (document.getElementById(`${t}-view`)) document.getElementById(`${t}-view`).classList.toggle('hidden', t !== tab);
+                const el = document.getElementById(`${t}-view`);
+                if (el) el.classList.toggle('hidden', t !== tab);
             });
             if (tab === 'overview') loadAnalytics();
             else if (tab === 'inbox') loadInbox(subOption);
             else if (tab === 'team') loadTeam(subOption);
-            else if (tab === 'tickets') loadAllTickets();
+            else if (tab === 'tickets') loadAllTickets(subOption);
             else if (tab === 'whatsapp') loadWhatsApp();
             else if (tab === 'macros') loadMacros();
             else if (tab === 'audit') loadAuditLogs();
@@ -1398,7 +1412,19 @@
         }
         function closeProfile() { document.getElementById('profile-modal').classList.add('hidden'); }
 
-        async function loadAllTickets() { const res = await fetchWithAuth('/api/tickets'); const data = await res.json(); document.getElementById('tickets-list').innerHTML = data.map(t => `<tr class="hover:bg-gray-50 border-b"><td class="px-6 py-4"><div class="text-sm font-bold text-gray-900 uppercase">${t.name || 'Anon'}</div><div class="text-[10px] text-gray-400">${t.company || '-'}</div></td><td class="px-6 py-4 text-xs text-gray-600 line-clamp-1">${t.summary}</td><td class="px-6 py-4 uppercase text-[10px] font-bold priority-${t.priority.toLowerCase()}">${t.priority}</td><td class="px-6 py-4"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span></td><td class="px-6 py-4 text-right"><button onclick="selectTicket(${t.id}); switchTab('inbox');" class="text-blue-600 font-bold text-xs uppercase tracking-tighter hover:underline">View</button></td></tr>`).join(''); }
+        async function loadAllTickets(statusFilter = null) {
+            const res = await fetchWithAuth('/api/tickets');
+            let data = await res.json();
+            const filterMap = { 'unassigned': 'Open', 'pending_investigator': 'Pending', 'pending_programmer': 'Pending', 'closed': 'Closed', 'resolved': 'Resolved' };
+            const filterLabel = { 'all': 'All Tickets', 'unassigned': 'Unassigned', 'pending_investigator': 'Pending Investigator', 'pending_programmer': 'Pending Programmer', 'closed': 'Closed', 'resolved': 'Resolved' };
+            if (statusFilter && statusFilter !== 'all' && filterMap[statusFilter]) {
+                data = data.filter(t => t.status.toLowerCase() === filterMap[statusFilter].toLowerCase());
+            }
+            const label = filterLabel[statusFilter] || 'All Tickets';
+            document.getElementById('tickets-list').innerHTML = data.length === 0
+                ? `<tr><td colspan="5" class="px-6 py-12 text-center text-gray-400 text-sm"><i class="fas fa-ticket-alt text-4xl text-gray-200 mb-3 block"></i>No tickets found${statusFilter && statusFilter !== 'all' ? ' for ' + label : ''}</td></tr>`
+                : data.map(t => `<tr class="hover:bg-gray-50 border-b"><td class="px-6 py-4"><div class="text-sm font-bold text-gray-900 uppercase">${t.name || 'Anon'}</div><div class="text-[10px] text-gray-400">${t.company || '-'}</div></td><td class="px-6 py-4 text-xs text-gray-600 line-clamp-1">${t.summary}</td><td class="px-6 py-4 uppercase text-[10px] font-bold priority-${t.priority.toLowerCase()}">${t.priority}</td><td class="px-6 py-4"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span></td><td class="px-6 py-4 text-right"><button onclick="selectTicket(${t.id}); switchTab('inbox');" class="text-blue-600 font-bold text-xs uppercase tracking-tighter hover:underline">View</button></td></tr>`).join('');
+        }
 
         // ============ WhatsApp Functions ============
         let waSelectedPhone = null;
@@ -1624,10 +1650,16 @@
         async function loadKnowledge() {
             const res = await fetchWithAuth('/api/knowledge');
             const data = await res.json();
-            document.getElementById('knowledge-list').innerHTML = data.map(k => `
+            document.getElementById('knowledge-list').innerHTML = data.map(k => {
+                const isUrl = k.source_url || (k.filename && k.filename.startsWith('url_'));
+                const sourceHtml = isUrl
+                    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[8px] font-bold uppercase" title="${k.source_url || ''}"><i class="fas fa-globe"></i> URL</span>${k.source_url ? `<p class="text-[8px] text-gray-400 mt-0.5 truncate max-w-[150px]" title="${k.source_url}">${k.source_url}</p>` : ''}`
+                    : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[8px] font-bold uppercase"><i class="fas fa-upload"></i> Upload</span>`;
+                return `
                 <tr class="text-xs border-b hover:bg-gray-50 transition-colors">
                     <td class="px-6 py-4"><input type="checkbox" class="knowledge-checkbox" value="${k.filename}" onchange="updateBulkDeleteButton()"></td>
                     <td class="px-6 py-4 font-bold text-gray-900">${k.filename}</td>
+                    <td class="px-6 py-4">${sourceHtml}</td>
                     <td class="px-6 py-4 text-gray-500 uppercase font-black text-[9px]">${k.uploaded_by || 'System'}</td>
                     <td class="px-6 py-4 text-gray-400 text-[9px]">${k.upload_date ? new Date(k.upload_date).toLocaleString() : '--'}</td>
                     <td class="px-6 py-4">
@@ -1638,7 +1670,8 @@
                     <td class="px-6 py-4 text-right">
                         <button onclick="deleteKnowledge('${k.filename}')" class="text-red-600 font-bold uppercase tracking-widest hover:underline">Delete</button>
                     </td>
-                </tr>`).join('');
+                </tr>`;
+            }).join('');
         }
 
         async function handleKBUpload(input) {
@@ -1667,13 +1700,38 @@
                 };
                 xhr.onload = function () {
                     if (xhr.status === 200) {
-                        statusText.innerText = "Upload & Re-indexing Successful!";
-                        setTimeout(() => { box.classList.add('hidden'); bar.style.width = '0%'; }, 3000);
-                        loadKnowledge();
-                    } else { alert("Upload failed: " + xhr.responseText); box.classList.add('hidden'); }
+                        statusText.innerText = "✅ Upload & Re-indexing Successful!";
+                        bar.style.width = '100%';
+                        box.classList.remove('bg-blue-50', 'border-blue-100');
+                        box.classList.add('bg-green-50', 'border-green-100');
+                        statusText.classList.remove('text-blue-600');
+                        statusText.classList.add('text-green-600');
+                        percentText.classList.remove('text-blue-600');
+                        percentText.classList.add('text-green-600');
+                        setTimeout(() => { box.classList.add('hidden'); bar.style.width = '0%'; box.classList.remove('bg-green-50', 'border-green-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-green-600'); statusText.classList.add('text-blue-600'); percentText.classList.remove('text-green-600'); percentText.classList.add('text-blue-600'); }, 4000);
+                        loadKnowledge(); loadKBStats();
+                    } else {
+                        let errMsg = 'Unknown error';
+                        try { errMsg = JSON.parse(xhr.responseText).error || xhr.responseText; } catch(e) { errMsg = xhr.responseText || xhr.statusText; }
+                        statusText.innerText = `❌ Upload Failed: ${errMsg}`;
+                        box.classList.remove('bg-blue-50', 'border-blue-100');
+                        box.classList.add('bg-red-50', 'border-red-100');
+                        statusText.classList.remove('text-blue-600');
+                        statusText.classList.add('text-red-600');
+                        bar.style.width = '0%';
+                        setTimeout(() => { box.classList.add('hidden'); box.classList.remove('bg-red-50', 'border-red-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-red-600'); statusText.classList.add('text-blue-600'); }, 6000);
+                    }
+                };
+                xhr.onerror = function() {
+                    statusText.innerText = '❌ Network error — could not upload file(s)';
+                    box.classList.remove('bg-blue-50', 'border-blue-100');
+                    box.classList.add('bg-red-50', 'border-red-100');
+                    statusText.classList.remove('text-blue-600');
+                    statusText.classList.add('text-red-600');
+                    setTimeout(() => { box.classList.add('hidden'); box.classList.remove('bg-red-50', 'border-red-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-red-600'); statusText.classList.add('text-blue-600'); }, 6000);
                 };
                 xhr.send(formData);
-            } catch (err) { console.error(err); box.classList.add('hidden'); }
+            } catch (err) { console.error(err); statusText.innerText = '❌ Error: ' + err.message; setTimeout(() => box.classList.add('hidden'), 4000); }
         }
 
         async function loadUserMaster() {
@@ -1761,8 +1819,39 @@
 
         function toggleAllKnowledge(m) { document.querySelectorAll('.knowledge-checkbox').forEach(c => c.checked = m.checked); updateBulkDeleteButton(); }
         function updateBulkDeleteButton() { const c = document.querySelectorAll('.knowledge-checkbox:checked').length, b = document.getElementById('bulk-delete-btn'); b.disabled = c === 0; b.innerText = `Delete Selected (${c})`; }
-        async function deleteSelectedKnowledge() { const s = Array.from(document.querySelectorAll('.knowledge-checkbox:checked')).map(c => c.value); if (confirm(`Delete ${s.length} files?`)) { await fetchWithAuth('/api/knowledge/batch-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filenames: s }) }); loadKnowledge(); } }
-        async function deleteKnowledge(f) { if (confirm(`Delete ${f}?`)) { await fetchWithAuth(`/api/knowledge/${f}`, { method: 'DELETE' }); loadKnowledge(); } }
+        async function deleteSelectedKnowledge() {
+            const s = Array.from(document.querySelectorAll('.knowledge-checkbox:checked')).map(c => c.value);
+            if (!confirm(`Delete ${s.length} files?`)) return;
+            try {
+                const res = await fetchWithAuth('/api/knowledge/batch-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filenames: s }) });
+                if (res && res.ok) { showKBToast(`✅ ${s.length} file(s) deleted successfully`, 'green'); }
+                else { showKBToast('❌ Failed to delete some files', 'red'); }
+            } catch(e) { showKBToast('❌ Delete failed: ' + e.message, 'red'); }
+            loadKnowledge(); loadKBStats();
+        }
+        async function deleteKnowledge(f) {
+            if (!confirm(`Delete ${f}?`)) return;
+            try {
+                const res = await fetchWithAuth(`/api/knowledge/${f}`, { method: 'DELETE' });
+                if (res && res.ok) { showKBToast(`✅ ${f} deleted successfully`, 'green'); }
+                else { showKBToast(`❌ Failed to delete ${f}`, 'red'); }
+            } catch(e) { showKBToast('❌ Delete failed: ' + e.message, 'red'); }
+            loadKnowledge(); loadKBStats();
+        }
+        function showKBToast(msg, color) {
+            const box = document.getElementById('upload-status-box');
+            const statusText = document.getElementById('upload-status-text');
+            const bar = document.getElementById('upload-progress-bar');
+            const percentText = document.getElementById('upload-percent');
+            box.classList.remove('hidden', 'bg-blue-50', 'border-blue-100', 'bg-green-50', 'border-green-100', 'bg-red-50', 'border-red-100');
+            box.classList.add(`bg-${color}-50`, `border-${color}-100`);
+            statusText.className = `text-xs font-bold ${color === 'green' ? 'text-green-600' : 'text-red-600'} uppercase tracking-widest`;
+            statusText.id = 'upload-status-text';
+            statusText.innerText = msg;
+            bar.style.width = color === 'green' ? '100%' : '0%';
+            percentText.innerText = '';
+            setTimeout(() => { box.classList.add('hidden'); box.classList.remove(`bg-${color}-50`, `border-${color}-100`); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.className = 'text-xs font-bold text-blue-600 uppercase tracking-widest'; statusText.id = 'upload-status-text'; }, 4000);
+        }
 
         async function trainAI() {
             const btn = document.getElementById('train-ai-btn');
@@ -1991,20 +2080,35 @@
                 });
 
                 if (res.ok) {
-                    statusText.innerText = "URL Content Fetched! AI is indexing...";
+                    const result = await res.json().catch(() => ({}));
+                    statusText.innerText = `✅ Fetched from ${url} — AI is indexing...`;
                     bar.style.width = '100%';
+                    box.classList.remove('bg-blue-50', 'border-blue-100');
+                    box.classList.add('bg-green-50', 'border-green-100');
+                    statusText.classList.remove('text-blue-600');
+                    statusText.classList.add('text-green-600');
                     input.value = '';
-                    setTimeout(() => { box.classList.add('hidden'); }, 3000);
-                    loadKnowledge();
+                    setTimeout(() => { box.classList.add('hidden'); box.classList.remove('bg-green-50', 'border-green-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-green-600'); statusText.classList.add('text-blue-600'); }, 5000);
+                    loadKnowledge(); loadKBStats();
                 } else {
-                    const data = await res.json();
-                    alert("Crawl failed: " + (data.error || "Unknown error"));
-                    box.classList.add('hidden');
+                    let errMsg = 'Unknown error';
+                    try { const data = await res.json(); errMsg = data.error || data.detail || errMsg; } catch(e) {}
+                    statusText.innerText = `❌ Crawl failed: ${errMsg}`;
+                    box.classList.remove('bg-blue-50', 'border-blue-100');
+                    box.classList.add('bg-red-50', 'border-red-100');
+                    statusText.classList.remove('text-blue-600');
+                    statusText.classList.add('text-red-600');
+                    bar.style.width = '0%';
+                    setTimeout(() => { box.classList.add('hidden'); box.classList.remove('bg-red-50', 'border-red-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-red-600'); statusText.classList.add('text-blue-600'); }, 6000);
                 }
             } catch (err) {
                 console.error(err);
-                alert("Request error");
-                box.classList.add('hidden');
+                statusText.innerText = `❌ Network error: ${err.message}`;
+                box.classList.remove('bg-blue-50', 'border-blue-100');
+                box.classList.add('bg-red-50', 'border-red-100');
+                statusText.classList.remove('text-blue-600');
+                statusText.classList.add('text-red-600');
+                setTimeout(() => { box.classList.add('hidden'); box.classList.remove('bg-red-50', 'border-red-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-red-600'); statusText.classList.add('text-blue-600'); }, 6000);
             }
         }
 

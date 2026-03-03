@@ -158,6 +158,7 @@ class KnowledgeMetadata(Base):
     upload_date = Column("UploadDate", DateTime, server_default=func.now())
     uploaded_by = Column("UploadedBy", Unicode(100), ForeignKey("app.Agents.Username"))
     status = Column("Status", Unicode(50), default="Processing") # Processing, Indexed, Error
+    source_url = Column("SourceURL", Unicode(1024), nullable=True)  # URL source for crawled docs
 
 class Macro(Base):
     __tablename__ = "Macros"

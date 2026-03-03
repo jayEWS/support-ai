@@ -281,7 +281,7 @@ class RAGEngine:
                 await f.write(f"Source URL: {url}\n\n")
                 await f.write(content)
             
-            db_manager.save_knowledge_metadata(filename=filename, file_path=file_path, uploaded_by=uploaded_by, status="Processing")
+            db_manager.save_knowledge_metadata(filename=filename, file_path=file_path, uploaded_by=uploaded_by, status="Processing", source_url=url)
             
             # Phase 2: Upload to GCS
             try:
