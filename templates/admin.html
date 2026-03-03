@@ -983,6 +983,11 @@
         // --- Persistent Menu Logic ---
         const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'freshdesk', 'knowledge', 'settings'];
         let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
+        // Clean up stale menu items from previous layout
+        const validMenus = new Set(DEFAULT_MENU_ORDER);
+        menuOrder = menuOrder.filter(m => validMenus.has(m));
+        DEFAULT_MENU_ORDER.forEach(m => { if (!menuOrder.includes(m)) menuOrder.push(m); });
+        localStorage.setItem('support_portal_menu_order', JSON.stringify(menuOrder));
         let pinnedMenus = JSON.parse(localStorage.getItem('support_portal_pinned')) || [];
 
         async function refreshAccessToken() {
