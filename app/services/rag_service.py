@@ -270,9 +270,12 @@ Jawaban:"""
                 return response
                 
             except Exception as e:
-                logger.error(f"RAG query error: {e}")
+                import traceback
+                err_msg = str(e).encode('utf-8', errors='replace').decode('utf-8') or type(e).__name__
+                tb = traceback.format_exc().encode('utf-8', errors='replace').decode('utf-8')
+                logger.error(f"RAG query error: {err_msg}\n{tb}")
                 return RAGResponse(
-                    answer=f"Error processing query: {str(e)}",
+                    answer=f"Error processing query: {err_msg}",
                     confidence=0,
                     source_documents=[]
                 )
