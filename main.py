@@ -894,9 +894,13 @@ async def create_customer(request: Request, agent: Annotated[dict, Depends(get_c
     company = data.get("company", "")
     outlet = data.get("outlet") or data.get("outlet_pos") or company
     position = data.get("position", "")
+    email = data.get("email", "")
+    mobile = data.get("mobile", "")
+    category = data.get("category", "")
+    outlet_address = data.get("outlet_address", "")
     if not identifier or not name:
         return JSONResponse({"error": "identifier and name are required"}, status_code=400)
-    _require_db().create_or_update_user(identifier, name=name, company=company, position=position, outlet_pos=outlet, state="complete")
+    _require_db().create_or_update_user(identifier, name=name, company=company, position=position, outlet_pos=outlet, state="complete", email=email, mobile=mobile, category=category, outlet_address=outlet_address)
     return {"status": "success", "identifier": identifier, "name": name}
 
 @app.post("/api/customers/import")
@@ -1028,9 +1032,13 @@ async def import_customers_api(
             _require_db().create_or_update_user(
                 identifier=identifier,
                 name=name,
+                email=fields['email'],
+                mobile=fields['mobile'],
                 company=fields['company'],
                 position=fields['position'],
                 outlet_pos=fields['outlet_pos'],
+                outlet_address=fields.get('outlet_address', ''),
+                category=fields.get('category', ''),
                 state="complete"
             )
             imported += 1

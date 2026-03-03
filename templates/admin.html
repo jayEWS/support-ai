@@ -699,11 +699,13 @@
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Account ID</th>
                             <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Name</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Company / Outlet</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">ID / Phone</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Position</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Status</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Email</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Mobile</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Company</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Outlet</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Category</th>
                             <th class="px-6 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
                         </tr>
                     </thead>
@@ -1936,26 +1938,24 @@
         function renderCustomerTable(customers) {
             const tbody = document.getElementById('customer-list');
             if (!customers.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400 text-sm">No customers yet. Import data or wait for chat onboarding.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-400 text-sm">No customers yet. Import data or wait for chat onboarding.</td></tr>';
                 return;
             }
             tbody.innerHTML = customers.map(c => {
-                const hasProfile = c.name && c.company;
-                const statusBadge = hasProfile
-                    ? '<span class="px-2 py-1 text-[10px] font-bold uppercase bg-green-50 text-green-600 rounded-lg">Complete</span>'
-                    : '<span class="px-2 py-1 text-[10px] font-bold uppercase bg-amber-50 text-amber-600 rounded-lg">Pending</span>';
                 return `
                 <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-3 text-xs text-gray-500 font-mono">${c.identifier || '--'}</td>
                     <td class="px-6 py-3">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">${(c.name || '?').charAt(0).toUpperCase()}</div>
-                            <span class="font-bold text-sm text-gray-800">${c.name || '<em class="text-gray-400">Not set</em>'}</span>
+                            <span class="font-bold text-sm text-gray-800">${c.name || '--'}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-3 text-sm text-gray-600">${c.company || c.outlet_pos || '--'}</td>
-                    <td class="px-6 py-3 text-xs text-gray-500 font-mono">${c.identifier}</td>
-                    <td class="px-6 py-3 text-sm text-gray-500">${c.position || '--'}</td>
-                    <td class="px-6 py-3">${statusBadge}</td>
+                    <td class="px-6 py-3 text-xs text-gray-500">${c.email || '--'}</td>
+                    <td class="px-6 py-3 text-xs text-gray-600 font-mono">${c.mobile || '--'}</td>
+                    <td class="px-6 py-3 text-sm text-gray-600">${c.company || '--'}</td>
+                    <td class="px-6 py-3 text-sm text-gray-500">${c.outlet_pos || '--'}</td>
+                    <td class="px-6 py-3">${c.category ? '<span class="px-2 py-1 text-[10px] font-bold uppercase rounded-lg ' + (c.category === 'FNB' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600') + '">' + c.category + '</span>' : '<span class="text-gray-400">--</span>'}</td>
                     <td class="px-6 py-3 text-right">
                         <button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button>
                         <button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button>
@@ -1971,7 +1971,10 @@
                 (c.name || '').toLowerCase().includes(q) ||
                 (c.company || '').toLowerCase().includes(q) ||
                 (c.identifier || '').toLowerCase().includes(q) ||
-                (c.outlet_pos || '').toLowerCase().includes(q)
+                (c.outlet_pos || '').toLowerCase().includes(q) ||
+                (c.email || '').toLowerCase().includes(q) ||
+                (c.mobile || '').toLowerCase().includes(q) ||
+                (c.category || '').toLowerCase().includes(q)
             );
             renderCustomerTable(filtered);
         }

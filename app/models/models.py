@@ -106,9 +106,13 @@ class User(Base):
     __table_args__ = {"schema": "app"}
     identifier = Column("UserID", Unicode(100), primary_key=True)
     name = Column("DisplayName", Unicode(255))
+    email = Column("Email", Unicode(255), nullable=True)
+    mobile = Column("Mobile", Unicode(50), nullable=True)
     company = Column("Company", Unicode(255))
     position = Column("Position", Unicode(100)) # NEW: Cashier, SPV, Manager, etc.
     outlet_pos = Column("OutletPOS", Unicode(100)) # NEW: Outlet name or ID
+    outlet_address = Column("OutletAddress", Unicode(500), nullable=True)
+    category = Column("Category", Unicode(50), nullable=True)  # Retail / FNB
     state = Column("CurrentState", Unicode(20), default="idle")
     created_at = Column("CreatedDate", DateTime, server_default=func.now())
 

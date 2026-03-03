@@ -429,26 +429,34 @@ def extract_fields(row: dict, default_country_code: str = "65") -> dict:
     phone = normalize_phone(mobile, default_country_code)
     
     # --- Determine Identifier ---
-    # Priority: phone > account_id > generated from name
+    # Priority: account_id > phone > generated from name
     identifier = ''
-    if phone:
-        identifier = phone
-    elif account_id and str(account_id).strip():
+    if account_id and str(account_id).strip():
         identifier = str(account_id).strip()
+    elif phone:
+        identifier = phone
     elif display_name:
         identifier = f"imp_{display_name.lower().replace(' ', '_')}"
     
-    # --- Position from Column1 if available ---
-    if not position and column1 and str(column1) != 'nan':
-        position = str(column1).strip()
+    # --- Category from Column1 ---
+    category = ''
+    if column1 and str(column1) != 'nan':
+        category = str(column1).strip()
+    
+    # --- Outlet Address ---
+    outlet_address_raw = r.get('outlet_address') or r.get('address') or r.get('alamat', '')
+    outlet_address = str(outlet_address_raw).strip() if outlet_address_raw and str(outlet_address_raw) != 'nan' else ''
     
     return {
         'identifier': identifier,
         'name': display_name,
+        'email': str(email).strip() if email and str(email) != 'nan' else '',
+        'mobile': phone,
         'company': company,
         'outlet_pos': outlet_final or company,
+        'outlet_address': outlet_address,
         'position': position,
-        'email': str(email).strip() if email and str(email) != 'nan' else '',
+        'category': category,
         'account_id': str(account_id).strip() if account_id else '',
     }
 
@@ -516,9 +524,13 @@ def import_customers(file_path: str, default_country_code: str = "65", dry_run: 
                 db_manager.create_or_update_user(
                     identifier=identifier,
                     name=name,
+                    email=fields['email'],
+                    mobile=fields['mobile'],
                     company=fields['company'],
                     position=fields['position'],
                     outlet_pos=fields['outlet_pos'],
+                    outlet_address=fields['outlet_address'],
+                    category=fields['category'],
                     state="complete"
                 )
             
