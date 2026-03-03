@@ -45,5 +45,5 @@ def setup_bird_v2_webhook(target_url: str):
         print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
-    target = "https://uncamphorated-carmon-tropophilous.ngrok-free.dev/webhook/whatsapp"
+    target = "https://support-edgeworks.duckdns.org/webhook/whatsapp"
     setup_bird_v2_webhook(target)
