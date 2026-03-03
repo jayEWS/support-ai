@@ -43,7 +43,26 @@ class RAGEngine:
         self.is_indexing = False
         
         # Embeddings
-        if settings.EMBEDDINGS_TYPE == "openai":
+        if settings.EMBEDDINGS_TYPE == "vertex":
+            try:
+                from langchain_google_vertexai import VertexAIEmbeddings
+                project_id = settings.GCP_PROJECT_ID or os.getenv("GCP_PROJECT_ID", "")
+                location = settings.VERTEX_AI_LOCATION or os.getenv("VERTEX_AI_LOCATION", "asia-southeast1")
+                model_name = settings.VERTEX_AI_EMBEDDINGS_MODEL or "text-embedding-005"
+                if project_id:
+                    logger.info(f"RAGEngine using Vertex AI Embeddings: {model_name}")
+                    self.embeddings = VertexAIEmbeddings(
+                        model_name=model_name,
+                        project=project_id,
+                        location=location,
+                    )
+                else:
+                    logger.warning("GCP_PROJECT_ID not set for Vertex AI Embeddings in RAGEngine, falling back to local")
+                    self.embeddings = None
+            except Exception as e:
+                logger.warning(f"Vertex AI Embeddings init failed in RAGEngine: {e}, falling back to local")
+                self.embeddings = None
+        elif settings.EMBEDDINGS_TYPE == "openai":
             self.embeddings = OpenAIEmbeddings(
                 openai_api_key=settings.OPENAI_API_KEY,
                 model=settings.EMBEDDINGS_MODEL_NAME,
@@ -69,10 +88,30 @@ class RAGEngine:
         task.add_done_callback(self._background_tasks.discard)
 
     def _init_llm(self):
-        """Initialize LLM with provider selection: gemini > groq > openai"""
+        """Initialize LLM with provider selection: vertex > gemini > groq > openai"""
         provider = getattr(settings, 'LLM_PROVIDER', os.getenv('LLM_PROVIDER', 'openai')).lower()
         
-        if provider == "gemini":
+        if provider == "vertex":
+            try:
+                from langchain_google_vertexai import ChatVertexAI
+                project_id = settings.GCP_PROJECT_ID or os.getenv("GCP_PROJECT_ID", "")
+                location = settings.VERTEX_AI_LOCATION or os.getenv("VERTEX_AI_LOCATION", "asia-southeast1")
+                model_name = settings.VERTEX_AI_MODEL or os.getenv("VERTEX_AI_MODEL", "gemini-2.5-flash")
+                if project_id:
+                    logger.info(f"RAGEngine using Vertex AI: {model_name} (project={project_id})")
+                    return ChatVertexAI(
+                        model_name=model_name,
+                        project=project_id,
+                        location=location,
+                        temperature=0.1,
+                        convert_system_message_to_human=True,
+                    )
+                else:
+                    logger.warning("GCP_PROJECT_ID not set for Vertex AI in RAGEngine, falling back")
+            except Exception as e:
+                logger.warning(f"Vertex AI init failed in RAGEngine: {e}, falling back to Gemini")
+        
+        if provider in ("gemini", "vertex"):  # vertex fallback chain
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 api_key = settings.GOOGLE_GEMINI_API_KEY or os.getenv("GOOGLE_GEMINI_API_KEY", "")
@@ -87,7 +126,7 @@ class RAGEngine:
             except Exception as e:
                 logger.warning(f"Gemini init failed in RAGEngine: {e}, falling back")
         
-        if provider in ("groq", "gemini"):  # gemini fallback chain
+        if provider in ("groq", "vertex", "gemini"):  # fallback chain
             try:
                 from langchain_groq import ChatGroq
                 groq_key = os.getenv("GROQ_API_KEY", "")

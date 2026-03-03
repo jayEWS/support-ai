@@ -739,17 +739,25 @@ async def upload_knowledge(
     return {"status": "success"}
 
 async def _reindex_knowledge():
-    """Re-index knowledge base: reload vector store and reinitialize hybrid search."""
+    """Re-index knowledge base: rebuild FAISS index and reinitialize hybrid search."""
     try:
-        rag_svc = app.state.rag_service
-        if rag_svc:
-            rag_svc.vector_store = rag_svc._load_vector_store()
-            rag_svc._initialize_hybrid_search()
+        rag_engine = app.state.rag_engine
+        if rag_engine:
+            # Full re-ingestion: rebuild FAISS with current embeddings model
+            await rag_engine.ingest_documents()
+            logger.info(f"[OK] Knowledge base re-indexed via RAGEngine: {len(rag_engine.all_documents)} chunks")
+            
+            # Also update the rag_service's vector store
+            rag_svc = app.state.rag_service
+            if rag_svc:
+                rag_svc.vector_store = rag_svc._load_vector_store()
+                rag_svc._initialize_hybrid_search()
+                logger.info(f"[OK] RAGService vector store reloaded: {len(rag_svc.all_documents)} chunks")
+            
             # Update all knowledge statuses to 'Indexed'
             all_kb = _require_db().get_all_knowledge()
             for kb in all_kb:
                 _require_db().update_knowledge_status(kb['filename'], 'Indexed')
-            logger.info(f"[OK] Knowledge base re-indexed: {len(rag_svc.all_documents)} chunks")
     except Exception as e:
         logger.error(f"Re-index failed: {e}")
 
