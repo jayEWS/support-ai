@@ -8,6 +8,13 @@ from app.utils.file_handler import save_upload
 from app.services.rag_service import RAGService
 from app.services.websocket_manager import manager
 
+def _sanitize_text(text: str) -> str:
+    """Remove invalid surrogate characters that break UTF-8 encoding."""
+    if not text:
+        return text
+    # Encode with surrogatepass then decode with replace to strip surrogates
+    return text.encode('utf-8', errors='surrogatepass').decode('utf-8', errors='replace')
+
 class ChatService:
     def __init__(self, rag_service: RAGService):
         self.rag_service = rag_service
@@ -167,7 +174,7 @@ class ChatService:
             # 6. Get AI Answer via RAG Service
             rag_query = query + customer_context if customer_context else query
             rag_res = await self.rag_service.query(rag_query)
-            answer = rag_res.answer
+            answer = _sanitize_text(rag_res.answer)
 
             # Prepend recurring issue notice if found
             if recurring_hint:
