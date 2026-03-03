@@ -24,13 +24,28 @@ class ChatService:
     def _get_user_state(self, user_id: str) -> dict:
         """Get user profile and onboarding state from DB"""
         user = db_manager.get_user(user_id)
-        if user and user.get('name') and user.get('company'):
-            return {'state': 'complete', 'user': user}
-        elif user and user.get('name'):
-            return {'state': 'asking_company', 'user': user}
-        elif user:
+        if not user:
+            return {'state': 'new', 'user': None}
+
+        # Check DB state field first (most reliable)
+        db_state = user.get('state', '')
+        if db_state == 'asking_name':
             return {'state': 'asking_name', 'user': user}
-        return {'state': 'new', 'user': None}
+        if db_state == 'asking_company':
+            return {'state': 'asking_company', 'user': user}
+        if db_state == 'complete' and user.get('name') and user.get('company'):
+            return {'state': 'complete', 'user': user}
+
+        # Fallback: check if name looks like a real name (not auto-generated ID)
+        name = user.get('name') or ''
+        is_real_name = name and not name.startswith('cust_') and not name.startswith('User ') and name != user.get('identifier', '')
+
+        if is_real_name and user.get('company'):
+            return {'state': 'complete', 'user': user}
+        elif is_real_name:
+            return {'state': 'asking_company', 'user': user}
+        else:
+            return {'state': 'asking_name', 'user': user}
 
     def _handle_onboarding(self, user_id: str, query: str, state_info: dict) -> Optional[str]:
         """Handle customer onboarding flow. Returns response string or None to continue to RAG."""
