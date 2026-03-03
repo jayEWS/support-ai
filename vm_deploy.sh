@@ -12,14 +12,23 @@ git reset --hard origin/main
 
 echo "=== [2/6] Update .env ==="
 
-# BASE_URL
-sed -i 's|^BASE_URL=.*|BASE_URL=http://136-110-61-119.nip.io:8000|' .env
-
-# GOOGLE_REDIRECT_URI
-if grep -q "^GOOGLE_REDIRECT_URI=" .env; then
-    sed -i 's|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback|' .env
+# Auto-detect external IP and build nip.io domain
+EXTERNAL_IP=$(curl -sf ifconfig.me || curl -sf ipinfo.io/ip || echo "")
+if [ -z "$EXTERNAL_IP" ]; then
+    echo "⚠️  Could not detect external IP, using existing BASE_URL"
 else
-    echo "GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback" >> .env
+    NIP_DOMAIN=$(echo "$EXTERNAL_IP" | tr '.' '-').nip.io
+    echo "  → Detected IP: $EXTERNAL_IP → $NIP_DOMAIN"
+    
+    # BASE_URL
+    sed -i "s|^BASE_URL=.*|BASE_URL=http://${NIP_DOMAIN}:8000|" .env
+    
+    # GOOGLE_REDIRECT_URI
+    if grep -q "^GOOGLE_REDIRECT_URI=" .env; then
+        sed -i "s|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=http://${NIP_DOMAIN}:8000/api/auth/google/callback|" .env
+    else
+        echo "GOOGLE_REDIRECT_URI=http://${NIP_DOMAIN}:8000/api/auth/google/callback" >> .env
+    fi
 fi
 
 # Gemini LLM Provider
@@ -110,5 +119,9 @@ curl -sf http://localhost:8000/health && echo " <- OK" || echo " <- FAILED"
 
 echo ""
 echo "============================================"
-echo "Done! App running at http://136-110-61-119.nip.io:8000"
+if [ -n "$NIP_DOMAIN" ]; then
+    echo "Done! App running at http://${NIP_DOMAIN}:8000"
+else
+    echo "Done! App running at http://localhost:8000"
+fi
 echo "============================================"
