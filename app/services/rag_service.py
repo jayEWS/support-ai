@@ -187,10 +187,26 @@ Provide a helpful, concise answer based on the context above."""
                 )
 
     def _get_llm(self):
-        """Get LLM with fallback support (OpenAI, Groq, local)"""
-        llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
+        """Get LLM with fallback support (Gemini, Groq, OpenAI, local)"""
+        llm_provider = getattr(settings, 'LLM_PROVIDER', os.getenv("LLM_PROVIDER", "openai")).lower()
         
-        if llm_provider == "groq":
+        if llm_provider == "gemini":
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                api_key = settings.GOOGLE_GEMINI_API_KEY or os.getenv("GOOGLE_GEMINI_API_KEY", "")
+                if not api_key:
+                    logger.warning("GOOGLE_GEMINI_API_KEY not set, falling back to Groq")
+                else:
+                    return ChatGoogleGenerativeAI(
+                        model=settings.GEMINI_MODEL_NAME,
+                        google_api_key=api_key,
+                        temperature=settings.TEMPERATURE,
+                        convert_system_message_to_human=True,
+                    )
+            except Exception as e:
+                logger.warning(f"Gemini initialization failed: {e}, falling back to Groq")
+        
+        if llm_provider == "groq" or (llm_provider == "gemini" and True):  # fallback chain
             try:
                 from langchain_groq import ChatGroq
                 return ChatGroq(

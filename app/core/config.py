@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     AI_BASE_URL: Optional[str] = None
     TEMPERATURE: float = 0.3
     
+    # Google Gemini Config
+    GOOGLE_GEMINI_API_KEY: str = ""  # from https://aistudio.google.com/
+    GEMINI_MODEL_NAME: str = "gemini-2.0-flash"  # gemini-2.0-flash (free), gemini-1.5-pro
+    LLM_PROVIDER: str = "groq"  # gemini | groq | openai | ollama
+    
     # Embeddings Config
     EMBEDDINGS_TYPE: str = "local"
     EMBEDDINGS_MODEL_NAME: str = "all-MiniLM-L6-v2"
