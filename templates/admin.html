@@ -1099,17 +1099,16 @@
                 <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp text-green-300'></i> WA Group</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
             `;
             if (id === 'team') {
-                // Dynamic: load departments from cached agents, fallback to fetching
-                if (window._teamDepts && window._teamDepts.length) {
-                    return window._teamDepts.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('');
+                // Load groups/roles from API as team departments
+                if (window._teamGroups && window._teamGroups.length) {
+                    return window._teamGroups.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('');
                 }
-                // Fetch agents to get departments, then re-render
-                fetchWithAuth('/api/agents').then(r => r.json()).then(agents => {
-                    const depts = [...new Set(agents.map(a => a.department).filter(Boolean))].sort();
-                    window._teamDepts = depts;
+                fetchWithAuth('/api/admin/roles').then(r => r.json()).then(roles => {
+                    const groups = roles.map(r => r.name).filter(Boolean).sort();
+                    window._teamGroups = groups;
                     const sub = document.getElementById('sub-team');
-                    if (sub) sub.innerHTML = depts.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('') || '<span class="block px-4 py-2 text-[10px] text-gray-400">No departments</span>';
-                });
+                    if (sub) sub.innerHTML = groups.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('') || '<span class="block px-4 py-2 text-[10px] text-gray-400">No groups found</span>';
+                }).catch(() => {});
                 return '<span class="block px-4 py-2 text-[10px] text-gray-400 animate-pulse">Loading...</span>';
             }
             if (id === 'tickets') return `
@@ -1408,12 +1407,12 @@
             updateSidebarCounts(); switchTab('overview');
         }
 
-        async function loadTeam(dept = null) {
-            document.getElementById('current-dept-label').innerText = dept || 'All Members';
+        async function loadTeam(group = null) {
+            document.getElementById('current-dept-label').innerText = group || 'All Members';
             const res = await fetchWithAuth('/api/agents'); allAgents = await res.json();
-            const filtered = dept ? allAgents.filter(a => (a.department || '').toLowerCase() === dept.toLowerCase()) : allAgents;
+            const filtered = group ? allAgents.filter(a => (a.role || '').toLowerCase() === group.toLowerCase()) : allAgents;
             document.getElementById('member-count').innerText = `${filtered.length} Members`;
-            document.getElementById('team-list').innerHTML = filtered.map(a => `<div onclick="showAgentProfile('${a.user_id}')" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center cursor-pointer hover:border-blue-300 transition group relative overflow-hidden"><div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-150 group-hover:bg-blue-600"></div><div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 text-blue-600 text-xl font-bold group-hover:bg-white transition-all uppercase relative z-10">${a.name.charAt(0)}</div><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 relative z-10 uppercase">${a.name}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4 relative z-10">${a.department || 'Support'}</p><div class="flex justify-center gap-2 relative z-10"><span class="text-[10px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded-full uppercase tracking-tighter">${a.availability_status}</span></div></div>`).join('');
+            document.getElementById('team-list').innerHTML = filtered.map(a => `<div onclick="showAgentProfile('${a.user_id}')" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center cursor-pointer hover:border-blue-300 transition group relative overflow-hidden"><div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-150 group-hover:bg-blue-600"></div><div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 text-blue-600 text-xl font-bold group-hover:bg-white transition-all uppercase relative z-10">${a.name.charAt(0)}</div><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 relative z-10 uppercase">${a.name}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4 relative z-10">${a.role || 'Agent'}</p><div class="flex justify-center gap-2 relative z-10"><span class="text-[10px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded-full uppercase tracking-tighter">${a.availability_status}</span></div></div>`).join('');
         }
 
         function showAgentProfile(uid) {
