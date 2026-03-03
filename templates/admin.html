@@ -981,7 +981,7 @@
         let volumeChart = null, priorityChart = null;
 
         // --- Persistent Menu Logic ---
-        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'freshdesk', 'knowledge', 'settings'];
+        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'knowledge', 'settings'];
         let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
         // Clean up stale menu items from previous layout
         const validMenus = new Set(DEFAULT_MENU_ORDER);
@@ -1048,7 +1048,6 @@
                 team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
                 tickets: { icon: 'fa-ticket-alt', label: 'Tickets', isDropdown: true, id: 'tickets' },
                 customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
-                freshdesk: { icon: 'fa-history', label: 'Freshdesk Data', onClick: "switchTab('freshdesk')" },
                 knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
                 settings: { icon: 'fa-cog', label: 'Settings', isDropdown: true, id: 'settings' }
             };
@@ -1131,7 +1130,7 @@
             if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
             // Stop WhatsApp polling when leaving that tab
             if (tab !== 'whatsapp' && waPollingInterval) { clearInterval(waPollingInterval); waPollingInterval = null; }
-            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'freshdesk', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
+            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
                 const el = document.getElementById(`${t}-view`);
                 if (el) el.classList.toggle('hidden', t !== tab);
             });
@@ -1144,7 +1143,6 @@
             else if (tab === 'audit') loadAuditLogs();
             else if (tab === 'knowledge') { loadKnowledge(); loadKBStats(); }
             else if (tab === 'customers') loadCustomers();
-            else if (tab === 'freshdesk') loadFreshdeskData();
             else if (tab === 'usermst') loadUserMaster();
             else if (tab === 'groupperms') loadGroupPrivileges();
             else if (tab === 'privsetup') loadPrivilegeSetup();
