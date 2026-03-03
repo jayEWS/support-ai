@@ -900,15 +900,29 @@ async def create_customer(request: Request, agent: Annotated[dict, Depends(get_c
     return {"status": "success", "identifier": identifier, "name": name}
 
 @app.post("/api/customers/import")
-async def import_customers(
+async def import_customers_api(
     agent: Annotated[dict, Depends(get_current_agent)],
     file: UploadFile = File(...)
 ):
-    """Bulk import customers from CSV/Excel file.
-    Expected columns: name, company/outlet, phone/identifier, position (optional)
+    """Bulk import customers from Excel, CSV, JSON, PDF, or TXT file.
+    Supports:
+    - Auto country code detection for mobile numbers (default +65 SG)
+    - "Name @ Company" parsing from name fields
+    - Various column naming conventions
     """
     import csv
     import io
+    import re
+    import tempfile
+
+    from scripts.import_customers import (
+        read_csv as _read_csv,
+        read_json as _read_json,
+        read_text as _read_text,
+        extract_fields,
+        normalize_phone,
+        parse_name_company,
+    )
 
     filename = file.filename.lower()
     content = await file.read()
@@ -919,19 +933,73 @@ async def import_customers(
             text = content.decode("utf-8-sig")
             reader = csv.DictReader(io.StringIO(text))
             rows = list(reader)
+
         elif filename.endswith((".xlsx", ".xls")):
+            # Save to temp file for pandas/openpyxl to read
+            import pandas as pd
+            with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
             try:
-                import openpyxl
-                wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True)
-                ws = wb.active
-                headers = [str(c.value or "").strip().lower() for c in next(ws.iter_rows(min_row=1, max_row=1))]
-                for row in ws.iter_rows(min_row=2, values_only=True):
-                    rows.append({headers[i]: (str(v).strip() if v else "") for i, v in enumerate(row) if i < len(headers)})
-                wb.close()
-            except ImportError:
-                return JSONResponse({"error": "openpyxl package not installed. Use CSV format or install openpyxl."}, status_code=400)
+                df = pd.read_excel(tmp_path)
+                df.columns = [str(c).strip() for c in df.columns]
+                rows = df.to_dict('records')
+            finally:
+                os.unlink(tmp_path)
+
+        elif filename.endswith(".json"):
+            text = content.decode("utf-8")
+            import json as _json
+            data = _json.loads(text)
+            if isinstance(data, list):
+                rows = data
+            elif isinstance(data, dict):
+                for key in ['data', 'customers', 'records', 'items', 'results']:
+                    if key in data and isinstance(data[key], list):
+                        rows = data[key]
+                        break
+                if not rows:
+                    rows = [data]
+
+        elif filename.endswith(".pdf"):
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            try:
+                from scripts.import_customers import read_pdf
+                rows = read_pdf(tmp_path)
+            finally:
+                os.unlink(tmp_path)
+
+        elif filename.endswith((".txt", ".text", ".tsv")):
+            text = content.decode("utf-8-sig")
+            lines = text.strip().split('\n')
+            if not lines:
+                return JSONResponse({"error": "File is empty"}, status_code=400)
+            # Detect delimiter
+            first_line = lines[0].strip()
+            delimiter = '\t' if '\t' in first_line else (',' if ',' in first_line else ('|' if '|' in first_line else None))
+            if delimiter:
+                headers_line = lines[0].strip().split(delimiter)
+                has_header = any(h.strip().lower() in ('name', 'nama', 'phone', 'mobile', 'company', 'email') for h in headers_line)
+                if has_header:
+                    headers = [h.strip().lower() for h in headers_line]
+                    for line in lines[1:]:
+                        parts = line.strip().split(delimiter)
+                        if parts:
+                            rows.append({headers[i]: parts[i].strip() for i in range(min(len(headers), len(parts)))})
+                else:
+                    for line in lines:
+                        parts = line.strip().split(delimiter)
+                        if parts:
+                            rows.append({'name': parts[0], 'phone': parts[1] if len(parts) > 1 else '', 'company': parts[2] if len(parts) > 2 else ''})
+            else:
+                for line in lines:
+                    if line.strip():
+                        rows.append({'name': line.strip()})
         else:
-            return JSONResponse({"error": "Unsupported format. Use CSV or XLSX."}, status_code=400)
+            return JSONResponse({"error": "Unsupported format. Supported: Excel (.xls/.xlsx), CSV, JSON, PDF, TXT"}, status_code=400)
+
     except Exception as e:
         return JSONResponse({"error": f"Failed to parse file: {str(e)}"}, status_code=400)
 
@@ -943,28 +1011,26 @@ async def import_customers(
     errors_list = []
 
     for i, row in enumerate(rows, 1):
-        # Normalize column names (support various naming conventions)
-        r = {k.strip().lower().replace(" ", "_"): v for k, v in row.items()}
-        name = r.get("name") or r.get("nama") or r.get("customer_name") or r.get("full_name", "")
-        company = r.get("company") or r.get("perusahaan") or r.get("outlet") or r.get("outlet_pos") or r.get("toko", "")
-        identifier = r.get("identifier") or r.get("phone") or r.get("id") or r.get("nomor") or r.get("telepon") or r.get("whatsapp", "")
-        position = r.get("position") or r.get("jabatan", "")
-
-        if not name and not identifier:
-            skipped += 1
-            continue
-
-        # Auto-generate identifier if missing
-        if not identifier:
-            identifier = f"imp_{name.lower().replace(' ', '_')}_{i}"
-
         try:
+            fields = extract_fields(row, default_country_code="65")
+            name = fields['name']
+            identifier = fields['identifier']
+
+            if not name and not identifier:
+                skipped += 1
+                continue
+
+            if not identifier:
+                identifier = f"imp_{i}"
+            if not name:
+                name = f"Customer {identifier[-6:]}"
+
             _require_db().create_or_update_user(
-                identifier=identifier.strip(),
-                name=name.strip(),
-                company=company.strip(),
-                position=position.strip(),
-                outlet_pos=(company or "").strip(),
+                identifier=identifier,
+                name=name,
+                company=fields['company'],
+                position=fields['position'],
+                outlet_pos=fields['outlet_pos'],
                 state="complete"
             )
             imported += 1
@@ -977,7 +1043,7 @@ async def import_customers(
         "imported": imported,
         "skipped": skipped,
         "total_rows": len(rows),
-        "errors": errors_list[:10]  # Return first 10 errors max
+        "errors": errors_list[:10]
     }
 
 @app.delete("/api/customers/{identifier}")
