@@ -363,7 +363,7 @@
         <!-- View: Team -->
         <section id="team-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-bold uppercase tracking-tight">Support Team: <span id="current-dept-label"
+                <h2 class="text-2xl font-bold uppercase tracking-tight">Team: <span id="current-dept-label"
                         class="text-blue-600">All</span></h2><span
                     class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-widest"
                     id="member-count">0 Members</span>
@@ -1401,7 +1401,7 @@
         async function loadTeam(dept = null) {
             document.getElementById('current-dept-label').innerText = dept || 'All Members';
             const res = await fetchWithAuth('/api/agents'); allAgents = await res.json();
-            const filtered = dept ? allAgents.filter(a => (a.department || 'Support') === dept) : allAgents;
+            const filtered = dept ? allAgents.filter(a => (a.department || '').toLowerCase() === dept.toLowerCase()) : allAgents;
             document.getElementById('member-count').innerText = `${filtered.length} Members`;
             document.getElementById('team-list').innerHTML = filtered.map(a => `<div onclick="showAgentProfile('${a.user_id}')" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center cursor-pointer hover:border-blue-300 transition group relative overflow-hidden"><div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-150 group-hover:bg-blue-600"></div><div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 text-blue-600 text-xl font-bold group-hover:bg-white transition-all uppercase relative z-10">${a.name.charAt(0)}</div><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 relative z-10 uppercase">${a.name}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4 relative z-10">${a.department || 'Support'}</p><div class="flex justify-center gap-2 relative z-10"><span class="text-[10px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded-full uppercase tracking-tighter">${a.availability_status}</span></div></div>`).join('');
         }
