@@ -1195,6 +1195,75 @@ async def get_whatsapp_stats(agent: Annotated[dict, Depends(get_current_agent)])
     """Get WhatsApp messaging statistics."""
     return _require_db().get_whatsapp_stats()
 
+@app.post("/api/whatsapp/send")
+async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Agent sends a manual WhatsApp reply to a customer."""
+    phone = data.get("phone_number")
+    message = data.get("message", "").strip()
+    if not phone or not message:
+        raise HTTPException(status_code=400, detail="phone_number and message are required")
+
+    from app.adapters.whatsapp_bird import send_whatsapp_message
+    send_success = await send_whatsapp_message(phone, message)
+
+    db = _require_db()
+    msg_id = db.save_whatsapp_message(
+        phone_number=phone,
+        direction="outbound",
+        content=message,
+        status="sent" if send_success else "failed"
+    )
+    if not send_success:
+        raise HTTPException(status_code=502, detail="Failed to send via Bird API")
+    return {"status": "sent", "message_id": msg_id}
+
+@app.post("/api/whatsapp/convert-ticket")
+async def convert_whatsapp_to_ticket(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Convert a WhatsApp conversation into a support ticket."""
+    phone = data.get("phone_number")
+    title = data.get("title", "WhatsApp Conversation")
+    priority = data.get("priority", "Medium")
+    if not phone:
+        raise HTTPException(status_code=400, detail="phone_number is required")
+
+    db = _require_db()
+    # Get conversation history for transcript
+    conv_data = db.get_whatsapp_messages(phone_number=phone, per_page=500)
+    messages = conv_data.get("messages", [])
+    transcript = "\n".join([
+        f"[{m['direction'].upper()}] {m['created_at'] or ''}: {m['content']}"
+        for m in messages
+    ])
+
+    # Create ticket
+    from app.services.ticket_service import TicketService
+    ticket = await TicketService.create_ticket(
+        user_id=phone,
+        summary=f"[WhatsApp] {title}",
+        history=transcript,
+        priority=priority
+    )
+
+    # Link all messages to the new ticket
+    db.link_whatsapp_messages_to_ticket(phone, ticket.id)
+
+    # Notify customer
+    try:
+        from app.adapters.whatsapp_bird import send_whatsapp_message
+        await send_whatsapp_message(
+            phone,
+            f"Hi Kak! Percakapan ini sudah dibuatkan tiket support #{ticket.id}. Tim kami akan follow up segera. Terima kasih! 🙏"
+        )
+        db.save_whatsapp_message(
+            phone_number=phone, direction="outbound",
+            content=f"[System] Ticket #{ticket.id} created. Team will follow up.",
+            ticket_id=ticket.id, status="sent"
+        )
+    except Exception as e:
+        logger.warning(f"Failed to notify customer about ticket: {e}")
+
+    return {"status": "success", "ticket_id": ticket.id, "summary": ticket.summary}
+
 # ============ WebSocket ============
 
 @app.websocket("/ws/chat/{session_id}")

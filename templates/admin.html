@@ -387,72 +387,136 @@
             </div>
         </section>
 
-        <!-- WhatsApp Messages View -->
-        <section id="whatsapp-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">💬 WhatsApp Messages</h2>
-                    <p class="text-xs text-gray-400 mt-1">View all incoming and outgoing WhatsApp conversations via Bird integration</p>
-                </div>
-                <button onclick="loadWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-green-700 transition flex items-center gap-2">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-            </div>
-
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Messages</p>
-                    <p class="text-2xl font-black text-green-600" id="wa-stat-total">--</p>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Inbound</p>
-                    <p class="text-2xl font-black text-blue-600" id="wa-stat-inbound">--</p>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Outbound</p>
-                    <p class="text-2xl font-black text-purple-600" id="wa-stat-outbound">--</p>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Unique Contacts</p>
-                    <p class="text-2xl font-black text-orange-600" id="wa-stat-contacts">--</p>
-                </div>
-            </div>
-
-            <!-- Two-column layout: conversation list + message thread -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Conversation list -->
-                <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                    <div class="p-4 border-b">
-                        <input type="text" id="wa-search" placeholder="Search phone number..." 
-                            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            oninput="searchWhatsApp()">
+        <!-- WhatsApp Messages View — full-height like inbox -->
+        <section id="whatsapp-view" class="flex-1 flex overflow-hidden hidden">
+            <!-- Left panel: conversation list -->
+            <aside class="w-80 bg-white border-r flex flex-col">
+                <div class="p-4 border-b bg-green-600">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="font-bold text-white flex items-center gap-2"><i class="fab fa-whatsapp text-lg"></i> WhatsApp</h2>
+                        <button onclick="loadWhatsApp()" class="text-green-200 hover:text-white transition"><i class="fas fa-sync-alt text-xs"></i></button>
                     </div>
-                    <div id="wa-conversation-list" class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                        <div class="p-8 text-center text-gray-400 text-sm">No conversations yet</div>
-                    </div>
+                    <input type="text" id="wa-search" placeholder="Search phone number..."
+                        class="w-full border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-300 bg-green-700 text-white placeholder-green-300"
+                        oninput="searchWhatsApp()">
                 </div>
+                <!-- Stats bar -->
+                <div class="grid grid-cols-4 text-center border-b bg-green-50 py-2">
+                    <div><p class="text-sm font-black text-green-700" id="wa-stat-total">0</p><p class="text-[8px] text-green-500 font-bold uppercase">Total</p></div>
+                    <div><p class="text-sm font-black text-blue-600" id="wa-stat-inbound">0</p><p class="text-[8px] text-blue-400 font-bold uppercase">In</p></div>
+                    <div><p class="text-sm font-black text-purple-600" id="wa-stat-outbound">0</p><p class="text-[8px] text-purple-400 font-bold uppercase">Out</p></div>
+                    <div><p class="text-sm font-black text-orange-600" id="wa-stat-contacts">0</p><p class="text-[8px] text-orange-400 font-bold uppercase">Contacts</p></div>
+                </div>
+                <div id="wa-conversation-list" class="flex-1 overflow-y-auto conversation-list">
+                    <div class="p-8 text-center text-gray-400 text-sm">Loading...</div>
+                </div>
+            </aside>
 
-                <!-- Message thread -->
-                <div class="lg:col-span-2 bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col">
-                    <div id="wa-thread-header" class="p-4 border-b bg-green-50 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">
+            <!-- Center: message thread -->
+            <div class="flex-1 flex flex-col bg-[#efeae2]" style="background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22 width=%2220%22 height=%2220%22><rect fill=%22%23efeae2%22 width=%2280%22 height=%2280%22/><circle cx=%2240%22 cy=%2240%22 r=%221%22 fill=%22%23e5ddd5%22/></svg>')">
+                <!-- Thread header -->
+                <header class="bg-white border-b p-4 flex justify-between items-center h-16 shrink-0 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold" id="wa-avatar">
                             <i class="fab fa-whatsapp text-lg"></i>
                         </div>
                         <div>
-                            <p class="font-bold text-gray-800 text-sm" id="wa-thread-name">Select a conversation</p>
-                            <p class="text-xs text-gray-500" id="wa-thread-phone">Click on a contact to view messages</p>
+                            <h3 class="font-bold text-sm text-gray-800" id="wa-thread-name">Select a conversation</h3>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter" id="wa-thread-phone">Click a contact on the left</p>
                         </div>
                     </div>
-                    <div id="wa-thread-messages" class="flex-1 p-4 space-y-3 max-h-[500px] overflow-y-auto bg-gray-50" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22 width=%2220%22 height=%2220%22><rect fill=%22%23f0fdf4%22 width=%2280%22 height=%2280%22/><circle cx=%2240%22 cy=%2240%22 r=%221%22 fill=%22%23dcfce7%22/></svg>');">
-                        <div class="text-center text-gray-400 text-sm py-20">
-                            <i class="fab fa-whatsapp text-6xl text-green-200 mb-4"></i>
-                            <p>Select a conversation from the left panel</p>
+                    <div id="wa-thread-actions" class="hidden flex items-center gap-2">
+                        <button onclick="openTicketModal()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition uppercase tracking-widest flex items-center gap-1">
+                            <i class="fas fa-ticket-alt"></i> Create Ticket
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Messages area -->
+                <div id="wa-thread-messages" class="flex-1 overflow-y-auto p-6 space-y-3">
+                    <div class="text-center py-20">
+                        <i class="fab fa-whatsapp text-6xl text-green-200 mb-4"></i>
+                        <p class="text-gray-500 text-sm">Select a conversation to view messages</p>
+                        <p class="text-gray-400 text-xs mt-1">Messages from WhatsApp appear here in real-time</p>
+                    </div>
+                </div>
+
+                <!-- Agent reply box -->
+                <footer id="wa-reply-footer" class="p-3 bg-white border-t hidden">
+                    <div class="flex items-end gap-2">
+                        <textarea id="wa-reply-box" rows="1" placeholder="Type a reply..."
+                            class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition resize-none text-sm"
+                            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendWaReply()}"></textarea>
+                        <button onclick="sendWaReply()" id="wa-send-btn"
+                            class="w-12 h-12 bg-green-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-green-600/20 active:scale-95 transition-all hover:bg-green-700">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <p class="text-[9px] text-gray-400 mt-1 px-1">⚠️ 24h session window — use template messages for contacts outside session</p>
+                </footer>
+            </div>
+
+            <!-- Right panel: contact info -->
+            <aside id="wa-sidebar" class="w-72 bg-white border-l overflow-y-auto hidden lg:block">
+                <div class="p-6 border-b text-center">
+                    <div class="w-20 h-20 rounded-2xl bg-green-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-green-600/20" id="wa-sidebar-avatar">
+                        <i class="fab fa-whatsapp text-3xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg" id="wa-sidebar-name">Contact</h3>
+                    <p class="text-sm text-gray-500" id="wa-sidebar-phone">--</p>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Conversation Stats</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-blue-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-blue-600" id="wa-sidebar-inbound">0</p>
+                                <p class="text-[8px] text-blue-400 font-bold uppercase">Inbound</p>
+                            </div>
+                            <div class="bg-purple-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-purple-600" id="wa-sidebar-outbound">0</p>
+                                <p class="text-[8px] text-purple-400 font-bold uppercase">Outbound</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="wa-sidebar-ticket-info" class="hidden">
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Linked Ticket</h4>
+                        <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
+                            <p class="text-sm font-bold text-orange-700" id="wa-sidebar-ticket-id">--</p>
                         </div>
                     </div>
                 </div>
-            </div>
+            </aside>
         </section>
+
+        <!-- WhatsApp → Ticket Modal -->
+        <div id="wa-ticket-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeTicketModal()">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-ticket-alt text-blue-600"></i> Convert to Ticket</h3>
+                    <button onclick="closeTicketModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Title</label>
+                        <input id="wa-ticket-title" type="text" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. Customer needs help with POS setup">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Priority</label>
+                        <select id="wa-ticket-priority" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                            <option value="Urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <p class="text-xs text-gray-400">The full WhatsApp transcript will be attached to the ticket. The customer will be notified via WhatsApp.</p>
+                    <button onclick="convertToTicket()" id="wa-ticket-submit-btn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-check"></i> Create Ticket & Notify Customer
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <section id="macros-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="mb-8 bg-white p-6 rounded-xl border shadow-sm">
@@ -978,7 +1042,6 @@
                 team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
                 security: { icon: 'fa-shield-halved', label: 'Security', isDropdown: true, id: 'security', adminOnly: true },
                 tickets: { icon: 'fa-ticket-alt', label: 'All Tickets', onClick: "switchTab('tickets')" },
-                whatsapp: { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp', onClick: "switchTab('whatsapp')" },
                 customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
                 freshdesk: { icon: 'fa-history', label: 'Freshdesk Data', onClick: "switchTab('freshdesk')" },
                 knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
@@ -1031,6 +1094,7 @@
                 <a href="#" onclick="switchTab('inbox', 'unassigned')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">Unassigned <span id="count-unassigned" class="count-badge">0</span></a>
                 <a href="#" onclick="switchTab('inbox', 'no_reply')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">No reply <span id="count-no-reply" class="count-badge">0</span></a>
                 <a href="#" onclick="switchTab('inbox', 'assigned')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter">Assigned <span id="count-assigned" class="count-badge">0</span></a>
+                <a href="#" onclick="switchTab('whatsapp')" class="flex justify-between items-center px-4 py-2 text-xs text-green-600 hover:text-green-700 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp'></i> WhatsApp</span> <span id='count-whatsapp' class='count-badge' style='background:#dcfce7;color:#16a34a'>0</span></a>
             `;
             if (id === 'team') {
                 const depts = ["Support", "Product specialist", "Project manager", "Sales", "HR", "developer", "QA", "Deployment", "Intern"];
@@ -1047,6 +1111,8 @@
         function switchTab(tab, subOption = null) {
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
+            // Stop WhatsApp polling when leaving that tab
+            if (tab !== 'whatsapp' && waPollingInterval) { clearInterval(waPollingInterval); waPollingInterval = null; }
             ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'freshdesk', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
                 if (document.getElementById(`${t}-view`)) document.getElementById(`${t}-view`).classList.toggle('hidden', t !== tab);
             });
@@ -1095,6 +1161,15 @@
             document.getElementById('count-unassigned').innerText = c.unassigned;
             document.getElementById('count-no-reply').innerText = c.no_reply;
             document.getElementById('count-assigned').innerText = c.assigned;
+            // WhatsApp contact count
+            try {
+                const waRes = await fetchWithAuth('/api/whatsapp/stats');
+                if (waRes && waRes.ok) {
+                    const wa = await waRes.json();
+                    const el = document.getElementById('count-whatsapp');
+                    if (el) el.innerText = wa.unique_contacts || 0;
+                }
+            } catch(_) {}
         }
 
         async function loadAnalytics() {
@@ -1327,22 +1402,43 @@
 
         // ============ WhatsApp Functions ============
         let waSelectedPhone = null;
+        let waSelectedName = null;
+        let waPollingInterval = null;
+        let waLastMessageCount = 0;
 
         async function loadWhatsApp() {
             try {
-                // Load stats
                 const statsRes = await fetchWithAuth('/api/whatsapp/stats');
                 const stats = await statsRes.json();
                 document.getElementById('wa-stat-total').textContent = stats.total_messages || 0;
                 document.getElementById('wa-stat-inbound').textContent = stats.total_inbound || 0;
                 document.getElementById('wa-stat-outbound').textContent = stats.total_outbound || 0;
                 document.getElementById('wa-stat-contacts').textContent = stats.unique_contacts || 0;
-
-                // Load conversations
+                document.getElementById('count-whatsapp').textContent = stats.unique_contacts || 0;
                 await loadWhatsAppConversations();
-            } catch (e) {
-                console.error('Failed to load WhatsApp data:', e);
-            }
+                // Start polling for new messages
+                startWaPolling();
+            } catch (e) { console.error('Failed to load WhatsApp data:', e); }
+        }
+
+        function startWaPolling() {
+            if (waPollingInterval) clearInterval(waPollingInterval);
+            waPollingInterval = setInterval(async () => {
+                try {
+                    const statsRes = await fetchWithAuth('/api/whatsapp/stats');
+                    const stats = await statsRes.json();
+                    const newTotal = stats.total_messages || 0;
+                    if (newTotal !== waLastMessageCount) {
+                        waLastMessageCount = newTotal;
+                        document.getElementById('wa-stat-total').textContent = stats.total_messages || 0;
+                        document.getElementById('wa-stat-inbound').textContent = stats.total_inbound || 0;
+                        document.getElementById('wa-stat-outbound').textContent = stats.total_outbound || 0;
+                        document.getElementById('wa-stat-contacts').textContent = stats.unique_contacts || 0;
+                        await loadWhatsAppConversations(document.getElementById('wa-search').value);
+                        if (waSelectedPhone) await refreshWaThread();
+                    }
+                } catch (_) {}
+            }, 5000); // Poll every 5 seconds
         }
 
         async function loadWhatsAppConversations(search = '') {
@@ -1351,96 +1447,160 @@
                 const res = await fetchWithAuth(url);
                 const data = await res.json();
                 const list = document.getElementById('wa-conversation-list');
-
                 if (!data.conversations || data.conversations.length === 0) {
-                    list.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm">No WhatsApp conversations yet.<br><span class="text-xs">Messages will appear here when customers send WhatsApp messages.</span></div>';
+                    list.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm"><i class="fab fa-whatsapp text-4xl text-gray-200 mb-3 block"></i>No WhatsApp conversations yet<br><span class="text-[10px]">Messages appear when customers send WhatsApp messages</span></div>';
                     return;
                 }
-
                 list.innerHTML = data.conversations.map(c => {
                     const name = c.customer_name || c.phone_number;
                     const initials = name.charAt(0).toUpperCase();
                     const timeAgo = c.last_message_at ? new Date(c.last_message_at).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
                     const dirIcon = c.last_direction === 'inbound' ? '↙️' : '↗️';
                     const isSelected = waSelectedPhone === c.phone_number;
-                    return `
-                        <div onclick="loadWhatsAppThread('${c.phone_number}', '${(c.customer_name || '').replace(/'/g, "\\'")}')" 
-                             class="p-4 cursor-pointer hover:bg-green-50 transition ${isSelected ? 'bg-green-50 border-l-4 border-green-500' : ''}">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initials}</div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex justify-between items-center">
-                                        <p class="font-bold text-gray-800 text-sm truncate">${name}</p>
-                                        <span class="text-[10px] text-gray-400 flex-shrink-0">${timeAgo}</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 truncate">${dirIcon} ${c.last_message || ''}</p>
-                                    <div class="flex gap-2 mt-1">
-                                        <span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">↙ ${c.inbound_count}</span>
-                                        <span class="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">↗ ${c.outbound_count}</span>
-                                    </div>
+                    return `<div onclick="loadWhatsAppThread('${c.phone_number}', '${(c.customer_name||'').replace(/'/g,"\\\\'")}')"
+                         class="p-4 cursor-pointer hover:bg-green-50 transition border-b ${isSelected ? 'bg-green-50 border-l-4 border-l-green-500' : ''}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initials}</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-center">
+                                    <p class="font-bold text-gray-800 text-sm truncate">${name}</p>
+                                    <span class="text-[10px] text-gray-400 flex-shrink-0">${timeAgo}</span>
+                                </div>
+                                <p class="text-xs text-gray-500 truncate">${dirIcon} ${escapeHtml(c.last_message || '')}</p>
+                                <div class="flex gap-2 mt-1">
+                                    <span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">↙ ${c.inbound_count}</span>
+                                    <span class="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">↗ ${c.outbound_count}</span>
                                 </div>
                             </div>
-                        </div>`;
+                        </div>
+                    </div>`;
                 }).join('');
-            } catch (e) {
-                console.error('Failed to load WhatsApp conversations:', e);
-            }
+            } catch (e) { console.error('Failed to load WA conversations:', e); }
         }
 
         async function loadWhatsAppThread(phone, customerName) {
             waSelectedPhone = phone;
-            document.getElementById('wa-thread-name').textContent = customerName || phone;
+            waSelectedName = customerName || phone;
+            document.getElementById('wa-thread-name').textContent = waSelectedName;
             document.getElementById('wa-thread-phone').textContent = phone;
+            document.getElementById('wa-avatar').textContent = waSelectedName.charAt(0).toUpperCase();
+            document.getElementById('wa-avatar').innerHTML = waSelectedName.charAt(0).toUpperCase();
+            document.getElementById('wa-thread-actions').classList.remove('hidden');
+            document.getElementById('wa-reply-footer').classList.remove('hidden');
+
+            // Update sidebar
+            document.getElementById('wa-sidebar-name').textContent = waSelectedName;
+            document.getElementById('wa-sidebar-phone').textContent = phone;
+            document.getElementById('wa-sidebar-avatar').textContent = waSelectedName.charAt(0).toUpperCase();
 
             // Refresh conversation list to show selection
-            const searchVal = document.getElementById('wa-search').value;
-            await loadWhatsAppConversations(searchVal);
+            await loadWhatsAppConversations(document.getElementById('wa-search').value);
+            await refreshWaThread();
+        }
 
+        async function refreshWaThread() {
+            if (!waSelectedPhone) return;
             try {
-                const res = await fetchWithAuth(`/api/whatsapp/messages/${encodeURIComponent(phone)}`);
+                const res = await fetchWithAuth(`/api/whatsapp/messages/${encodeURIComponent(waSelectedPhone)}`);
                 const data = await res.json();
                 const container = document.getElementById('wa-thread-messages');
-
                 if (!data.messages || data.messages.length === 0) {
-                    container.innerHTML = '<div class="text-center text-gray-400 text-sm py-20">No messages</div>';
+                    container.innerHTML = '<div class="text-center text-gray-400 text-sm py-20">No messages yet</div>';
                     return;
                 }
+                // Update sidebar stats
+                const inCount = data.messages.filter(m => m.direction==='inbound').length;
+                const outCount = data.messages.filter(m => m.direction==='outbound').length;
+                document.getElementById('wa-sidebar-inbound').textContent = inCount;
+                document.getElementById('wa-sidebar-outbound').textContent = outCount;
+                // Check for linked ticket
+                const linkedTicket = data.messages.find(m => m.ticket_id);
+                const ticketInfoEl = document.getElementById('wa-sidebar-ticket-info');
+                if (linkedTicket) {
+                    ticketInfoEl.classList.remove('hidden');
+                    document.getElementById('wa-sidebar-ticket-id').textContent = `Ticket #${linkedTicket.ticket_id}`;
+                } else {
+                    ticketInfoEl.classList.add('hidden');
+                }
+
+                const prevScroll = container.scrollTop;
+                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
 
                 container.innerHTML = data.messages.map(m => {
                     const isInbound = m.direction === 'inbound';
                     const time = m.created_at ? new Date(m.created_at).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) : '';
-                    const ticketBadge = m.ticket_id ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-2">Ticket #${m.ticket_id}</span>` : '';
-                    const statusIcon = m.status === 'failed' ? ' ❌' : (m.direction === 'outbound' ? ' ✓' : '');
-
+                    const ticketBadge = m.ticket_id ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-1">🎫 #${m.ticket_id}</span>` : '';
+                    const statusIcon = m.status === 'failed' ? ' ❌' : (m.direction === 'outbound' ? ' ✓✓' : '');
                     if (isInbound) {
-                        return `
-                            <div class="flex justify-start">
-                                <div class="max-w-[75%] bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border">
-                                    <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
-                                    <div class="flex items-center justify-end gap-1 mt-1">
-                                        <span class="text-[10px] text-gray-400">${time}</span>
-                                    </div>
-                                </div>
-                            </div>`;
+                        return `<div class="flex justify-start"><div class="max-w-[70%] bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
+                            <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                            <div class="flex items-center justify-end gap-1 mt-1"><span class="text-[10px] text-gray-400">${time}</span></div>
+                        </div></div>`;
                     } else {
-                        return `
-                            <div class="flex justify-end">
-                                <div class="max-w-[75%] bg-green-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
-                                    <p class="text-sm whitespace-pre-wrap">${escapeHtml(m.content)}</p>
-                                    <div class="flex items-center justify-end gap-1 mt-1">
-                                        ${ticketBadge}
-                                        <span class="text-[10px] text-green-200">${time}${statusIcon}</span>
-                                    </div>
-                                </div>
-                            </div>`;
+                        return `<div class="flex justify-end"><div class="max-w-[70%] bg-[#dcf8c6] rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
+                            <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                            <div class="flex items-center justify-end gap-1 mt-1">${ticketBadge}<span class="text-[10px] text-gray-400">${time}${statusIcon}</span></div>
+                        </div></div>`;
                     }
                 }).join('');
 
-                // Scroll to bottom
-                container.scrollTop = container.scrollHeight;
-            } catch (e) {
-                console.error('Failed to load WhatsApp thread:', e);
-            }
+                if (wasAtBottom || prevScroll === 0) container.scrollTop = container.scrollHeight;
+            } catch (e) { console.error('Failed to load WA thread:', e); }
+        }
+
+        async function sendWaReply() {
+            const box = document.getElementById('wa-reply-box');
+            const msg = box.value.trim();
+            if (!msg || !waSelectedPhone) return;
+            const btn = document.getElementById('wa-send-btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const res = await fetchWithAuth('/api/whatsapp/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone_number: waSelectedPhone, message: msg })
+                });
+                if (res.ok) {
+                    box.value = ''; box.style.height = 'auto';
+                    await refreshWaThread();
+                    await loadWhatsAppConversations(document.getElementById('wa-search').value);
+                } else {
+                    const err = await res.json();
+                    alert('Failed to send: ' + (err.detail || 'Unknown error'));
+                }
+            } catch (e) { alert('Send failed: ' + e.message); }
+            finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i>'; }
+        }
+
+        function openTicketModal() {
+            if (!waSelectedPhone) return;
+            document.getElementById('wa-ticket-title').value = `WhatsApp inquiry from ${waSelectedName}`;
+            document.getElementById('wa-ticket-modal').classList.remove('hidden');
+        }
+        function closeTicketModal() { document.getElementById('wa-ticket-modal').classList.add('hidden'); }
+
+        async function convertToTicket() {
+            const title = document.getElementById('wa-ticket-title').value.trim();
+            const priority = document.getElementById('wa-ticket-priority').value;
+            if (!title) return alert('Please enter a title');
+            const btn = document.getElementById('wa-ticket-submit-btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating...';
+            try {
+                const res = await fetchWithAuth('/api/whatsapp/convert-ticket', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone_number: waSelectedPhone, title, priority })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    closeTicketModal();
+                    alert(`✅ Ticket #${data.ticket_id} created! Customer notified via WhatsApp.`);
+                    await refreshWaThread();
+                } else {
+                    alert('Error: ' + (data.detail || 'Failed'));
+                }
+            } catch (e) { alert('Error: ' + e.message); }
+            finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check mr-2"></i> Create Ticket & Notify Customer'; }
         }
 
         function escapeHtml(str) {
@@ -1452,8 +1612,7 @@
         function searchWhatsApp() {
             clearTimeout(waSearchTimeout);
             waSearchTimeout = setTimeout(() => {
-                const q = document.getElementById('wa-search').value;
-                loadWhatsAppConversations(q);
+                loadWhatsAppConversations(document.getElementById('wa-search').value);
             }, 300);
         }
         async function loadMacros() { const res = await fetchWithAuth('/api/macros'); macros = await res.json(); document.getElementById('macros-list').innerHTML = macros.map(m => `<div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 group hover:border-blue-200 transition-all"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-all">${m.name}</h4><span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded uppercase">${m.category}</span></div><p class="text-xs text-gray-500 italic mb-4 line-clamp-2">"${m.content}"</p><button onclick="deleteMacro(${m.id})" class="text-[10px] font-bold text-red-500 hover:underline">Delete</button></div>`).join(''); }

@@ -1458,6 +1458,21 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
+    def link_whatsapp_messages_to_ticket(self, phone_number: str, ticket_id: int):
+        """Link all WhatsApp messages from a phone number to a ticket."""
+        session = self.get_session()
+        try:
+            session.query(WhatsAppMessage).filter(
+                WhatsAppMessage.phone_number == phone_number,
+                WhatsAppMessage.ticket_id.is_(None)
+            ).update({"ticket_id": ticket_id}, synchronize_session=False)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error linking WhatsApp messages to ticket: {e}")
+        finally:
+            self.Session.remove()
+
 try:
     db_manager = DatabaseManager()
 except Exception as e:
