@@ -226,6 +226,22 @@ class TicketQueue(Base):
     queued_at = Column("QueuedAt", DateTime, server_default=func.now())
     assigned_at = Column("AssignedAt", DateTime)
 
+# ============ WhatsApp Messages ============
+
+class WhatsAppMessage(Base):
+    """Stores all WhatsApp messages (inbound + outbound) for visibility in admin dashboard."""
+    __tablename__ = "WhatsAppMessages"
+    __table_args__ = {"schema": "app"}
+    id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
+    bird_message_id = Column("BirdMessageID", Unicode(255), unique=True, nullable=True)
+    phone_number = Column("PhoneNumber", Unicode(20), index=True)  # e.g. +6281229009543
+    direction = Column("Direction", Unicode(10))  # 'inbound' or 'outbound'
+    content = Column("Content", UnicodeText)
+    message_type = Column("MessageType", Unicode(20), default="text")  # text, image, audio, etc.
+    status = Column("Status", Unicode(20), default="received")  # received, sent, failed
+    ticket_id = Column("TicketID", Integer, nullable=True)  # Link to ticket if created
+    created_at = Column("CreatedAt", DateTime, server_default=func.now())
+
 # ============ Freshdesk Historical Data ============
 
 class FreshdeskContact(Base):

@@ -1121,10 +1121,21 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
         logger.info(f"Webhook filtered: {e.detail}")
         return {"status": "filtered", "reason": e.detail}
     
+    # Save inbound message to DB
+    db = _require_db() if db_manager else None
+    if db:
+        db.save_whatsapp_message(
+            phone_number=message.sender,
+            direction="inbound",
+            content=message.text,
+            bird_message_id=message.message_id
+        )
+
     customer = await app.state.customer_service.get_or_register_customer(message.sender)
     classification = await app.state.intent_service.classify(message.text)
     
     response_text = ""
+    ticket_id = None
     if classification.intent == IntentType.CRITICAL:
         response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message.text}", message.text, True)
     elif classification.intent == IntentType.ESCALATION:
@@ -1141,13 +1152,48 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
         response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
 
     # Send the reply back to WhatsApp via Bird API
+    send_success = False
     try:
         from app.adapters.whatsapp_bird import send_whatsapp_message
-        await send_whatsapp_message(message.sender, response_text)
+        send_success = await send_whatsapp_message(message.sender, response_text)
     except Exception as e:
         logger.error(f"Failed to send WhatsApp message back: {e}")
 
+    # Save outbound message to DB
+    if db:
+        db.save_whatsapp_message(
+            phone_number=message.sender,
+            direction="outbound",
+            content=response_text,
+            status="sent" if send_success else "failed",
+            ticket_id=ticket_id
+        )
+
     return {"status": "success", "trace_id": trace_id, "response": response_text}
+
+# ============ WhatsApp API (Admin Dashboard) ============
+
+@app.get("/api/whatsapp/conversations")
+async def get_whatsapp_conversations(
+    agent: Annotated[dict, Depends(get_current_agent)],
+    search: str = None, page: int = 1, per_page: int = 50
+):
+    """Get WhatsApp conversations grouped by phone number."""
+    return _require_db().get_whatsapp_conversations(search=search, page=page, per_page=per_page)
+
+@app.get("/api/whatsapp/messages/{phone_number:path}")
+async def get_whatsapp_messages(
+    phone_number: str,
+    agent: Annotated[dict, Depends(get_current_agent)],
+    page: int = 1, per_page: int = 100
+):
+    """Get message thread for a specific phone number."""
+    return _require_db().get_whatsapp_messages(phone_number=phone_number, page=page, per_page=per_page)
+
+@app.get("/api/whatsapp/stats")
+async def get_whatsapp_stats(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get WhatsApp messaging statistics."""
+    return _require_db().get_whatsapp_stats()
 
 # ============ WebSocket ============
 

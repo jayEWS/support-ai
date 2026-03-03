@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, func, or_, desc, literal_column
 from sqlalchemy.orm import sessionmaker, scoped_session
-from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, FreshdeskContact, FreshdeskTicket
+from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, FreshdeskContact, FreshdeskTicket, WhatsAppMessage
 from app.core.config import settings
 from app.core.logging import logger
 import json
@@ -1339,6 +1339,121 @@ class DatabaseManager:
                     "created_time": str(t.created_time) if t.created_time else None,
                     "resolved_time": str(t.resolved_time) if t.resolved_time else None
                 } for t in tickets]
+            }
+        finally:
+            self.Session.remove()
+
+    # ============ WhatsApp Messages ============
+
+    def save_whatsapp_message(self, phone_number: str, direction: str, content: str,
+                              message_type: str = "text", bird_message_id: str = None,
+                              ticket_id: int = None, status: str = None):
+        """Save a WhatsApp message (inbound or outbound) to the database."""
+        session = self.get_session()
+        try:
+            msg = WhatsAppMessage(
+                bird_message_id=bird_message_id,
+                phone_number=phone_number,
+                direction=direction,
+                content=content,
+                message_type=message_type,
+                status=status or ('received' if direction == 'inbound' else 'sent'),
+                ticket_id=ticket_id
+            )
+            session.add(msg)
+            session.commit()
+            return msg.id
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error saving WhatsApp message: {e}")
+            return None
+        finally:
+            self.Session.remove()
+
+    def get_whatsapp_conversations(self, search: str = None, page: int = 1, per_page: int = 50):
+        """Get WhatsApp conversations grouped by phone number."""
+        session = self.get_session()
+        try:
+            from sqlalchemy import func as sqla_func, case
+            # Subquery: latest message per phone number
+            subq = session.query(
+                WhatsAppMessage.phone_number,
+                sqla_func.count(WhatsAppMessage.id).label('message_count'),
+                sqla_func.max(WhatsAppMessage.created_at).label('last_message_at'),
+                sqla_func.sum(case((WhatsAppMessage.direction == 'inbound', 1), else_=0)).label('inbound_count'),
+                sqla_func.sum(case((WhatsAppMessage.direction == 'outbound', 1), else_=0)).label('outbound_count'),
+            ).group_by(WhatsAppMessage.phone_number)
+
+            if search:
+                subq = subq.filter(WhatsAppMessage.phone_number.ilike(f'%{search}%'))
+
+            total = subq.count()
+            conversations = subq.order_by(desc(sqla_func.max(WhatsAppMessage.created_at))).offset((page - 1) * per_page).limit(per_page).all()
+
+            # Get the last message content for each conversation
+            result = []
+            for conv in conversations:
+                last_msg = session.query(WhatsAppMessage).filter_by(
+                    phone_number=conv.phone_number
+                ).order_by(desc(WhatsAppMessage.created_at)).first()
+
+                # Try to get customer name from Users table
+                user = session.query(User).filter_by(identifier=conv.phone_number).first()
+                customer_name = user.name if user and user.name else None
+
+                result.append({
+                    'phone_number': conv.phone_number,
+                    'customer_name': customer_name,
+                    'message_count': conv.message_count,
+                    'inbound_count': conv.inbound_count,
+                    'outbound_count': conv.outbound_count,
+                    'last_message_at': str(conv.last_message_at) if conv.last_message_at else None,
+                    'last_message': last_msg.content[:100] if last_msg else '',
+                    'last_direction': last_msg.direction if last_msg else ''
+                })
+
+            return {'conversations': result, 'total': total, 'page': page, 'per_page': per_page}
+        finally:
+            self.Session.remove()
+
+    def get_whatsapp_messages(self, phone_number: str, page: int = 1, per_page: int = 100):
+        """Get all messages for a specific phone number (conversation thread)."""
+        session = self.get_session()
+        try:
+            query = session.query(WhatsAppMessage).filter_by(phone_number=phone_number)
+            total = query.count()
+            messages = query.order_by(WhatsAppMessage.created_at.asc()).offset((page - 1) * per_page).limit(per_page).all()
+            return {
+                'phone_number': phone_number,
+                'total': total,
+                'messages': [{
+                    'id': m.id,
+                    'bird_message_id': m.bird_message_id,
+                    'direction': m.direction,
+                    'content': m.content,
+                    'message_type': m.message_type,
+                    'status': m.status,
+                    'ticket_id': m.ticket_id,
+                    'created_at': str(m.created_at) if m.created_at else None
+                } for m in messages]
+            }
+        finally:
+            self.Session.remove()
+
+    def get_whatsapp_stats(self):
+        """Get WhatsApp messaging statistics."""
+        session = self.get_session()
+        try:
+            from sqlalchemy import func as sqla_func
+            total_messages = session.query(sqla_func.count(WhatsAppMessage.id)).scalar() or 0
+            total_inbound = session.query(sqla_func.count(WhatsAppMessage.id)).filter_by(direction='inbound').scalar() or 0
+            total_outbound = session.query(sqla_func.count(WhatsAppMessage.id)).filter_by(direction='outbound').scalar() or 0
+            unique_contacts = session.query(sqla_func.count(sqla_func.distinct(WhatsAppMessage.phone_number))).scalar() or 0
+            return {
+                'total_messages': total_messages,
+                'total_inbound': total_inbound,
+                'total_outbound': total_outbound,
+                'unique_contacts': unique_contacts
             }
         finally:
             self.Session.remove()

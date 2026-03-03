@@ -386,6 +386,74 @@
                 </table>
             </div>
         </section>
+
+        <!-- WhatsApp Messages View -->
+        <section id="whatsapp-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">💬 WhatsApp Messages</h2>
+                    <p class="text-xs text-gray-400 mt-1">View all incoming and outgoing WhatsApp conversations via Bird integration</p>
+                </div>
+                <button onclick="loadWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-green-700 transition flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Messages</p>
+                    <p class="text-2xl font-black text-green-600" id="wa-stat-total">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Inbound</p>
+                    <p class="text-2xl font-black text-blue-600" id="wa-stat-inbound">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Outbound</p>
+                    <p class="text-2xl font-black text-purple-600" id="wa-stat-outbound">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Unique Contacts</p>
+                    <p class="text-2xl font-black text-orange-600" id="wa-stat-contacts">--</p>
+                </div>
+            </div>
+
+            <!-- Two-column layout: conversation list + message thread -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Conversation list -->
+                <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                    <div class="p-4 border-b">
+                        <input type="text" id="wa-search" placeholder="Search phone number..." 
+                            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            oninput="searchWhatsApp()">
+                    </div>
+                    <div id="wa-conversation-list" class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+                        <div class="p-8 text-center text-gray-400 text-sm">No conversations yet</div>
+                    </div>
+                </div>
+
+                <!-- Message thread -->
+                <div class="lg:col-span-2 bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col">
+                    <div id="wa-thread-header" class="p-4 border-b bg-green-50 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">
+                            <i class="fab fa-whatsapp text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm" id="wa-thread-name">Select a conversation</p>
+                            <p class="text-xs text-gray-500" id="wa-thread-phone">Click on a contact to view messages</p>
+                        </div>
+                    </div>
+                    <div id="wa-thread-messages" class="flex-1 p-4 space-y-3 max-h-[500px] overflow-y-auto bg-gray-50" style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22 width=%2220%22 height=%2220%22><rect fill=%22%23f0fdf4%22 width=%2280%22 height=%2280%22/><circle cx=%2240%22 cy=%2240%22 r=%221%22 fill=%22%23dcfce7%22/></svg>');">
+                        <div class="text-center text-gray-400 text-sm py-20">
+                            <i class="fab fa-whatsapp text-6xl text-green-200 mb-4"></i>
+                            <p>Select a conversation from the left panel</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="macros-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="mb-8 bg-white p-6 rounded-xl border shadow-sm">
                 <h3 class="font-bold text-gray-800 mb-4">Add Macro</h3>
@@ -910,6 +978,7 @@
                 team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
                 security: { icon: 'fa-shield-halved', label: 'Security', isDropdown: true, id: 'security', adminOnly: true },
                 tickets: { icon: 'fa-ticket-alt', label: 'All Tickets', onClick: "switchTab('tickets')" },
+                whatsapp: { icon: 'fa-brands fa-whatsapp', label: 'WhatsApp', onClick: "switchTab('whatsapp')" },
                 customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
                 freshdesk: { icon: 'fa-history', label: 'Freshdesk Data', onClick: "switchTab('freshdesk')" },
                 knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
@@ -978,13 +1047,14 @@
         function switchTab(tab, subOption = null) {
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
-            ['overview', 'inbox', 'team', 'tickets', 'macros', 'knowledge', 'customers', 'freshdesk', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
+            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'freshdesk', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
                 if (document.getElementById(`${t}-view`)) document.getElementById(`${t}-view`).classList.toggle('hidden', t !== tab);
             });
             if (tab === 'overview') loadAnalytics();
             else if (tab === 'inbox') loadInbox(subOption);
             else if (tab === 'team') loadTeam(subOption);
             else if (tab === 'tickets') loadAllTickets();
+            else if (tab === 'whatsapp') loadWhatsApp();
             else if (tab === 'macros') loadMacros();
             else if (tab === 'audit') loadAuditLogs();
             else if (tab === 'knowledge') { loadKnowledge(); loadKBStats(); }
@@ -1254,6 +1324,138 @@
         function closeProfile() { document.getElementById('profile-modal').classList.add('hidden'); }
 
         async function loadAllTickets() { const res = await fetchWithAuth('/api/tickets'); const data = await res.json(); document.getElementById('tickets-list').innerHTML = data.map(t => `<tr class="hover:bg-gray-50 border-b"><td class="px-6 py-4"><div class="text-sm font-bold text-gray-900 uppercase">${t.name || 'Anon'}</div><div class="text-[10px] text-gray-400">${t.company || '-'}</div></td><td class="px-6 py-4 text-xs text-gray-600 line-clamp-1">${t.summary}</td><td class="px-6 py-4 uppercase text-[10px] font-bold priority-${t.priority.toLowerCase()}">${t.priority}</td><td class="px-6 py-4"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span></td><td class="px-6 py-4 text-right"><button onclick="selectTicket(${t.id}); switchTab('inbox');" class="text-blue-600 font-bold text-xs uppercase tracking-tighter hover:underline">View</button></td></tr>`).join(''); }
+
+        // ============ WhatsApp Functions ============
+        let waSelectedPhone = null;
+
+        async function loadWhatsApp() {
+            try {
+                // Load stats
+                const statsRes = await fetchWithAuth('/api/whatsapp/stats');
+                const stats = await statsRes.json();
+                document.getElementById('wa-stat-total').textContent = stats.total_messages || 0;
+                document.getElementById('wa-stat-inbound').textContent = stats.total_inbound || 0;
+                document.getElementById('wa-stat-outbound').textContent = stats.total_outbound || 0;
+                document.getElementById('wa-stat-contacts').textContent = stats.unique_contacts || 0;
+
+                // Load conversations
+                await loadWhatsAppConversations();
+            } catch (e) {
+                console.error('Failed to load WhatsApp data:', e);
+            }
+        }
+
+        async function loadWhatsAppConversations(search = '') {
+            try {
+                const url = search ? `/api/whatsapp/conversations?search=${encodeURIComponent(search)}` : '/api/whatsapp/conversations';
+                const res = await fetchWithAuth(url);
+                const data = await res.json();
+                const list = document.getElementById('wa-conversation-list');
+
+                if (!data.conversations || data.conversations.length === 0) {
+                    list.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm">No WhatsApp conversations yet.<br><span class="text-xs">Messages will appear here when customers send WhatsApp messages.</span></div>';
+                    return;
+                }
+
+                list.innerHTML = data.conversations.map(c => {
+                    const name = c.customer_name || c.phone_number;
+                    const initials = name.charAt(0).toUpperCase();
+                    const timeAgo = c.last_message_at ? new Date(c.last_message_at).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+                    const dirIcon = c.last_direction === 'inbound' ? '↙️' : '↗️';
+                    const isSelected = waSelectedPhone === c.phone_number;
+                    return `
+                        <div onclick="loadWhatsAppThread('${c.phone_number}', '${(c.customer_name || '').replace(/'/g, "\\'")}')" 
+                             class="p-4 cursor-pointer hover:bg-green-50 transition ${isSelected ? 'bg-green-50 border-l-4 border-green-500' : ''}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initials}</div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center">
+                                        <p class="font-bold text-gray-800 text-sm truncate">${name}</p>
+                                        <span class="text-[10px] text-gray-400 flex-shrink-0">${timeAgo}</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 truncate">${dirIcon} ${c.last_message || ''}</p>
+                                    <div class="flex gap-2 mt-1">
+                                        <span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">↙ ${c.inbound_count}</span>
+                                        <span class="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">↗ ${c.outbound_count}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load WhatsApp conversations:', e);
+            }
+        }
+
+        async function loadWhatsAppThread(phone, customerName) {
+            waSelectedPhone = phone;
+            document.getElementById('wa-thread-name').textContent = customerName || phone;
+            document.getElementById('wa-thread-phone').textContent = phone;
+
+            // Refresh conversation list to show selection
+            const searchVal = document.getElementById('wa-search').value;
+            await loadWhatsAppConversations(searchVal);
+
+            try {
+                const res = await fetchWithAuth(`/api/whatsapp/messages/${encodeURIComponent(phone)}`);
+                const data = await res.json();
+                const container = document.getElementById('wa-thread-messages');
+
+                if (!data.messages || data.messages.length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-400 text-sm py-20">No messages</div>';
+                    return;
+                }
+
+                container.innerHTML = data.messages.map(m => {
+                    const isInbound = m.direction === 'inbound';
+                    const time = m.created_at ? new Date(m.created_at).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) : '';
+                    const ticketBadge = m.ticket_id ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-2">Ticket #${m.ticket_id}</span>` : '';
+                    const statusIcon = m.status === 'failed' ? ' ❌' : (m.direction === 'outbound' ? ' ✓' : '');
+
+                    if (isInbound) {
+                        return `
+                            <div class="flex justify-start">
+                                <div class="max-w-[75%] bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border">
+                                    <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                                    <div class="flex items-center justify-end gap-1 mt-1">
+                                        <span class="text-[10px] text-gray-400">${time}</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                    } else {
+                        return `
+                            <div class="flex justify-end">
+                                <div class="max-w-[75%] bg-green-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
+                                    <p class="text-sm whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                                    <div class="flex items-center justify-end gap-1 mt-1">
+                                        ${ticketBadge}
+                                        <span class="text-[10px] text-green-200">${time}${statusIcon}</span>
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+                }).join('');
+
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+            } catch (e) {
+                console.error('Failed to load WhatsApp thread:', e);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        let waSearchTimeout;
+        function searchWhatsApp() {
+            clearTimeout(waSearchTimeout);
+            waSearchTimeout = setTimeout(() => {
+                const q = document.getElementById('wa-search').value;
+                loadWhatsAppConversations(q);
+            }, 300);
+        }
         async function loadMacros() { const res = await fetchWithAuth('/api/macros'); macros = await res.json(); document.getElementById('macros-list').innerHTML = macros.map(m => `<div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 group hover:border-blue-200 transition-all"><div class="flex justify-between items-start mb-2"><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-all">${m.name}</h4><span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded uppercase">${m.category}</span></div><p class="text-xs text-gray-500 italic mb-4 line-clamp-2">"${m.content}"</p><button onclick="deleteMacro(${m.id})" class="text-[10px] font-bold text-red-500 hover:underline">Delete</button></div>`).join(''); }
         async function saveMacro() { const n = document.getElementById('macro-name').value, c = document.getElementById('macro-content').value, cat = document.getElementById('macro-category').value; if (!n || !c) return alert("Missing fields"); await fetchWithAuth('/api/macros', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, content: c, category: cat }) }); document.getElementById('macro-name').value = ''; document.getElementById('macro-content').value = ''; loadMacros(); }
         async function deleteMacro(id) { if (confirm("Delete?")) { await fetchWithAuth(`/api/macros/${id}`, { method: 'DELETE' }); loadMacros(); } }
