@@ -12,38 +12,34 @@ git reset --hard origin/main
 
 echo "=== [2/6] Update .env ==="
 
-# BASE_URL (Main Portal on GCP)
-GCP_IP="136.110.61.119"
-PORT="8000"
-sed -i "s|^BASE_URL=.*|BASE_URL=http://$GCP_IP.nip.io:$PORT|" .env
+# BASE_URL
+sed -i 's|^BASE_URL=.*|BASE_URL=http://136-110-61-119.nip.io:8000|' .env
 
-# GOOGLE_REDIRECT_URI (Must match Google Cloud Console)
-REDIRECT_URI="http://$GCP_IP.nip.io:$PORT/api/auth/google/callback"
+# GOOGLE_REDIRECT_URI
 if grep -q "^GOOGLE_REDIRECT_URI=" .env; then
-    sed -i "s|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=$REDIRECT_URI|" .env
+    sed -i 's|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback|' .env
 else
-    echo "GOOGLE_REDIRECT_URI=$REDIRECT_URI" >> .env
+    echo "GOOGLE_REDIRECT_URI=http://136-110-61-119.nip.io:8000/api/auth/google/callback" >> .env
 fi
 
-# AI & LLM CONFIGURATION (Ngrok for Chat/AI if provided)
-# Note: Set NGROK_URL environment variable before running this script
-if [ ! -z "$NGROK_URL" ]; then
-    echo "Updating AI_BASE_URL to Ngrok: $NGROK_URL"
-    sed -i "s|^AI_BASE_URL=.*|AI_BASE_URL=$NGROK_URL|" .env
+# Gemini LLM Provider
+sed -i 's|^LLM_PROVIDER=.*|LLM_PROVIDER=gemini|' .env
+if grep -q "^GOOGLE_GEMINI_API_KEY=" .env; then
+    sed -i 's|^GOOGLE_GEMINI_API_KEY=.*|GOOGLE_GEMINI_API_KEY=AIzaSyA0N2iJTZWZYx1mn7JgPDMsXuQsiRUQfsw|' .env
+else
+    echo "GOOGLE_GEMINI_API_KEY=AIzaSyA0N2iJTZWZYx1mn7JgPDMsXuQsiRUQfsw" >> .env
+fi
+if ! grep -q "^GEMINI_MODEL_NAME=" .env; then
+    echo "GEMINI_MODEL_NAME=gemini-2.5-flash" >> .env
 fi
 
-# ALLOWED_ORIGINS (CORS fix)
-ALLOW_ORIGIN="\"http://$GCP_IP.nip.io:$PORT\", \"http://localhost:8000\""
-if [ ! -z "$NGROK_URL" ]; then
-    ALLOW_ORIGIN="$ALLOW_ORIGIN, \"$NGROK_URL\""
+# Supabase pooler (IPv4, port 6543)
+if grep -q "db.wjsaltebtbmnysgcdsoh.supabase.co" .env; then
+    sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres.wjsaltebtbmnysgcdsoh:Tekansaja123@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres|' .env
 fi
-sed -i "s|^ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=[$ALLOW_ORIGIN]|" .env
-
-# Supabase direct connection for stability on VM
-sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres|' .env
 
 echo "--- .env preview (sensitive values masked) ---"
-grep -E "^(BASE_URL|GOOGLE_REDIRECT_URI|DATABASE_URL|AI_BASE_URL)" .env | sed 's|://[^@]*@|://***@|'
+grep -E "^(BASE_URL|LLM_PROVIDER|GEMINI_MODEL_NAME|GOOGLE_REDIRECT_URI|DATABASE_URL)" .env | sed 's|://[^@]*@|://***@|'
 
 echo "=== [3/6] Stop & remove old container ==="
 sudo docker stop support-ai 2>/dev/null || true
@@ -83,5 +79,5 @@ curl -sf http://localhost:8000/health && echo " <- OK" || echo " <- FAILED"
 
 echo ""
 echo "============================================"
-echo "Done! App running at http://$GCP_IP.nip.io:$PORT"
+echo "Done! App running at http://136-110-61-119.nip.io:8000"
 echo "============================================"
