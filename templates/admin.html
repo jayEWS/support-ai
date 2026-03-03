@@ -156,6 +156,36 @@
             color: #2563eb;
             transform: rotate(45deg);
         }
+
+        /* ---- Customer DataTable ---- */
+        .cdt-wrap { position: relative; }
+        .cdt-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+        .cdt-scroll { overflow-x:auto; overflow-y:auto; max-height:70vh; border:1px solid #e5e7eb; border-radius:16px; background:#fff; }
+        .cdt-scroll::-webkit-scrollbar { width:6px; height:6px; }
+        .cdt-scroll::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+        .cdt-table { border-collapse:collapse; white-space:nowrap; }
+        .cdt-table th, .cdt-table td { padding:8px 14px; font-size:12px; border-bottom:1px solid #f1f5f9; }
+        .cdt-table thead { position:sticky; top:0; z-index:2; background:#f8fafc; }
+        .cdt-table thead th { cursor:pointer; user-select:none; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; font-weight:800; }
+        .cdt-table thead th:hover { color:#3b82f6; }
+        .cdt-table thead th .sort-icon { margin-left:4px; font-size:9px; opacity:0.4; }
+        .cdt-table thead th .sort-icon.active { opacity:1; color:#3b82f6; }
+        .cdt-table tbody tr:hover { background:#f8fafc; }
+        .cdt-table th.drag-over { border-left:3px solid #3b82f6; }
+        .cdt-table th[draggable] { cursor:grab; }
+        .cdt-table th[draggable]:active { cursor:grabbing; }
+        .cdt-pager { display:flex; align-items:center; justify-content:space-between; margin-top:12px; flex-wrap:wrap; gap:8px; }
+        .cdt-pager button { padding:6px 12px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; font-size:11px; font-weight:700; cursor:pointer; transition:all .15s; }
+        .cdt-pager button:hover:not(:disabled) { background:#eff6ff; border-color:#93c5fd; color:#2563eb; }
+        .cdt-pager button:disabled { opacity:0.35; cursor:default; }
+        .cdt-pager button.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+        .cdt-pager select { padding:5px 8px; border-radius:8px; border:1px solid #e5e7eb; font-size:11px; font-weight:600; }
+        .cdt-col-toggle { position:relative; display:inline-block; }
+        .cdt-col-menu { display:none; position:absolute; top:100%; left:0; z-index:50; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.1); padding:8px 0; min-width:200px; max-height:360px; overflow-y:auto; }
+        .cdt-col-menu.open { display:block; }
+        .cdt-col-menu label { display:flex; align-items:center; gap:8px; padding:6px 16px; font-size:11px; font-weight:600; color:#475569; cursor:pointer; transition:background .1s; }
+        .cdt-col-menu label:hover { background:#f1f5f9; }
+        .cdt-col-menu input[type=checkbox] { accent-color:#2563eb; width:14px; height:14px; }
     </style>
 </head>
 
@@ -687,36 +717,8 @@
                 <span class="text-xs font-bold text-green-600 uppercase tracking-widest" id="customer-import-text">Importing...</span>
             </div>
 
-            <!-- Search -->
-            <div class="mb-4 flex items-center gap-4">
-                <input type="text" id="customer-search" placeholder="Search by name, company, or ID..."
-                    class="flex-1 px-5 py-3 text-sm border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                    oninput="filterCustomerTable()">
-                <span id="customer-search-count" class="text-xs text-gray-500 font-semibold whitespace-nowrap hidden"></span>
-            </div>
-
-            <!-- Customer Table -->
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100">
-                    <thead class="bg-gray-50/50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">No</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Account ID</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Title</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">First Name</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Last Name</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Email</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Mobile</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Company</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Outlet</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Outlet Address</th>
-                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Column1</th>
-                            <th class="px-4 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="customer-list" class="divide-y divide-gray-50"></tbody>
-                </table>
-            </div>
+            <!-- Customer DataTable -->
+            <div id="cdt-root" class="cdt-wrap"></div>
         </section>
 
         <!-- ============ Freshdesk Historical Data View ============ -->
@@ -1922,6 +1924,291 @@
         // ============ Customer Management ============
         let allCustomers = [];
 
+        // --- Customer DataTable Engine ---
+        const CDT = {
+            columns: [
+                { key:'_no',      label:'No',             visible:true, sortable:false, getter: (c,i)=> i+1 },
+                { key:'identifier',label:'Account ID',    visible:true, sortable:true,  getter: c=> c.identifier||'' },
+                { key:'title',    label:'Title',          visible:true, sortable:true,  getter: c=> c.title||'' },
+                { key:'firstName',label:'First Name',     visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p[0]||''; }},
+                { key:'lastName', label:'Last Name',      visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p.length>1?p.slice(1).join(' '):''; }},
+                { key:'email',    label:'Email',          visible:true, sortable:true,  getter: c=> c.email||'' },
+                { key:'mobile',   label:'Mobile',         visible:true, sortable:true,  getter: c=> c.mobile||'' },
+                { key:'company',  label:'Company',        visible:true, sortable:true,  getter: c=> c.company||'' },
+                { key:'outlet',   label:'Outlet',         visible:true, sortable:true,  getter: c=> c.outlet_pos||'' },
+                { key:'address',  label:'Outlet Address', visible:true, sortable:true,  getter: c=> c.outlet_address||'' },
+                { key:'category', label:'Column1',        visible:true, sortable:true,  getter: c=> c.category||'' },
+                { key:'_actions', label:'Actions',        visible:true, sortable:false, getter: null }
+            ],
+            sortCol: 'identifier',
+            sortAsc: true,
+            page: 1,
+            perPage: 50,
+            searchQ: '',
+            dragSrcIdx: null,
+
+            // save/load prefs
+            savePrefs() {
+                const p = { order: this.columns.map(c=>c.key), hidden: this.columns.filter(c=>!c.visible).map(c=>c.key), sortCol: this.sortCol, sortAsc: this.sortAsc, perPage: this.perPage };
+                try { localStorage.setItem('cdt_prefs', JSON.stringify(p)); } catch(e){}
+            },
+            loadPrefs() {
+                try {
+                    const p = JSON.parse(localStorage.getItem('cdt_prefs'));
+                    if (!p) return;
+                    if (p.order) {
+                        const map = {}; this.columns.forEach(c=> map[c.key]=c);
+                        const reordered = p.order.map(k=>map[k]).filter(Boolean);
+                        this.columns.forEach(c=> { if(!reordered.includes(c)) reordered.push(c); });
+                        this.columns = reordered;
+                    }
+                    if (p.hidden) this.columns.forEach(c=> { if(p.hidden.includes(c.key)) c.visible=false; });
+                    if (p.sortCol) this.sortCol = p.sortCol;
+                    if (p.sortAsc !== undefined) this.sortAsc = p.sortAsc;
+                    if (p.perPage) this.perPage = p.perPage;
+                } catch(e){}
+            },
+
+            // get filtered + sorted data
+            getData() {
+                let data = allCustomers;
+                if (this.searchQ) {
+                    const q = this.searchQ;
+                    data = data.filter(c =>
+                        (c.name||'').toLowerCase().includes(q) ||
+                        (c.company||'').toLowerCase().includes(q) ||
+                        (c.identifier||'').toLowerCase().includes(q) ||
+                        (c.outlet_pos||'').toLowerCase().includes(q) ||
+                        (c.email||'').toLowerCase().includes(q) ||
+                        (c.mobile||'').toLowerCase().includes(q) ||
+                        (c.category||'').toLowerCase().includes(q) ||
+                        (c.outlet_address||'').toLowerCase().includes(q)
+                    );
+                }
+                // sort
+                const col = this.columns.find(c=>c.key===this.sortCol);
+                if (col && col.sortable && col.getter) {
+                    const dir = this.sortAsc ? 1 : -1;
+                    data = [...data].sort((a,b)=>{
+                        const va = col.getter(a,0).toString().toLowerCase();
+                        const vb = col.getter(b,0).toString().toLowerCase();
+                        return va < vb ? -dir : va > vb ? dir : 0;
+                    });
+                }
+                return data;
+            },
+
+            render() {
+                const root = document.getElementById('cdt-root');
+                const data = this.getData();
+                const totalFiltered = data.length;
+                const totalPages = Math.max(1, Math.ceil(totalFiltered / this.perPage));
+                if (this.page > totalPages) this.page = totalPages;
+                const start = (this.page - 1) * this.perPage;
+                const pageData = data.slice(start, start + this.perPage);
+                const visCols = this.columns.filter(c=>c.visible);
+
+                let html = '';
+                // Toolbar
+                html += '<div class="cdt-toolbar">';
+                // Search
+                html += '<input type="text" id="cdt-search" placeholder="Search..." value="' + (this.searchQ ? this.searchQ.replace(/"/g,'&quot;') : '') + '" class="flex-1 min-w-[200px] px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">';
+                // Column toggle
+                html += '<div class="cdt-col-toggle"><button id="cdt-col-btn" class="px-4 py-2.5 text-xs font-bold uppercase tracking-wider border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-2"><i class="fas fa-columns"></i> Columns</button>';
+                html += '<div id="cdt-col-menu" class="cdt-col-menu">';
+                this.columns.forEach((col,i)=>{
+                    if (col.key==='_no'||col.key==='_actions') return;
+                    html += `<label><input type="checkbox" data-col-idx="${i}" ${col.visible?'checked':''}> ${col.label}</label>`;
+                });
+                html += '</div></div>';
+                // Count info
+                html += `<span class="text-xs text-gray-500 font-semibold whitespace-nowrap">`;
+                if (this.searchQ) {
+                    html += `Found ${totalFiltered} of ${allCustomers.length}`;
+                } else {
+                    html += `Total: ${totalFiltered}`;
+                }
+                html += '</span>';
+                html += '</div>';
+
+                // Table scroll container
+                html += '<div class="cdt-scroll">';
+                html += '<table class="cdt-table" id="cdt-tbl">';
+
+                // THEAD
+                html += '<thead><tr>';
+                visCols.forEach((col, vi) => {
+                    const isSorted = this.sortCol === col.key;
+                    const draggable = col.key!=='_no' && col.key!=='_actions' ? 'draggable="true"' : '';
+                    let icon = '';
+                    if (col.sortable) {
+                        if (isSorted) {
+                            icon = `<span class="sort-icon active"><i class="fas fa-sort-${this.sortAsc?'up':'down'}"></i></span>`;
+                        } else {
+                            icon = '<span class="sort-icon"><i class="fas fa-sort"></i></span>';
+                        }
+                    }
+                    const align = col.key==='_actions' ? 'text-align:right;' : col.key==='_no' ? 'text-align:center;' : '';
+                    html += `<th data-col-key="${col.key}" ${draggable} style="${align}">${col.label}${icon}</th>`;
+                });
+                html += '</tr></thead>';
+
+                // TBODY
+                html += '<tbody>';
+                if (!pageData.length) {
+                    html += `<tr><td colspan="${visCols.length}" style="text-align:center;padding:48px 16px;color:#94a3b8;font-size:13px;">No customers found.</td></tr>`;
+                } else {
+                    pageData.forEach((c, ri) => {
+                        const globalIdx = start + ri;
+                        html += '<tr>';
+                        visCols.forEach(col => {
+                            if (col.key === '_no') {
+                                html += `<td style="text-align:center;color:#94a3b8;font-family:monospace;">${globalIdx+1}</td>`;
+                            } else if (col.key === '_actions') {
+                                html += `<td style="text-align:right;"><button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button><button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button></td>`;
+                            } else if (col.key === 'category') {
+                                const v = col.getter(c, globalIdx);
+                                if (v) {
+                                    const cls = v==='FNB'?'bg-orange-50 text-orange-600':'bg-blue-50 text-blue-600';
+                                    html += `<td><span class="px-2 py-1 text-[10px] font-bold uppercase rounded-lg ${cls}">${v}</span></td>`;
+                                } else {
+                                    html += '<td style="color:#94a3b8;">--</td>';
+                                }
+                            } else {
+                                const v = col.getter(c, globalIdx);
+                                html += `<td>${v || '<span style="color:#cbd5e1;">--</span>'}</td>`;
+                            }
+                        });
+                        html += '</tr>';
+                    });
+                }
+                html += '</tbody></table></div>';
+
+                // Pager
+                html += '<div class="cdt-pager">';
+                html += '<div style="display:flex;align-items:center;gap:6px;">';
+                html += `<span class="text-xs text-gray-500">Rows per page:</span>`;
+                html += '<select id="cdt-perpage">';
+                [25,50,100,200,500].forEach(n=>{
+                    html += `<option value="${n}" ${this.perPage===n?'selected':''}>${n}</option>`;
+                });
+                html += '</select>';
+                html += `<span class="text-xs text-gray-400 ml-2">${start+1}-${Math.min(start+this.perPage, totalFiltered)} of ${totalFiltered}</span>`;
+                html += '</div>';
+                html += '<div style="display:flex;align-items:center;gap:4px;">';
+                html += `<button id="cdt-prev" ${this.page<=1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+                // page buttons
+                const maxBtns = 7;
+                let pStart = Math.max(1, this.page - Math.floor(maxBtns/2));
+                let pEnd = Math.min(totalPages, pStart + maxBtns - 1);
+                if (pEnd - pStart < maxBtns - 1) pStart = Math.max(1, pEnd - maxBtns + 1);
+                for (let p = pStart; p <= pEnd; p++) {
+                    html += `<button class="cdt-page-btn ${p===this.page?'active':''}" data-page="${p}">${p}</button>`;
+                }
+                html += `<button id="cdt-next" ${this.page>=totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+                html += '</div></div>';
+
+                root.innerHTML = html;
+                this.autoWidth();
+                this.bindEvents();
+            },
+
+            autoWidth() {
+                const tbl = document.getElementById('cdt-tbl');
+                if (!tbl) return;
+                // auto-fit: let browser compute, then set min-widths
+                const ths = tbl.querySelectorAll('thead th');
+                const rows = tbl.querySelectorAll('tbody tr');
+                ths.forEach((th, ci) => {
+                    let maxW = th.scrollWidth;
+                    rows.forEach(tr => {
+                        const td = tr.children[ci];
+                        if (td) maxW = Math.max(maxW, td.scrollWidth);
+                    });
+                    th.style.minWidth = Math.min(maxW + 16, 400) + 'px';
+                });
+            },
+
+            bindEvents() {
+                const self = this;
+                // Search
+                const searchEl = document.getElementById('cdt-search');
+                if (searchEl) {
+                    searchEl.addEventListener('input', function() {
+                        self.searchQ = this.value.trim().toLowerCase();
+                        self.page = 1;
+                        self.render();
+                    });
+                }
+                // Column toggle
+                const colBtn = document.getElementById('cdt-col-btn');
+                const colMenu = document.getElementById('cdt-col-menu');
+                if (colBtn && colMenu) {
+                    colBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        colMenu.classList.toggle('open');
+                    });
+                    document.addEventListener('click', () => colMenu.classList.remove('open'), { once: false });
+                    colMenu.addEventListener('click', e => e.stopPropagation());
+                    colMenu.querySelectorAll('input[type=checkbox]').forEach(cb => {
+                        cb.addEventListener('change', function() {
+                            const idx = parseInt(this.dataset.colIdx);
+                            self.columns[idx].visible = this.checked;
+                            self.savePrefs();
+                            self.render();
+                        });
+                    });
+                }
+                // Sort
+                document.querySelectorAll('#cdt-tbl thead th[data-col-key]').forEach(th => {
+                    const key = th.dataset.colKey;
+                    const col = self.columns.find(c=>c.key===key);
+                    if (!col || !col.sortable) return;
+                    th.addEventListener('click', () => {
+                        if (self.sortCol === key) { self.sortAsc = !self.sortAsc; }
+                        else { self.sortCol = key; self.sortAsc = true; }
+                        self.savePrefs();
+                        self.render();
+                    });
+                });
+                // Drag & drop columns
+                document.querySelectorAll('#cdt-tbl thead th[draggable]').forEach(th => {
+                    th.addEventListener('dragstart', function(e) {
+                        self.dragSrcIdx = self.columns.findIndex(c=>c.key===this.dataset.colKey);
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', this.dataset.colKey);
+                        this.style.opacity = '0.4';
+                    });
+                    th.addEventListener('dragend', function() { this.style.opacity = '1'; });
+                    th.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
+                    th.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
+                    th.addEventListener('drop', function(e) {
+                        e.preventDefault();
+                        this.classList.remove('drag-over');
+                        const destIdx = self.columns.findIndex(c=>c.key===this.dataset.colKey);
+                        if (self.dragSrcIdx !== null && self.dragSrcIdx !== destIdx) {
+                            const moved = self.columns.splice(self.dragSrcIdx, 1)[0];
+                            self.columns.splice(destIdx, 0, moved);
+                            self.savePrefs();
+                            self.render();
+                        }
+                    });
+                });
+                // Pagination
+                const prevBtn = document.getElementById('cdt-prev');
+                const nextBtn = document.getElementById('cdt-next');
+                if (prevBtn) prevBtn.addEventListener('click', () => { self.page--; self.render(); });
+                if (nextBtn) nextBtn.addEventListener('click', () => { self.page++; self.render(); });
+                document.querySelectorAll('.cdt-page-btn').forEach(btn => {
+                    btn.addEventListener('click', function() { self.page = parseInt(this.dataset.page); self.render(); });
+                });
+                const ppSel = document.getElementById('cdt-perpage');
+                if (ppSel) ppSel.addEventListener('change', function() { self.perPage = parseInt(this.value); self.page = 1; self.savePrefs(); self.render(); });
+            }
+        };
+
+        CDT.loadPrefs();
+
         async function loadCustomers() {
             try {
                 const res = await fetchWithAuth('/api/customers');
@@ -1936,64 +2223,12 @@
                 document.getElementById('cust-stat-onboarded').innerText = onboarded;
                 document.getElementById('cust-stat-pending').innerText = pending;
 
-                renderCustomerTable(allCustomers, false);
+                CDT.render();
             } catch (e) { console.error('Load customers failed:', e); }
         }
 
-        function renderCustomerTable(customers, isFiltered) {
-            const tbody = document.getElementById('customer-list');
-            const countEl = document.getElementById('customer-search-count');
-            if (isFiltered) {
-                countEl.classList.remove('hidden');
-                countEl.innerText = `Showing ${customers.length} of ${allCustomers.length} customers`;
-            } else {
-                countEl.classList.add('hidden');
-            }
-            if (!customers.length) {
-                tbody.innerHTML = '<tr><td colspan="12" class="px-6 py-12 text-center text-gray-400 text-sm">No customers yet. Import data or wait for chat onboarding.</td></tr>';
-                return;
-            }
-            tbody.innerHTML = customers.map((c, idx) => {
-                // Split name into first/last for display
-                const nameParts = (c.name || '').trim().split(/\s+/);
-                const firstName = nameParts.length > 0 ? nameParts[0] : '--';
-                const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '--';
-                return `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 text-xs text-gray-400 font-mono text-center">${idx + 1}</td>
-                    <td class="px-4 py-3 text-xs text-gray-500 font-mono">${c.identifier || '--'}</td>
-                    <td class="px-4 py-3 text-xs text-gray-500">${c.title || '--'}</td>
-                    <td class="px-4 py-3 text-sm text-gray-800 font-semibold">${firstName}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">${lastName}</td>
-                    <td class="px-4 py-3 text-xs text-gray-500">${c.email || '--'}</td>
-                    <td class="px-4 py-3 text-xs text-gray-600 font-mono">${c.mobile || '--'}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${c.company || '--'}</td>
-                    <td class="px-4 py-3 text-sm text-gray-500">${c.outlet_pos || '--'}</td>
-                    <td class="px-4 py-3 text-xs text-gray-500">${c.outlet_address || '--'}</td>
-                    <td class="px-4 py-3">${c.category ? '<span class="px-2 py-1 text-[10px] font-bold uppercase rounded-lg ' + (c.category === 'FNB' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600') + '">' + c.category + '</span>' : '<span class="text-gray-400">--</span>'}</td>
-                    <td class="px-4 py-3 text-right">
-                        <button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button>
-                        <button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            }).join('');
-        }
-
-        function filterCustomerTable() {
-            const q = document.getElementById('customer-search').value.trim().toLowerCase();
-            if (!q) return renderCustomerTable(allCustomers, false);
-            const filtered = allCustomers.filter(c =>
-                (c.name || '').toLowerCase().includes(q) ||
-                (c.company || '').toLowerCase().includes(q) ||
-                (c.identifier || '').toLowerCase().includes(q) ||
-                (c.outlet_pos || '').toLowerCase().includes(q) ||
-                (c.email || '').toLowerCase().includes(q) ||
-                (c.mobile || '').toLowerCase().includes(q) ||
-                (c.category || '').toLowerCase().includes(q) ||
-                (c.outlet_address || '').toLowerCase().includes(q)
-            );
-            renderCustomerTable(filtered, true);
-        }
+        // keep backward compat for import flow
+        function filterCustomerTable() { CDT.render(); }
 
         function showAddCustomerModal() {
             document.getElementById('customer-modal-title').innerText = 'Add Customer';
