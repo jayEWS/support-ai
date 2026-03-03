@@ -332,48 +332,111 @@
 
         <!-- Knowledge View -->
         <section id="knowledge-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Knowledge Base</h2>
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Knowledge Base</h2>
+                    <p class="text-xs text-gray-400 mt-1">Upload documents, fetch from URLs, and train AI to understand your business</p>
+                </div>
                 <div class="flex gap-3">
-                    <div class="flex bg-white rounded-xl border border-gray-200 overflow-hidden">
-                        <input type="text" id="kb-url-input" placeholder="Enter URL to crawl..."
-                            class="px-4 py-2 text-xs w-64 focus:outline-none">
-                        <button onclick="handleURLCrawl()"
-                            class="bg-gray-100 px-4 py-2 text-[10px] font-black uppercase hover:bg-gray-200 transition">Fetch</button>
-                    </div>
-                    <button id="bulk-delete-btn" onclick="deleteSelectedKnowledge()"
-                        class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-xs disabled:opacity-50 uppercase tracking-widest transition-all hover:bg-red-100"
-                        disabled>Delete Selected</button>
-                    <button onclick="document.getElementById('kb-upload-input').click()"
-                        class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-2">
-                        <i class="fas fa-cloud-upload-alt"></i> Upload Document
+                    <button onclick="trainAI()" id="train-ai-btn"
+                        class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-purple-600/20 hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center gap-2">
+                        <i class="fas fa-brain"></i> Train AI
                     </button>
-                    <input type="file" id="kb-upload-input" class="hidden" multiple onchange="handleKBUpload(this)">
                 </div>
             </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-4 gap-4 mb-6" id="kb-stats">
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Documents</p>
+                    <p class="text-2xl font-black text-blue-600" id="kb-stat-files">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Indexed</p>
+                    <p class="text-2xl font-black text-green-600" id="kb-stat-indexed">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">AI Chunks</p>
+                    <p class="text-2xl font-black text-purple-600" id="kb-stat-chunks">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Vector Store</p>
+                    <p class="text-2xl font-black" id="kb-stat-vector">--</p>
+                </div>
+            </div>
+
+            <!-- Upload & URL Fetch Area -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- File Upload -->
+                <div class="bg-white p-6 rounded-2xl border border-dashed border-gray-200 hover:border-blue-400 transition-all cursor-pointer group" onclick="document.getElementById('kb-upload-input').click()">
+                    <div class="text-center">
+                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition">
+                            <i class="fas fa-cloud-upload-alt text-blue-500 text-xl"></i>
+                        </div>
+                        <p class="text-sm font-bold text-gray-700">Upload Documents</p>
+                        <p class="text-[10px] text-gray-400 mt-1">PDF, TXT, DOCX, CSV, XLSX</p>
+                    </div>
+                    <input type="file" id="kb-upload-input" class="hidden" multiple accept=".pdf,.txt,.docx,.csv,.xlsx" onchange="handleKBUpload(this)">
+                </div>
+                <!-- URL Fetch -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
+                            <i class="fas fa-globe text-green-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-700">Fetch from URL</p>
+                            <p class="text-[10px] text-gray-400">Crawl webpage content into knowledge base</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="kb-url-input" placeholder="https://docs.example.com/guide"
+                            class="flex-1 px-4 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100">
+                        <button onclick="handleURLCrawl()"
+                            class="bg-green-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-green-700 transition flex items-center gap-2">
+                            <i class="fas fa-download"></i> Fetch
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
             <div id="upload-status-box" class="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-2xl hidden">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-blue-600 uppercase tracking-widest"
-                        id="upload-status-text">Uploading...</span>
+                    <span class="text-xs font-bold text-blue-600 uppercase tracking-widest" id="upload-status-text">Uploading...</span>
                     <span class="text-xs font-black text-blue-600" id="upload-percent">0%</span>
                 </div>
                 <div class="w-full bg-blue-200 rounded-full h-1.5">
-                    <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" id="upload-progress-bar"
-                        style="width: 0%"></div>
+                    <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" id="upload-progress-bar" style="width: 0%"></div>
                 </div>
             </div>
+
+            <!-- Train AI Progress -->
+            <div id="train-status-box" class="mb-6 bg-purple-50 border border-purple-100 p-4 rounded-2xl hidden">
+                <div class="flex items-center gap-3">
+                    <div class="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                    <span class="text-xs font-bold text-purple-600 uppercase tracking-widest" id="train-status-text">Training AI... Re-indexing knowledge base</span>
+                </div>
+            </div>
+
+            <!-- Documents Table -->
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex justify-between items-center px-6 py-4 border-b border-gray-50">
+                    <h3 class="text-xs font-black text-gray-500 uppercase tracking-widest">Documents</h3>
+                    <button id="bulk-delete-btn" onclick="deleteSelectedKnowledge()"
+                        class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-[10px] disabled:opacity-30 uppercase tracking-widest transition-all hover:bg-red-100"
+                        disabled>Delete Selected</button>
+                </div>
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/50">
                         <tr>
-                            <th class="px-6 py-4 text-left w-12"><input type="checkbox"
-                                    onchange="toggleAllKnowledge(this)" class="rounded border-gray-300"></th>
-                            <th
-                                class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Document Name</th>
-                            <th
-                                class="px-6 py-4 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Actions</th>
+                            <th class="px-6 py-3 text-left w-10"><input type="checkbox" onchange="toggleAllKnowledge(this)" class="rounded border-gray-300"></th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Document Name</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Uploaded By</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Date</th>
+                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Status</th>
+                            <th class="px-6 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="knowledge-list" class="divide-y divide-gray-50"></tbody>
@@ -558,6 +621,7 @@
                 team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
                 security: { icon: 'fa-shield-halved', label: 'Security', isDropdown: true, id: 'security', adminOnly: true },
                 tickets: { icon: 'fa-ticket-alt', label: 'All Tickets', onClick: "switchTab('tickets')" },
+                knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
                 macros: { icon: 'fa-bolt', label: 'Macros', onClick: "switchTab('macros')" },
                 settings: { icon: 'fa-cog', label: 'Settings', onClick: "switchTab('settings')" },
                 audit: { icon: 'fa-shield-alt', label: 'Audit Logs', onClick: "switchTab('audit')", adminOnly: true }
@@ -632,7 +696,7 @@
             else if (tab === 'tickets') loadAllTickets();
             else if (tab === 'macros') loadMacros();
             else if (tab === 'audit') loadAuditLogs();
-            else if (tab === 'knowledge') loadKnowledge();
+            else if (tab === 'knowledge') { loadKnowledge(); loadKBStats(); }
             else if (tab === 'usermst') loadUserMaster();
             else if (tab === 'groupperms') loadGroupPrivileges();
             else if (tab === 'privsetup') loadPrivilegeSetup();
@@ -949,6 +1013,53 @@
         async function deleteSelectedKnowledge() { const s = Array.from(document.querySelectorAll('.knowledge-checkbox:checked')).map(c => c.value); if (confirm(`Delete ${s.length} files?`)) { await fetchWithAuth('/api/knowledge/batch-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filenames: s }) }); loadKnowledge(); } }
         async function deleteKnowledge(f) { if (confirm(`Delete ${f}?`)) { await fetchWithAuth(`/api/knowledge/${f}`, { method: 'DELETE' }); loadKnowledge(); } }
 
+        async function trainAI() {
+            const btn = document.getElementById('train-ai-btn');
+            const box = document.getElementById('train-status-box');
+            const statusText = document.getElementById('train-status-text');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Training...';
+            box.classList.remove('hidden');
+            statusText.innerText = 'Training AI... Re-indexing all documents into vector store';
+            try {
+                const res = await fetchWithAuth('/api/knowledge/reindex', { method: 'POST' });
+                if (res && res.ok) {
+                    statusText.innerText = 'Training complete! AI knowledge base updated.';
+                    setTimeout(() => { box.classList.add('hidden'); }, 4000);
+                    // Reload stats after a delay to let reindex finish
+                    setTimeout(() => { loadKBStats(); loadKnowledge(); }, 3000);
+                } else {
+                    statusText.innerText = 'Training failed. Check server logs.';
+                    setTimeout(() => { box.classList.add('hidden'); }, 5000);
+                }
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = 'Training request failed.';
+                setTimeout(() => { box.classList.add('hidden'); }, 5000);
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-brain"></i> Train AI';
+        }
+
+        async function loadKBStats() {
+            try {
+                const res = await fetchWithAuth('/api/knowledge/stats');
+                if (!res) return;
+                const s = await res.json();
+                document.getElementById('kb-stat-files').innerText = s.total_files || 0;
+                document.getElementById('kb-stat-indexed').innerText = s.indexed_files || 0;
+                document.getElementById('kb-stat-chunks').innerText = s.total_chunks || 0;
+                const vectorEl = document.getElementById('kb-stat-vector');
+                if (s.vector_store_ready) {
+                    vectorEl.innerText = 'Active';
+                    vectorEl.className = 'text-2xl font-black text-green-600';
+                } else {
+                    vectorEl.innerText = 'Offline';
+                    vectorEl.className = 'text-2xl font-black text-red-500';
+                }
+            } catch (e) { console.error('Stats load failed:', e); }
+        }
+
         async function handleURLCrawl() {
             const input = document.getElementById('kb-url-input');
             const url = input.value.trim();
@@ -963,7 +1074,7 @@
             bar.style.width = '50%';
 
             try {
-                const res = await fetchWithAuth('/api/knowledge/url', {
+                const res = await fetchWithAuth('/api/knowledge/ingest-url', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: url })

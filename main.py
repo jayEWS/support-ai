@@ -735,8 +735,54 @@ async def upload_knowledge(
             logger.warning(f"[GCS] Upload sync failed for {file.filename}: {gcs_err}")
     
     # Trigger re-indexing
-    background_tasks.add_task(app.state.rag_service._load_vector_store)
+    background_tasks.add_task(_reindex_knowledge)
     return {"status": "success"}
+
+async def _reindex_knowledge():
+    """Re-index knowledge base: reload vector store and reinitialize hybrid search."""
+    try:
+        rag_svc = app.state.rag_service
+        if rag_svc:
+            rag_svc.vector_store = rag_svc._load_vector_store()
+            rag_svc._initialize_hybrid_search()
+            # Update all knowledge statuses to 'Indexed'
+            all_kb = _require_db().get_all_knowledge()
+            for kb in all_kb:
+                _require_db().update_knowledge_status(kb['filename'], 'Indexed')
+            logger.info(f"[OK] Knowledge base re-indexed: {len(rag_svc.all_documents)} chunks")
+    except Exception as e:
+        logger.error(f"Re-index failed: {e}")
+
+@app.post("/api/knowledge/reindex")
+async def reindex_knowledge(
+    agent: Annotated[dict, Depends(get_current_agent)],
+    background_tasks: BackgroundTasks
+):
+    """Manually trigger knowledge base re-indexing (Train AI)"""
+    background_tasks.add_task(_reindex_knowledge)
+    return {"status": "reindexing", "message": "Knowledge base re-indexing started. This may take a moment."}
+
+@app.get("/api/knowledge/stats")
+async def knowledge_stats(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get knowledge base statistics"""
+    try:
+        all_kb = _require_db().get_all_knowledge()
+        rag_svc = app.state.rag_service
+        total_files = len(all_kb)
+        indexed_count = sum(1 for k in all_kb if k.get('status') == 'Indexed')
+        total_chunks = len(rag_svc.all_documents) if rag_svc and rag_svc.all_documents else 0
+        has_vector_store = bool(rag_svc and rag_svc.vector_store)
+        last_upload = all_kb[0]['upload_date'] if all_kb and all_kb[0].get('upload_date') else None
+        return {
+            "total_files": total_files,
+            "indexed_files": indexed_count,
+            "total_chunks": total_chunks,
+            "vector_store_ready": has_vector_store,
+            "last_upload": last_upload
+        }
+    except Exception as e:
+        logger.error(f"Knowledge stats error: {e}")
+        return {"total_files": 0, "indexed_files": 0, "total_chunks": 0, "vector_store_ready": False}
 
 @app.post("/api/knowledge/ingest-url")
 async def ingest_knowledge_from_url(
