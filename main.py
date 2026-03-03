@@ -4,7 +4,7 @@ import uuid
 import asyncio
 import shutil
 from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
@@ -1081,7 +1081,10 @@ async def chat_directly(
     response_data, status_code = await app.state.chat_service.process_portal_message(
         query=message, user_id=user_id or "web_portal_user", file=file, language=language
     )
-    return JSONResponse(response_data, status_code=status_code)
+    # Sanitize response to remove surrogate characters that break UTF-8 encoding
+    import json
+    safe_json = json.dumps(response_data, ensure_ascii=False, default=str).encode('utf-8', errors='replace').decode('utf-8')
+    return Response(content=safe_json, status_code=status_code, media_type="application/json")
 
 @app.post("/api/close-session")
 async def close_session(request: Request):
