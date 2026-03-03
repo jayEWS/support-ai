@@ -237,9 +237,6 @@ Jawaban:"""
                     retrieval_method=retrieval_method,
                     num_retrieved=len(docs)
                 )
-                    retrieval_method=retrieval_method,
-                    num_retrieved=len(docs)
-                )
                 
                 # Optional: Log to Langfuse if enabled
                 if self.langfuse_enabled:
