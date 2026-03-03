@@ -688,25 +688,30 @@
             </div>
 
             <!-- Search -->
-            <div class="mb-4">
+            <div class="mb-4 flex items-center gap-4">
                 <input type="text" id="customer-search" placeholder="Search by name, company, or ID..."
-                    class="w-full px-5 py-3 text-sm border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    class="flex-1 px-5 py-3 text-sm border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                     oninput="filterCustomerTable()">
+                <span id="customer-search-count" class="text-xs text-gray-500 font-semibold whitespace-nowrap hidden"></span>
             </div>
 
             <!-- Customer Table -->
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Account ID</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Name</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Email</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Mobile</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Company</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Outlet</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Category</th>
-                            <th class="px-6 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">No</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Account ID</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Title</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">First Name</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Last Name</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Email</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Mobile</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Company</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Outlet</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Outlet Address</th>
+                            <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Column1</th>
+                            <th class="px-4 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="customer-list" class="divide-y divide-gray-50"></tbody>
@@ -1931,32 +1936,42 @@
                 document.getElementById('cust-stat-onboarded').innerText = onboarded;
                 document.getElementById('cust-stat-pending').innerText = pending;
 
-                renderCustomerTable(allCustomers);
+                renderCustomerTable(allCustomers, false);
             } catch (e) { console.error('Load customers failed:', e); }
         }
 
-        function renderCustomerTable(customers) {
+        function renderCustomerTable(customers, isFiltered) {
             const tbody = document.getElementById('customer-list');
+            const countEl = document.getElementById('customer-search-count');
+            if (isFiltered) {
+                countEl.classList.remove('hidden');
+                countEl.innerText = `Showing ${customers.length} of ${allCustomers.length} customers`;
+            } else {
+                countEl.classList.add('hidden');
+            }
             if (!customers.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-400 text-sm">No customers yet. Import data or wait for chat onboarding.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" class="px-6 py-12 text-center text-gray-400 text-sm">No customers yet. Import data or wait for chat onboarding.</td></tr>';
                 return;
             }
-            tbody.innerHTML = customers.map(c => {
+            tbody.innerHTML = customers.map((c, idx) => {
+                // Split name into first/last for display
+                const nameParts = (c.name || '').trim().split(/\s+/);
+                const firstName = nameParts.length > 0 ? nameParts[0] : '--';
+                const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '--';
                 return `
                 <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-3 text-xs text-gray-500 font-mono">${c.identifier || '--'}</td>
-                    <td class="px-6 py-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">${(c.name || '?').charAt(0).toUpperCase()}</div>
-                            <span class="font-bold text-sm text-gray-800">${c.name || '--'}</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-3 text-xs text-gray-500">${c.email || '--'}</td>
-                    <td class="px-6 py-3 text-xs text-gray-600 font-mono">${c.mobile || '--'}</td>
-                    <td class="px-6 py-3 text-sm text-gray-600">${c.company || '--'}</td>
-                    <td class="px-6 py-3 text-sm text-gray-500">${c.outlet_pos || '--'}</td>
-                    <td class="px-6 py-3">${c.category ? '<span class="px-2 py-1 text-[10px] font-bold uppercase rounded-lg ' + (c.category === 'FNB' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600') + '">' + c.category + '</span>' : '<span class="text-gray-400">--</span>'}</td>
-                    <td class="px-6 py-3 text-right">
+                    <td class="px-4 py-3 text-xs text-gray-400 font-mono text-center">${idx + 1}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500 font-mono">${c.identifier || '--'}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500">${c.title || '--'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-800 font-semibold">${firstName}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">${lastName}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500">${c.email || '--'}</td>
+                    <td class="px-4 py-3 text-xs text-gray-600 font-mono">${c.mobile || '--'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${c.company || '--'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">${c.outlet_pos || '--'}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500">${c.outlet_address || '--'}</td>
+                    <td class="px-4 py-3">${c.category ? '<span class="px-2 py-1 text-[10px] font-bold uppercase rounded-lg ' + (c.category === 'FNB' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600') + '">' + c.category + '</span>' : '<span class="text-gray-400">--</span>'}</td>
+                    <td class="px-4 py-3 text-right">
                         <button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button>
                         <button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button>
                     </td>
@@ -1966,7 +1981,7 @@
 
         function filterCustomerTable() {
             const q = document.getElementById('customer-search').value.trim().toLowerCase();
-            if (!q) return renderCustomerTable(allCustomers);
+            if (!q) return renderCustomerTable(allCustomers, false);
             const filtered = allCustomers.filter(c =>
                 (c.name || '').toLowerCase().includes(q) ||
                 (c.company || '').toLowerCase().includes(q) ||
@@ -1974,9 +1989,10 @@
                 (c.outlet_pos || '').toLowerCase().includes(q) ||
                 (c.email || '').toLowerCase().includes(q) ||
                 (c.mobile || '').toLowerCase().includes(q) ||
-                (c.category || '').toLowerCase().includes(q)
+                (c.category || '').toLowerCase().includes(q) ||
+                (c.outlet_address || '').toLowerCase().includes(q)
             );
-            renderCustomerTable(filtered);
+            renderCustomerTable(filtered, true);
         }
 
         function showAddCustomerModal() {
