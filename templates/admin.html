@@ -276,8 +276,9 @@
                     <p id="sidebar-company" class="text-sm text-gray-500 italic">--</p>
                 </div>
                 <div class="p-6 space-y-6">
+                    <!-- Ticket Info -->
                     <div>
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Context</h4>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Current Ticket</h4>
                         <div class="space-y-3 text-xs">
                             <p class="flex justify-between"><strong>Priority:</strong> <span id="sidebar-priority"
                                     class="uppercase font-bold">--</span></p>
@@ -285,6 +286,64 @@
                                     class="uppercase">--</span></p>
                             <p class="flex justify-between"><strong>Ticket ID:</strong> <span id="sidebar-id">--</span>
                             </p>
+                        </div>
+                    </div>
+
+                    <!-- Customer Stats -->
+                    <div id="sidebar-customer-stats" class="hidden">
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-blue-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-blue-600" id="sidebar-total-tickets">0</p>
+                                <p class="text-[8px] text-blue-400 font-bold uppercase">Total Tickets</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-green-600" id="sidebar-resolved-tickets">0</p>
+                                <p class="text-[8px] text-green-400 font-bold uppercase">Resolved</p>
+                            </div>
+                            <div class="bg-amber-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-amber-600" id="sidebar-open-tickets">0</p>
+                                <p class="text-[8px] text-amber-400 font-bold uppercase">Open</p>
+                            </div>
+                            <div class="bg-purple-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-purple-600" id="sidebar-total-messages">0</p>
+                                <p class="text-[8px] text-purple-400 font-bold uppercase">Messages</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recurring Flag -->
+                    <div id="sidebar-recurring-flag" class="hidden">
+                        <div class="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-2">
+                            <span class="text-red-500 text-lg">🔄</span>
+                            <div>
+                                <p class="text-[10px] font-black text-red-600 uppercase">Recurring Customer</p>
+                                <p class="text-[9px] text-red-400">Has multiple past tickets</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Issue Categories -->
+                    <div id="sidebar-categories" class="hidden">
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Top Issues</h4>
+                        <div id="sidebar-categories-list" class="space-y-1"></div>
+                    </div>
+
+                    <!-- Past Tickets -->
+                    <div id="sidebar-past-tickets" class="hidden">
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Recent Tickets</h4>
+                        <div id="sidebar-tickets-list" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Member Since -->
+                    <div id="sidebar-member-info" class="hidden">
+                        <div class="text-[10px] text-gray-400">
+                            <span class="font-bold uppercase tracking-widest">Member since:</span>
+                            <span id="sidebar-member-since" class="ml-1">--</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 mt-1">
+                            <span class="font-bold uppercase tracking-widest">Position:</span>
+                            <span id="sidebar-position" class="ml-1">--</span>
                         </div>
                     </div>
                 </div>
@@ -891,6 +950,9 @@
             document.getElementById('sidebar-id').innerText = t.id;
             document.getElementById('sidebar-avatar').innerText = (t.name || 'A').charAt(0).toUpperCase();
 
+            // Load full customer context
+            loadCustomerContext(t.user_id);
+
             const area = document.getElementById('chat-messages');
             if (!data.history || data.history.length === 0) {
                 area.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs uppercase font-bold tracking-widest opacity-50">Empty Archive</div>';
@@ -909,6 +971,78 @@
 
             if (t.session_id) { currentSessionId = t.session_id; connectWebSocket(t.session_id); } else { currentSessionId = null; }
             loadInbox(currentInboxFilter);
+        }
+
+        async function loadCustomerContext(userId) {
+            try {
+                const res = await fetchWithAuth(`/api/customers/${encodeURIComponent(userId)}/context`);
+                if (!res || !res.ok) return;
+                const ctx = await res.json();
+                if (!ctx.found) return;
+
+                // Stats
+                const statsEl = document.getElementById('sidebar-customer-stats');
+                statsEl.classList.remove('hidden');
+                document.getElementById('sidebar-total-tickets').innerText = ctx.stats.total_tickets;
+                document.getElementById('sidebar-resolved-tickets').innerText = ctx.stats.resolved_tickets;
+                document.getElementById('sidebar-open-tickets').innerText = ctx.stats.open_tickets;
+                document.getElementById('sidebar-total-messages').innerText = ctx.stats.total_messages;
+
+                // Recurring flag
+                const recurringEl = document.getElementById('sidebar-recurring-flag');
+                if (ctx.is_recurring_customer) {
+                    recurringEl.classList.remove('hidden');
+                } else {
+                    recurringEl.classList.add('hidden');
+                }
+
+                // Top categories
+                const catEl = document.getElementById('sidebar-categories');
+                const catList = document.getElementById('sidebar-categories-list');
+                if (ctx.top_categories && ctx.top_categories.length > 0) {
+                    catEl.classList.remove('hidden');
+                    const colors = ['blue', 'purple', 'green', 'amber', 'red'];
+                    catList.innerHTML = ctx.top_categories.map((c, i) => {
+                        const color = colors[i % colors.length];
+                        return `<div class="flex justify-between items-center bg-${color}-50 px-3 py-1.5 rounded-lg">
+                            <span class="text-[10px] font-bold text-${color}-600 uppercase">${c.category}</span>
+                            <span class="text-[10px] font-black text-${color}-700">${c.count}x</span>
+                        </div>`;
+                    }).join('');
+                } else {
+                    catEl.classList.add('hidden');
+                }
+
+                // Past tickets
+                const ticketsEl = document.getElementById('sidebar-past-tickets');
+                const ticketsList = document.getElementById('sidebar-tickets-list');
+                if (ctx.recent_tickets && ctx.recent_tickets.length > 0) {
+                    ticketsEl.classList.remove('hidden');
+                    ticketsList.innerHTML = ctx.recent_tickets.map(t => {
+                        const statusColor = t.status === 'resolved' ? 'green' : t.status === 'open' ? 'blue' : 'amber';
+                        const date = t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'}) : '--';
+                        return `<div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] font-black text-gray-600">#${t.id}</span>
+                                <span class="px-1.5 py-0.5 text-[8px] font-bold uppercase bg-${statusColor}-50 text-${statusColor}-600 rounded">${t.status}</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-1 line-clamp-2">${t.summary || '--'}</p>
+                            <p class="text-[8px] text-gray-400 mt-1">${date} • ${t.priority || 'Medium'}</p>
+                        </div>`;
+                    }).join('');
+                } else {
+                    ticketsEl.classList.add('hidden');
+                }
+
+                // Member info
+                const memberEl = document.getElementById('sidebar-member-info');
+                memberEl.classList.remove('hidden');
+                document.getElementById('sidebar-member-since').innerText = ctx.profile.member_since
+                    ? new Date(ctx.profile.member_since).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})
+                    : '--';
+                document.getElementById('sidebar-position').innerText = ctx.profile.position || '--';
+
+            } catch (e) { console.error('Customer context load failed:', e); }
         }
 
         function connectWebSocket(sessionId) {

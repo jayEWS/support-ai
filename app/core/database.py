@@ -481,6 +481,85 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
+    def get_tickets_by_user(self, user_id: str, limit: int = 20):
+        """Get all tickets for a specific customer, newest first."""
+        session = self.get_session()
+        try:
+            tickets = session.query(Ticket).filter_by(user_id=user_id) \
+                .order_by(desc(Ticket.created_at)).limit(limit).all()
+            return [{
+                "id": t.id,
+                "summary": t.summary,
+                "status": t.status,
+                "priority": t.priority,
+                "category": t.category,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+                "due_at": t.due_at.isoformat() if t.due_at else None,
+                "assigned_to": t.assigned_to
+            } for t in tickets]
+        finally:
+            self.Session.remove()
+
+    def get_customer_context(self, user_id: str) -> dict:
+        """Get full customer context for agent panel: profile + ticket history + stats."""
+        session = self.get_session()
+        try:
+            user = session.query(User).get(user_id)
+            if not user:
+                return {"found": False}
+
+            tickets = session.query(Ticket).filter_by(user_id=user_id) \
+                .order_by(desc(Ticket.created_at)).all()
+
+            total_tickets = len(tickets)
+            open_tickets = sum(1 for t in tickets if t.status in ('open', 'pending'))
+            resolved_tickets = sum(1 for t in tickets if t.status == 'resolved')
+
+            # Recent tickets (last 5)
+            recent = [{
+                "id": t.id,
+                "summary": t.summary,
+                "status": t.status,
+                "priority": t.priority,
+                "category": t.category,
+                "created_at": t.created_at.isoformat() if t.created_at else None
+            } for t in tickets[:5]]
+
+            # Recurring categories
+            categories = {}
+            for t in tickets:
+                cat = t.category or "Support"
+                categories[cat] = categories.get(cat, 0) + 1
+            top_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)[:3]
+
+            # Message count
+            msg_count = session.query(func.count(Message.id)).filter_by(user_id=user_id).scalar() or 0
+
+            return {
+                "found": True,
+                "profile": {
+                    "name": user.name,
+                    "company": user.company,
+                    "outlet": user.outlet_pos,
+                    "position": user.position,
+                    "member_since": user.created_at.isoformat() if user.created_at else None
+                },
+                "stats": {
+                    "total_tickets": total_tickets,
+                    "open_tickets": open_tickets,
+                    "resolved_tickets": resolved_tickets,
+                    "total_messages": msg_count
+                },
+                "recent_tickets": recent,
+                "top_categories": [{"category": c, "count": n} for c, n in top_categories],
+                "is_recurring_customer": total_tickets > 1
+            }
+        except Exception as e:
+            logger.error(f"Error getting customer context: {e}")
+            return {"found": False, "error": str(e)}
+        finally:
+            self.Session.remove()
+
     def update_ticket_sla(self, ticket_id: int, priority: str, due_at: datetime = None):
         session = self.get_session()
         try:

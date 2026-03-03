@@ -867,6 +867,16 @@ async def get_customer(identifier: str, agent: Annotated[dict, Depends(get_curre
         return JSONResponse({"error": "Customer not found"}, status_code=404)
     return user
 
+@app.get("/api/customers/{identifier}/context")
+async def get_customer_context(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get full customer context: profile, ticket history, stats, recurring patterns."""
+    return _require_db().get_customer_context(identifier)
+
+@app.get("/api/customers/{identifier}/tickets")
+async def get_customer_tickets(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get all tickets for a customer."""
+    return _require_db().get_tickets_by_user(identifier)
+
 @app.post("/api/customers")
 async def create_customer(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
     """Create or update a single customer."""

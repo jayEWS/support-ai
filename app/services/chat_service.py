@@ -61,6 +61,52 @@ class ChatService:
         # state == 'complete' -> no onboarding needed
         return None
 
+    def _check_recurring_issues(self, user_id: str, query: str) -> Optional[str]:
+        """Check if customer has asked about similar issues before.
+        Returns a context hint string if recurring, or None."""
+        try:
+            past_tickets = db_manager.get_tickets_by_user(user_id, limit=10)
+            if not past_tickets:
+                return None
+
+            # Simple keyword matching to find similar past tickets
+            query_words = set(query.lower().split())
+            # Remove common stop words
+            stop_words = {'di', 'ke', 'ya', 'dan', 'yang', 'untuk', 'ini', 'itu', 'ada',
+                         'tidak', 'bisa', 'saya', 'mau', 'apa', 'gimana', 'bagaimana',
+                         'cara', 'tolong', 'bantu', 'kak', 'mas', 'mba', 'pak', 'bu'}
+            query_words -= stop_words
+
+            if not query_words:
+                return None
+
+            similar_tickets = []
+            for ticket in past_tickets:
+                summary = (ticket.get('summary') or '').lower()
+                summary_words = set(summary.split())
+                overlap = query_words & summary_words
+                if len(overlap) >= 2 or (len(query_words) <= 3 and len(overlap) >= 1 and len(query_words) > 0):
+                    similar_tickets.append(ticket)
+
+            if similar_tickets:
+                latest = similar_tickets[0]
+                ticket_id = latest['id']
+                status = latest['status']
+                created = latest.get('created_at', '')[:10] if latest.get('created_at') else ''
+
+                if status in ('open', 'pending'):
+                    return (f"📋 Kak, sepertinya masalah ini masih dalam proses di Tiket #{ticket_id} "
+                            f"(dibuat {created}, status: {status}). "
+                            f"Apakah ada update baru atau kendala yang sama masih berlanjut?")
+                else:
+                    return (f"📋 Kak, masalah serupa pernah ditangani di Tiket #{ticket_id} ({created}). "
+                            f"Apakah masalah yang sama muncul lagi, atau ada kendala baru?")
+
+            return None
+        except Exception as e:
+            logger.error(f"Recurring issue check error: {e}")
+            return None
+
     async def process_portal_message(
         self, 
         query: Optional[str], 
@@ -113,10 +159,19 @@ class ChatService:
                 company = user.get('company', '') or user.get('outlet_pos', '')
                 customer_context = f" (Customer: {customer_name}, Outlet: {company})"
 
+            # 5b. Check for recurring issues (only on first message of session)
+            recurring_hint = None
+            if self._sessions[user_id]['message_count'] == 1:
+                recurring_hint = self._check_recurring_issues(user_id, query)
+
             # 6. Get AI Answer via RAG Service
             rag_query = query + customer_context if customer_context else query
             rag_res = await self.rag_service.query(rag_query)
             answer = rag_res.answer
+
+            # Prepend recurring issue notice if found
+            if recurring_hint:
+                answer = recurring_hint + "\n\n---\n\n" + answer
 
             # Save bot response
             db_manager.save_message(user_id, "bot", answer)
