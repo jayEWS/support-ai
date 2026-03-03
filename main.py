@@ -1110,10 +1110,17 @@ async def whatsapp_webhook_verify(request: Request):
     return {"status": "ok", "message": "WhatsApp webhook is active"}
 
 @app.post("/webhook/whatsapp")
-@limiter.limit("10/minute")  # NEW: Rate limit to prevent abuse
+@limiter.limit("30/minute")  # Rate limit (Bird may burst messages)
 async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     trace_id = set_trace_id()
-    message = await WhatsAppWebhookService.normalize_payload(request)
+    
+    try:
+        message = await WhatsAppWebhookService.normalize_payload(request)
+    except HTTPException as e:
+        # Duplicates, outbound echoes, empty messages — return 200 so Bird doesn't retry
+        logger.info(f"Webhook filtered: {e.detail}")
+        return {"status": "filtered", "reason": e.detail}
+    
     customer = await app.state.customer_service.get_or_register_customer(message.sender)
     classification = await app.state.intent_service.classify(message.text)
     
@@ -1133,7 +1140,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     if customer.is_new:
         response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
 
-    # Actually Send the reply back to WhatsApp via Bird API
+    # Send the reply back to WhatsApp via Bird API
     try:
         from app.adapters.whatsapp_bird import send_whatsapp_message
         await send_whatsapp_message(message.sender, response_text)
