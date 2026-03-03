@@ -600,23 +600,41 @@
         });
 
         closeBtn.addEventListener('click', async () => {
-            const opt = prompt("How would you like to close the chat?\n\n1. Create ticket summary and status automatically (sent to user)\n2. Close, create ticket, send ticket number and status\n\nEnter 1 or 2:");
+            const opt = prompt(
+                "Mau tutup chat?\n\n" +
+                "1. Tutup aja (sudah terbantu, tidak perlu tiket)\n" +
+                "2. Buat tiket (perlu investigasi / belum selesai)\n" +
+                "3. Buat tiket + kirim nomor tiket\n\n" +
+                "Pilih 1, 2, atau 3:"
+            );
 
-            if (opt !== '1' && opt !== '2') {
-                if (opt !== null) alert("Invalid selection. Chat not closed.");
+            if (!['1','2','3'].includes(opt)) {
+                if (opt !== null) alert("Pilihan tidak valid.");
                 return;
             }
 
+            const optionMap = { '1': 'close', '2': 'ticket', '3': 'ticket_and_notify' };
             closeBtn.disabled = true;
-            addMessage("Finalizing your ticket, please wait...", 'ai');
+            
+            if (opt === '1') {
+                addMessage("Menutup chat...", 'ai');
+            } else {
+                addMessage("Sedang membuat tiket, tunggu sebentar...", 'ai');
+            }
+
             try {
                 const res = await fetch('/api/close-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, option: parseInt(opt) })
+                    body: JSON.stringify({ user_id: userId, option: optionMap[opt] })
                 });
                 const data = await res.json();
-                alert(data.answer);
+                
+                if (data.ticket_created) {
+                    alert(`Tiket #${data.ticket_id} dibuat!\nPrioritas: ${data.priority}\n${data.summary}`);
+                } else {
+                    alert(data.message || 'Chat ditutup.');
+                }
                 location.reload();
             } catch (err) { alert("Failed to close session."); }
             finally { closeBtn.disabled = false; }

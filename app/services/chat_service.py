@@ -11,6 +11,8 @@ from app.services.websocket_manager import manager
 class ChatService:
     def __init__(self, rag_service: RAGService):
         self.rag_service = rag_service
+        # Track active chat sessions: user_id -> {message_count, has_escalation, ticket_id}
+        self._sessions = {}
 
     def _get_user_state(self, user_id: str) -> dict:
         """Get user profile and onboarding state from DB"""
@@ -99,7 +101,11 @@ class ChatService:
                     "onboarding": True
                 }, 200
 
-            # 5. Customer is onboarded - get personalized context
+            # 5. Customer is onboarded - track session
+            if user_id not in self._sessions:
+                self._sessions[user_id] = {'message_count': 0, 'has_escalation': False, 'ticket_id': None}
+            self._sessions[user_id]['message_count'] += 1
+
             user = state_info.get('user', {})
             customer_name = user.get('name', '') if user else ''
             customer_context = ""
@@ -139,13 +145,16 @@ class ChatService:
                     agent_id = available_agents[0]["user_id"] if available_agents else None
                     
                     ticket_id = db_manager.create_ticket(user_id, f"Live chat request: {query}", query)
+                    self._sessions[user_id]['has_escalation'] = True
+                    self._sessions[user_id]['ticket_id'] = ticket_id
                     
                     if not agent_id:
                         db_manager.add_to_queue(ticket_id, priority_level=2)
                         response_data.update({
                             "live_session_started": False,
                             "status": "queued",
-                            "message": "All agents are currently busy. You have been placed in a queue."
+                            "message": "All agents are currently busy. You have been placed in a queue.",
+                            "ticket_id": ticket_id
                         })
                     else:
                         session_id = db_manager.create_chat_session(ticket_id, agent_id, user_id)
@@ -157,9 +166,101 @@ class ChatService:
                         response_data.update({
                             "live_session_started": True,
                             "session_id": session_id,
-                            "agent_id": agent_id
+                            "agent_id": agent_id,
+                            "ticket_id": ticket_id
                         })
                 except Exception as e:
                     logger.error(f"Failed to escalate in chat_service: {e}")
 
             return response_data, 200
+
+    async def close_chat(self, user_id: str, option: str = "close") -> dict:
+        """
+        Smart close chat:
+        - option='close': AI resolved, no ticket needed, just close & clear
+        - option='ticket': Create ticket with AI summary (escalation/investigation)
+        - option='ticket_and_notify': Create ticket + send ticket number to user
+        """
+        session = self._sessions.get(user_id, {})
+        messages = db_manager.get_messages(user_id)
+        msg_count = len(messages) if messages else 0
+
+        if option == 'close':
+            # AI resolved it - just close, no ticket
+            db_manager.save_message(user_id, "bot", "Chat ditutup. Terima kasih sudah menghubungi Edgeworks Support! \ud83d\ude4f")
+            # Clear session tracking
+            self._sessions.pop(user_id, None)
+            return {
+                "status": "closed",
+                "ticket_created": False,
+                "message": "Chat ditutup. Terima kasih sudah menghubungi Edgeworks Support! \ud83d\ude4f",
+                "message_count": msg_count
+            }
+
+        elif option in ('ticket', 'ticket_and_notify'):
+            # Need ticket - escalation or unresolved issue
+            if not messages:
+                return {"status": "error", "message": "Tidak ada percakapan untuk dibuatkan tiket."}
+
+            history_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
+
+            try:
+                from app.services.rag_engine import rag_engine
+                if not rag_engine:
+                    return {"status": "error", "message": "RAG Engine belum siap."}
+
+                # Use LLM to summarize and determine priority
+                res = await rag_engine.llm.ainvoke(
+                    "Kamu adalah support ticket summarizer. Buat JSON dengan field:\n"
+                    "- 'summary': ringkasan masalah dalam 1-2 kalimat Bahasa Indonesia\n"
+                    "- 'priority': salah satu dari Urgent, High, Medium, Low\n"
+                    "- 'category': kategori masalah (POS, Closing, Hardware, Network, dll)\n\n"
+                    "Chat history:\n" + history_text
+                )
+                import json as _json
+                ticket_data = _json.loads(res.content.replace('```json','').replace('```','').strip())
+
+                from app.services.sla_service import SLAService
+                due_at = SLAService.calculate_due_date(ticket_data.get('priority', 'Medium'))
+
+                ticket_id = db_manager.create_ticket(
+                    user_id,
+                    ticket_data.get('summary', 'Support request'),
+                    history_text,
+                    priority=ticket_data.get('priority', 'Medium'),
+                    due_at=due_at
+                )
+
+                # Get customer info for response
+                user = db_manager.get_user(user_id)
+                name = user.get('name', 'Kak') if user else 'Kak'
+
+                if option == 'ticket_and_notify':
+                    notify_msg = (
+                        f"Tiket #{ticket_id} sudah dibuat \ud83d\udcdd\n"
+                        f"\u2022 Masalah: {ticket_data.get('summary', '-')}\n"
+                        f"\u2022 Prioritas: {ticket_data.get('priority', 'Medium')}\n"
+                        f"\u2022 Target selesai: {due_at.strftime('%d %b %Y %H:%M') if due_at else '-'}\n\n"
+                        f"Tim kami akan follow up ya {name}. Terima kasih! \ud83d\ude4f"
+                    )
+                    db_manager.save_message(user_id, "bot", notify_msg)
+                else:
+                    db_manager.save_message(user_id, "bot", f"Tiket #{ticket_id} dibuat. Chat ditutup.")
+
+                self._sessions.pop(user_id, None)
+                return {
+                    "status": "closed",
+                    "ticket_created": True,
+                    "ticket_id": ticket_id,
+                    "priority": ticket_data.get('priority', 'Medium'),
+                    "summary": ticket_data.get('summary', ''),
+                    "category": ticket_data.get('category', ''),
+                    "due_at": due_at.strftime('%Y-%m-%d %H:%M') if due_at else None,
+                    "message": f"Tiket #{ticket_id} berhasil dibuat.",
+                    "message_count": msg_count
+                }
+            except Exception as e:
+                logger.error(f"Smart close error: {e}")
+                return {"status": "error", "message": f"Gagal membuat tiket: {str(e)}"}
+
+        return {"status": "error", "message": "Invalid option"}

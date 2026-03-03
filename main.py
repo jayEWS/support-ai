@@ -1076,10 +1076,17 @@ async def chat_directly(
 @app.post("/api/close-session")
 async def close_session(request: Request):
     data = await request.json()
-    user_id, option = data.get("user_id", "web_portal_user"), data.get("option", 1)
-    from app.services.rag_engine import rag_engine
-    if rag_engine: return {"answer": await rag_engine.finalize_ticket(user_id, option)}
-    return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
+    user_id = data.get("user_id", "web_portal_user")
+    option = data.get("option", "close")  # "close" | "ticket" | "ticket_and_notify"
+    
+    # Support legacy numeric options
+    if option == 1 or option == "1":
+        option = "ticket_and_notify"
+    elif option == 2 or option == "2":
+        option = "close"
+    
+    result = await app.state.chat_service.close_chat(user_id, option)
+    return result
 
 # ============ WhatsApp Webhook ============
 
