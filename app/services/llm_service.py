@@ -11,10 +11,30 @@ class LLMService:
         self.circuit_open = False
 
     def _init_llm(self):
-        """Initialize LLM with provider selection: gemini > groq > openai"""
+        """Initialize LLM with provider selection: vertex > gemini > groq > openai"""
         provider = getattr(settings, 'LLM_PROVIDER', os.getenv('LLM_PROVIDER', 'openai')).lower()
         
-        if provider == "gemini":
+        if provider == "vertex":
+            try:
+                from langchain_google_vertexai import ChatVertexAI
+                project_id = settings.GCP_PROJECT_ID or os.getenv("GCP_PROJECT_ID", "")
+                location = settings.VERTEX_AI_LOCATION or os.getenv("VERTEX_AI_LOCATION", "asia-southeast1")
+                model_name = settings.VERTEX_AI_MODEL or os.getenv("VERTEX_AI_MODEL", "gemini-2.5-flash")
+                if project_id:
+                    logger.info(f"LLMService using Vertex AI: {model_name} (project={project_id}, location={location})")
+                    return ChatVertexAI(
+                        model_name=model_name,
+                        project=project_id,
+                        location=location,
+                        temperature=0.2,
+                        convert_system_message_to_human=True,
+                    )
+                else:
+                    logger.warning("GCP_PROJECT_ID not set for Vertex AI, falling back")
+            except Exception as e:
+                logger.warning(f"Vertex AI init failed: {e}, falling back to Gemini")
+        
+        if provider in ("gemini", "vertex"):  # vertex fallback chain
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 api_key = settings.GOOGLE_GEMINI_API_KEY or os.getenv("GOOGLE_GEMINI_API_KEY", "")
@@ -29,7 +49,7 @@ class LLMService:
             except Exception as e:
                 logger.warning(f"Gemini init failed: {e}, falling back")
         
-        if provider == "groq":
+        if provider in ("groq", "vertex", "gemini"):  # fallback chain
             try:
                 from langchain_groq import ChatGroq
                 groq_key = os.getenv("GROQ_API_KEY", "")

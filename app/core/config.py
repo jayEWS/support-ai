@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # Google Gemini Config
     GOOGLE_GEMINI_API_KEY: str = ""  # from https://aistudio.google.com/
     GEMINI_MODEL_NAME: str = "gemini-2.5-flash"  # or gemini-2.5-pro, gemini-2.0-flash-001
-    LLM_PROVIDER: str = "groq"  # gemini | groq | openai | ollama
+    LLM_PROVIDER: str = "groq"  # vertex | gemini | groq | openai | ollama
     
     # Google Cloud Storage Config
     GCS_BUCKET_NAME: str = ""  # e.g. support-edgeworks-knowledge
@@ -19,8 +19,13 @@ class Settings(BaseSettings):
     GOOGLE_APPLICATION_CREDENTIALS: str = ""  # Path to service account JSON
     GCP_PROJECT_ID: str = ""  # GCP project ID
     
+    # Vertex AI Config
+    VERTEX_AI_LOCATION: str = "asia-southeast1"  # GCP region for Vertex AI
+    VERTEX_AI_MODEL: str = "gemini-2.5-flash"  # Vertex AI model name
+    VERTEX_AI_EMBEDDINGS_MODEL: str = "text-embedding-005"  # Vertex AI embeddings model
+    
     # Embeddings Config
-    EMBEDDINGS_TYPE: str = "local"
+    EMBEDDINGS_TYPE: str = "local"  # local | openai | vertex
     EMBEDDINGS_MODEL_NAME: str = "all-MiniLM-L6-v2"
     EMBEDDINGS_BASE_URL: Optional[str] = None
     

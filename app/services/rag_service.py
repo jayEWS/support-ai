@@ -25,6 +25,24 @@ class RAGService:
 
     def _init_embeddings(self):
         """Initialize embeddings with fallback options"""
+        if settings.EMBEDDINGS_TYPE == "vertex":
+            try:
+                from langchain_google_vertexai import VertexAIEmbeddings
+                project_id = settings.GCP_PROJECT_ID or os.getenv("GCP_PROJECT_ID", "")
+                location = settings.VERTEX_AI_LOCATION or os.getenv("VERTEX_AI_LOCATION", "asia-southeast1")
+                model_name = settings.VERTEX_AI_EMBEDDINGS_MODEL or "text-embedding-005"
+                if project_id:
+                    logger.info(f"Using Vertex AI Embeddings: {model_name} (project={project_id})")
+                    return VertexAIEmbeddings(
+                        model_name=model_name,
+                        project=project_id,
+                        location=location,
+                    )
+                else:
+                    logger.warning("GCP_PROJECT_ID not set for Vertex AI Embeddings, falling back to local")
+            except Exception as e:
+                logger.warning(f"Vertex AI Embeddings init failed: {e}, falling back to local")
+        
         if settings.EMBEDDINGS_TYPE == "openai":
             return OpenAIEmbeddings(
                 openai_api_key=settings.OPENAI_API_KEY,
@@ -253,10 +271,29 @@ Jawaban:"""
                 )
 
     def _get_llm(self):
-        """Get LLM with fallback support (Gemini, Groq, OpenAI, local)"""
+        """Get LLM with fallback support (Vertex AI, Gemini, Groq, OpenAI, local)"""
         llm_provider = getattr(settings, 'LLM_PROVIDER', os.getenv("LLM_PROVIDER", "openai")).lower()
         
-        if llm_provider == "gemini":
+        if llm_provider == "vertex":
+            try:
+                from langchain_google_vertexai import ChatVertexAI
+                project_id = settings.GCP_PROJECT_ID or os.getenv("GCP_PROJECT_ID", "")
+                location = settings.VERTEX_AI_LOCATION or os.getenv("VERTEX_AI_LOCATION", "asia-southeast1")
+                model_name = settings.VERTEX_AI_MODEL or os.getenv("VERTEX_AI_MODEL", "gemini-2.5-flash")
+                if project_id:
+                    return ChatVertexAI(
+                        model_name=model_name,
+                        project=project_id,
+                        location=location,
+                        temperature=settings.TEMPERATURE,
+                        convert_system_message_to_human=True,
+                    )
+                else:
+                    logger.warning("GCP_PROJECT_ID not set for Vertex AI, falling back to Gemini")
+            except Exception as e:
+                logger.warning(f"Vertex AI init failed in RAG: {e}, falling back to Gemini")
+        
+        if llm_provider in ("gemini", "vertex"):  # vertex fallback chain
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 api_key = settings.GOOGLE_GEMINI_API_KEY or os.getenv("GOOGLE_GEMINI_API_KEY", "")
@@ -272,7 +309,7 @@ Jawaban:"""
             except Exception as e:
                 logger.warning(f"Gemini initialization failed: {e}, falling back to Groq")
         
-        if llm_provider == "groq" or (llm_provider == "gemini" and True):  # fallback chain
+        if llm_provider in ("groq", "vertex", "gemini"):  # fallback chain
             try:
                 from langchain_groq import ChatGroq
                 return ChatGroq(
