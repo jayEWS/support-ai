@@ -117,12 +117,57 @@ class RAGService:
         - use_hybrid=False: Uses only vector search (faster)
         """
         with LogLatency("rag_service", "query"):
+            # Handle greetings and short conversational queries directly via LLM
+            greeting_words = {"hi", "hello", "hey", "halo", "hai", "selamat", "pagi", "siang", "sore", "malam", "thanks", "terima", "kasih", "ok", "oke", "bye", "test"}
+            query_words = set(text.lower().strip().split())
+            is_greeting = len(query_words) <= 3 and query_words.intersection(greeting_words)
+            
+            if is_greeting:
+                llm = self._get_llm()
+                prompt = f"""Anda adalah spesialis dukungan teknis profesional dari Edgeworks.
+Pengguna menyapa: "{text}"
+
+Balas sapaan dengan ramah dan profesional. Perkenalkan diri sebagai asisten AI dukungan teknis Edgeworks.
+Tanyakan: Nama/WA, Nama Perusahaan/Outlet, dan apa yang bisa dibantu.
+Gunakan bahasa yang sopan dan formal (Bapak/Ibu/Anda)."""
+                try:
+                    res = await asyncio.to_thread(llm.invoke, prompt)
+                    return RAGResponse(
+                        answer=res.content,
+                        confidence=1.0,
+                        source_documents=[],
+                        retrieval_method="greeting"
+                    )
+                except Exception as e:
+                    logger.error(f"LLM greeting error: {e}")
+                    return RAGResponse(
+                        answer="Selamat datang! Saya asisten AI dukungan teknis Edgeworks. Ada yang bisa saya bantu?",
+                        confidence=1.0,
+                        source_documents=[]
+                    )
+
             if not self.vector_store:
-                return RAGResponse(
-                    answer="Knowledge base not ready.",
-                    confidence=0,
-                    source_documents=[]
-                )
+                # No vector store - still try LLM for general questions
+                llm = self._get_llm()
+                prompt = f"""Anda adalah spesialis dukungan teknis profesional dari Edgeworks.
+Pertanyaan pengguna: "{text}"
+
+Jawab sebaik mungkin. Jika Anda tidak yakin, katakan bahwa Anda akan menghubungkan pengguna dengan spesialis produk."""
+                try:
+                    res = await asyncio.to_thread(llm.invoke, prompt)
+                    return RAGResponse(
+                        answer=res.content,
+                        confidence=0.3,
+                        source_documents=[],
+                        retrieval_method="llm_only"
+                    )
+                except Exception as e:
+                    logger.error(f"LLM fallback error: {e}")
+                    return RAGResponse(
+                        answer="Knowledge base not ready.",
+                        confidence=0,
+                        source_documents=[]
+                    )
 
             try:
                 # Retrieve documents using hybrid search if available
@@ -142,25 +187,43 @@ class RAGService:
                 
                 context = "\n".join([d.page_content for d in docs])
                 confidence = calculate_confidence(text, context)
-                
-                if confidence < threshold:
-                    return RAGResponse(
-                        answer="Low confidence in retrieved context",
-                        confidence=confidence,
-                        source_documents=[d.metadata.get('filename', 'unknown') for d in docs],
-                        retrieval_method=retrieval_method
-                    )
 
-                # Call LLM for final answer synthesis
+                # Call LLM for final answer - always, even with low confidence
+                # Let the LLM decide if context is relevant enough
                 llm = self._get_llm()
-                prompt = f"""Answer based on context:
+                
+                if confidence >= threshold:
+                    # High confidence - use context-grounded prompt
+                    prompt = f"""Anda adalah spesialis dukungan teknis profesional dari Edgeworks. Jawab berdasarkan konteks dokumen berikut.
 
-Context:
+Konteks Dokumen:
 {context}
 
-Question: {text}
+Pertanyaan Pengguna: {text}
 
-Provide a helpful, concise answer based on the context above."""
+Panduan:
+1. Gunakan HANYA informasi dari konteks dokumen
+2. Gunakan bahasa formal dan sopan (Bapak/Ibu/Anda)
+3. Sebutkan nama file sumber di akhir jawaban
+4. Jika informasi tidak cukup, katakan dan tawarkan bantuan lebih lanjut
+
+Jawaban:"""
+                else:
+                    # Low confidence - let LLM try but with disclaimer
+                    prompt = f"""Anda adalah spesialis dukungan teknis profesional dari Edgeworks.
+
+Konteks yang ditemukan (mungkin kurang relevan):
+{context}
+
+Pertanyaan Pengguna: {text}
+
+Panduan:
+1. Coba jawab pertanyaan sebaik mungkin menggunakan konteks yang ada
+2. Jika konteks tidak relevan dengan pertanyaan, jawab berdasarkan pengetahuan umum tentang sistem POS/Edgeworks
+3. Jika benar-benar tidak bisa menjawab, katakan: "Mohon maaf, informasi tersebut tidak ditemukan dalam panduan teknis kami. Mohon informasikan Nama & Outlet Anda agar saya dapat menghubungkan Anda dengan spesialis produk kami secara tepat."
+4. Gunakan bahasa formal dan sopan
+
+Jawaban:"""
                 
                 res = await asyncio.to_thread(llm.invoke, prompt)
                 
@@ -168,6 +231,9 @@ Provide a helpful, concise answer based on the context above."""
                     answer=res.content,
                     confidence=confidence,
                     source_documents=[d.metadata.get('filename', 'unknown') for d in docs],
+                    retrieval_method=retrieval_method,
+                    num_retrieved=len(docs)
+                )
                     retrieval_method=retrieval_method,
                     num_retrieved=len(docs)
                 )
