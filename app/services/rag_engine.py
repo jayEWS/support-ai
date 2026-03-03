@@ -56,7 +56,16 @@ class RAGEngine:
                 logger.warning(f"Could not initialize local embeddings (missing dependencies?): {e}. Falling back to keyword-only search.")
                 self.embeddings = None
 
+        self.vector_store = None
+        self.all_documents = []
+        self.hybrid_retriever = None
         self.llm = self._init_llm()
+        
+        # Start background knowledge base initialization
+        self._background_tasks = set()
+        task = asyncio.create_task(self._initialize_knowledge_base())
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     def _init_llm(self):
         """Initialize LLM with provider selection: gemini > groq > openai"""
@@ -98,10 +107,6 @@ class RAGEngine:
             openai_api_key=settings.OPENAI_API_KEY,
             openai_api_base=settings.AI_BASE_URL
         )
-        self._background_tasks = set()
-        task = asyncio.create_task(self._initialize_knowledge_base())
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
 
     async def _initialize_knowledge_base(self):
         try:

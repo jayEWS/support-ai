@@ -292,9 +292,19 @@ class DatabaseManager:
             self.Session.remove()
 
     # ============ Messages ============
+    def _ensure_user_exists(self, user_id: str, session):
+        """Ensure a User record exists for the given user_id (auto-create if missing)."""
+        from app.models.models import User
+        existing = session.query(User).filter_by(identifier=user_id).first()
+        if not existing:
+            user = User(identifier=user_id, name=user_id)
+            session.add(user)
+            session.flush()
+
     def save_message(self, user_id: str, role: str, content: str, attachments: str = None):
         session = self.get_session()
         try:
+            self._ensure_user_exists(user_id, session)
             msg = Message(user_id=user_id, role=role, content=content, attachments=attachments)
             session.add(msg)
             session.commit()
