@@ -304,6 +304,9 @@ class DatabaseManager:
     def save_message(self, user_id: str, role: str, content: str, attachments: str = None):
         session = self.get_session()
         try:
+            # Sanitize content to remove surrogate characters
+            if content:
+                content = content.encode('utf-8', errors='replace').decode('utf-8')
             self._ensure_user_exists(user_id, session)
             msg = Message(user_id=user_id, role=role, content=content, attachments=attachments)
             session.add(msg)

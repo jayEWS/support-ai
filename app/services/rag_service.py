@@ -23,6 +23,13 @@ class RAGService:
         # Langfuse tracing (optional, logs to Langfuse if configured)
         self.langfuse_enabled = os.getenv("LANGFUSE_PUBLIC_KEY") is not None
 
+    @staticmethod
+    def _sanitize_text(text: str) -> str:
+        """Remove surrogate characters that break UTF-8 encoding"""
+        if not text:
+            return text
+        return text.encode('utf-8', errors='replace').decode('utf-8')
+
     def _init_embeddings(self):
         """Initialize embeddings with fallback options"""
         if settings.EMBEDDINGS_TYPE == "vertex":
@@ -152,7 +159,7 @@ Jawab singkat, 2-3 kalimat saja."""
                 try:
                     res = await asyncio.to_thread(llm.invoke, prompt)
                     return RAGResponse(
-                        answer=res.content,
+                        answer=self._sanitize_text(res.content),
                         confidence=1.0,
                         source_documents=[],
                         retrieval_method="greeting"
@@ -176,7 +183,7 @@ Kalau kamu tidak yakin jawabannya, bilang akan hubungkan dengan tim yang bisa ba
                 try:
                     res = await asyncio.to_thread(llm.invoke, prompt)
                     return RAGResponse(
-                        answer=res.content,
+                        answer=self._sanitize_text(res.content),
                         confidence=0.3,
                         source_documents=[],
                         retrieval_method="llm_only"
@@ -249,7 +256,7 @@ Jawaban:"""
                 res = await asyncio.to_thread(llm.invoke, prompt)
                 
                 response = RAGResponse(
-                    answer=res.content,
+                    answer=self._sanitize_text(res.content),
                     confidence=confidence,
                     source_documents=[d.metadata.get('filename', 'unknown') for d in docs],
                     retrieval_method=retrieval_method,
