@@ -1099,8 +1099,18 @@
                 <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp text-green-300'></i> WA Group</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
             `;
             if (id === 'team') {
-                const depts = ["Support", "Product specialist", "Project manager", "Sales", "HR", "developer", "QA", "Deployment", "Intern"];
-                return depts.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('');
+                // Dynamic: load departments from cached agents, fallback to fetching
+                if (window._teamDepts && window._teamDepts.length) {
+                    return window._teamDepts.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('');
+                }
+                // Fetch agents to get departments, then re-render
+                fetchWithAuth('/api/agents').then(r => r.json()).then(agents => {
+                    const depts = [...new Set(agents.map(a => a.department).filter(Boolean))].sort();
+                    window._teamDepts = depts;
+                    const sub = document.getElementById('sub-team');
+                    if (sub) sub.innerHTML = depts.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('') || '<span class="block px-4 py-2 text-[10px] text-gray-400">No departments</span>';
+                });
+                return '<span class="block px-4 py-2 text-[10px] text-gray-400 animate-pulse">Loading...</span>';
             }
             if (id === 'tickets') return `
                 <a href="#" onclick="switchTab('tickets', 'all')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-list text-blue-400'></i> All Tickets</span></a>
