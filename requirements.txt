@@ -38,6 +38,7 @@ langchain-google-genai>=2.0.0
 langchain-openai>=0.2.0
 langchain-text-splitters>=0.3.0
 google-generativeai>=0.8.0
+google-cloud-storage>=2.18.0
 sentence-transformers>=3.0.0
 langdetect==1.0.9
 limits==5.8.0

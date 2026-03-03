@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     GEMINI_MODEL_NAME: str = "gemini-2.5-flash"  # or gemini-2.5-pro, gemini-2.0-flash-001
     LLM_PROVIDER: str = "groq"  # gemini | groq | openai | ollama
     
+    # Google Cloud Storage Config
+    GCS_BUCKET_NAME: str = ""  # e.g. support-edgeworks-knowledge
+    GCS_ENABLED: bool = False  # Enable GCS sync for knowledge files
+    GOOGLE_APPLICATION_CREDENTIALS: str = ""  # Path to service account JSON
+    GCP_PROJECT_ID: str = ""  # GCP project ID
+    
     # Embeddings Config
     EMBEDDINGS_TYPE: str = "local"
     EMBEDDINGS_MODEL_NAME: str = "all-MiniLM-L6-v2"

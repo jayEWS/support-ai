@@ -67,14 +67,14 @@ Files yang akan dimodifikasi:
 **Kenapa duluan?** Paling mudah, paling cepat, dan langsung terasa efeknya.
 
 #### Tasks:
-- [ ] 1.1 Tambah `google-genai` ke `requirements.txt`
-- [ ] 1.2 Tambah config `GOOGLE_GEMINI_API_KEY` dan `LLM_PROVIDER=gemini` ke `config.py`
-- [ ] 1.3 Buat adapter `GeminiLLM` yang kompatibel dengan LangChain di `llm_service.py`
-- [ ] 1.4 Update `rag_service.py` → `_get_llm()` method, tambah `gemini` case
-- [ ] 1.5 Update `rag_engine.py` → `self.llm` initialization, tambah Gemini option
-- [ ] 1.6 Test PoC: script terpisah `scripts/test_gemini.py`
-- [ ] 1.7 Update `.env` di VM: `LLM_PROVIDER=gemini`
-- [ ] 1.8 Deploy & verify
+- [x] 1.1 Tambah `google-genai` ke `requirements.txt` ✅
+- [x] 1.2 Tambah config `GOOGLE_GEMINI_API_KEY` dan `LLM_PROVIDER=gemini` ke `config.py` ✅
+- [x] 1.3 Buat adapter `GeminiLLM` yang kompatibel dengan LangChain di `llm_service.py` ✅
+- [x] 1.4 Update `rag_service.py` → `_get_llm()` method, tambah `gemini` case ✅
+- [x] 1.5 Update `rag_engine.py` → `self.llm` initialization, tambah Gemini option ✅
+- [x] 1.6 Test PoC: script terpisah `scripts/test_gemini.py` — ALL 4 TESTS PASSED ✅
+- [x] 1.7 Update `.env` di VM: `LLM_PROVIDER=gemini` ✅
+- [ ] 1.8 Deploy & verify (pending VM redeploy)
 
 #### Files Modified:
 ```
@@ -99,20 +99,26 @@ requirements.txt  +2 lines (google-genai, langchain-google-genai)
 **Kenapa?** Vertex AI Search butuh dokumen di GCS, bukan file lokal.
 
 #### Tasks:
-- [ ] 2.1 Buat GCS bucket: `gs://support-edgeworks-knowledge`
-- [ ] 2.2 Tambah `google-cloud-storage` ke `requirements.txt`
-- [ ] 2.3 Buat `app/services/gcs_service.py` — upload/delete/list knowledge files
-- [ ] 2.4 Update `rag_engine.py` → saat file di-upload, sync ke GCS juga
-- [ ] 2.5 Upload existing knowledge files ke GCS
-- [ ] 2.6 Config: `GCS_BUCKET_NAME` di `.env`
+- [ ] 2.1 Buat GCS bucket: `gs://support-edgeworks-knowledge` (GCP Console)
+- [x] 2.2 Tambah `google-cloud-storage` ke `requirements.txt` ✅
+- [x] 2.3 Buat `app/services/gcs_service.py` — upload/delete/list knowledge files ✅
+- [x] 2.4 Update `rag_engine.py` → saat file di-upload, sync ke GCS juga ✅
+- [ ] 2.5 Upload existing knowledge files ke GCS (run `scripts/migrate_to_gcs.py`)
+- [x] 2.6 Config: `GCS_BUCKET_NAME`, `GCS_ENABLED`, `GCP_PROJECT_ID` di `config.py` ✅
+- [x] 2.7 API endpoints: `/api/gcs/status`, `/api/gcs/sync`, `/api/gcs/files` ✅
+- [x] 2.8 Test script: `scripts/test_gcs.py` — 8/8 passed ✅
+- [x] 2.9 Migration script: `scripts/migrate_to_gcs.py` ✅
 
 #### Files Modified:
 ```
-NEW: app/services/gcs_service.py  (GCS upload/delete helper)
-rag_engine.py                     +10 lines (auto-sync to GCS)
-config.py                         +3 lines (GCS config)
-requirements.txt                  +1 line
-.env                              +2 lines
+NEW: app/services/gcs_service.py    (280+ lines — full GCS CRUD + sync + status)
+NEW: scripts/test_gcs.py            (test script — 8 tests)
+NEW: scripts/migrate_to_gcs.py      (one-time migration script)
+rag_engine.py                       +30 lines (auto-sync to GCS on ingest/upload/delete)
+config.py                           +4 lines (GCS_BUCKET_NAME, GCS_ENABLED, GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID)
+main.py                             +50 lines (GCS API endpoints + init + health)
+requirements.txt                    +1 line (google-cloud-storage)
+vm_deploy.sh                        +8 lines (GCS env vars)
 ```
 
 #### Risk: LOW — Tidak mengubah flow RAG yang sudah ada

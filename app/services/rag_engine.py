@@ -34,6 +34,7 @@ Panduan Merespons:
 Jawaban Profesional (Lengkap & Terstruktur):"""
 
 from app.core.database import db_manager
+from app.services.gcs_service import get_gcs_service
 
 class RAGEngine:
     def __init__(self):
@@ -168,6 +169,16 @@ class RAGEngine:
             
             self.hybrid_retriever = HybridRetriever(self.all_documents)
             logger.info(f"[OK] Re-indexing complete: {len(self.all_documents)} chunks with dates.")
+            
+            # Phase 2: Sync knowledge files to GCS (non-blocking, best-effort)
+            try:
+                gcs = get_gcs_service()
+                if gcs.enabled:
+                    results = gcs.sync_local_to_gcs(settings.KNOWLEDGE_DIR)
+                    synced = sum(1 for v in results.values() if v != "FAILED" and not v.startswith("_"))
+                    logger.info(f"[GCS] Post-ingest sync: {synced} files synced to GCS")
+            except Exception as gcs_err:
+                logger.warning(f"[GCS] Post-ingest sync failed (non-critical): {gcs_err}")
         except Exception as e:
             logger.error(f"Ingestion Error: {e}")
         finally:
@@ -226,6 +237,15 @@ class RAGEngine:
                 await f.write(content)
             
             db_manager.save_knowledge_metadata(filename=filename, file_path=file_path, uploaded_by=uploaded_by, status="Processing")
+            
+            # Phase 2: Upload to GCS
+            try:
+                gcs = get_gcs_service()
+                if gcs.enabled:
+                    await gcs.async_upload_file(file_path, filename)
+            except Exception as gcs_err:
+                logger.warning(f"[GCS] URL ingest sync failed (non-critical): {gcs_err}")
+            
             task = asyncio.create_task(self.ingest_documents())
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
@@ -239,6 +259,15 @@ class RAGEngine:
         try:
             if os.path.exists(file_path): os.remove(file_path)
             db_manager.delete_knowledge_metadata(filename)
+            
+            # Phase 2: Delete from GCS too
+            try:
+                gcs = get_gcs_service()
+                if gcs.enabled:
+                    gcs.delete_file(filename)
+            except Exception as gcs_err:
+                logger.warning(f"[GCS] Delete sync failed for {filename}: {gcs_err}")
+            
             task = asyncio.create_task(self.ingest_documents())
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
@@ -254,6 +283,15 @@ class RAGEngine:
                 if os.path.exists(file_path): os.remove(file_path)
                 db_manager.delete_knowledge_metadata(filename)
             except Exception as e: errors.append(f"{filename}: {str(e)}")
+        
+        # Phase 2: Batch delete from GCS
+        try:
+            gcs = get_gcs_service()
+            if gcs.enabled:
+                gcs.delete_files(filenames)
+        except Exception as gcs_err:
+            logger.warning(f"[GCS] Batch delete sync failed: {gcs_err}")
+        
         task = asyncio.create_task(self.ingest_documents())
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)

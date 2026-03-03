@@ -187,6 +187,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"Failed to init EscalationService: {e}")
         app.state.escalation_service = None
     
+    # Initialize GCS Service (Phase 2)
+    try:
+        from app.services.gcs_service import init_gcs_service
+        app.state.gcs_service = init_gcs_service()
+    except Exception as e:
+        logger.warning(f"GCS Service init skipped: {e}")
+        app.state.gcs_service = None
+    
     try:
         app.state.chat_service = ChatService(app.state.rag_service if app.state.rag_service else None)
     except Exception as e:
@@ -716,6 +724,15 @@ async def upload_knowledge(
         file_path = os.path.join(settings.KNOWLEDGE_DIR, file.filename)
         with open(file_path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
         _require_db().save_knowledge_metadata(filename=file.filename, file_path=file_path, uploaded_by=agent["user_id"])
+        
+        # Phase 2: Upload to GCS
+        try:
+            from app.services.gcs_service import get_gcs_service
+            gcs = get_gcs_service()
+            if gcs.enabled:
+                gcs.upload_file(file_path, file.filename)
+        except Exception as gcs_err:
+            logger.warning(f"[GCS] Upload sync failed for {file.filename}: {gcs_err}")
     
     # Trigger re-indexing
     background_tasks.add_task(app.state.rag_service._load_vector_store)
@@ -787,6 +804,54 @@ async def batch_delete_knowledge(
         return {"status": "success", "message": f"Deleted {len(filenames)} files"}
     except Exception as e:
         logger.error(f"Error batch deleting knowledge: {str(e)}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+# ============ GCS (Google Cloud Storage) APIs ============
+
+@app.get("/api/gcs/status")
+async def gcs_status(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get GCS service status and file count."""
+    try:
+        from app.services.gcs_service import get_gcs_service
+        gcs = get_gcs_service()
+        return gcs.get_status()
+    except Exception as e:
+        return {"enabled": False, "error": str(e)}
+
+@app.post("/api/gcs/sync")
+async def gcs_sync(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Sync all local knowledge files to GCS bucket."""
+    try:
+        from app.services.gcs_service import get_gcs_service
+        gcs = get_gcs_service()
+        if not gcs.enabled:
+            return JSONResponse({"error": "GCS is not enabled. Set GCS_ENABLED=True in .env"}, status_code=400)
+        
+        results = await gcs.async_sync_local_to_gcs()
+        synced = sum(1 for v in results.values() if v != "FAILED" and not str(v).startswith("_"))
+        failed = sum(1 for v in results.values() if v == "FAILED")
+        return {
+            "status": "success",
+            "synced": synced,
+            "failed": failed,
+            "details": results
+        }
+    except Exception as e:
+        logger.error(f"GCS sync error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/gcs/files")
+async def gcs_list_files(agent: Annotated[dict, Depends(get_current_agent)]):
+    """List all files in GCS knowledge bucket."""
+    try:
+        from app.services.gcs_service import get_gcs_service
+        gcs = get_gcs_service()
+        if not gcs.enabled:
+            return JSONResponse({"error": "GCS is not enabled"}, status_code=400)
+        
+        files = gcs.list_files()
+        return {"files": files, "count": len(files)}
+    except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.get("/api/macros")
@@ -899,7 +964,17 @@ async def websocket_chat_endpoint(websocket: WebSocket, session_id: int, user_id
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    health_data = {"status": "ok"}
+    
+    # Phase 2: Include GCS status
+    try:
+        from app.services.gcs_service import get_gcs_service
+        gcs = get_gcs_service()
+        health_data["gcs"] = {"enabled": gcs.enabled, "bucket": settings.GCS_BUCKET_NAME if gcs.enabled else None}
+    except Exception:
+        health_data["gcs"] = {"enabled": False}
+    
+    return health_data
 
 if __name__ == "__main__":
     import uvicorn

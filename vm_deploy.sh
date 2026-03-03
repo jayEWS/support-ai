@@ -38,8 +38,19 @@ if grep -q "db.wjsaltebtbmnysgcdsoh.supabase.co" .env; then
     sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres.wjsaltebtbmnysgcdsoh:Tekansaja123@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres|' .env
 fi
 
+# GCS Config (Phase 2) — disabled by default, enable after GCS bucket setup
+if ! grep -q "^GCS_ENABLED=" .env; then
+    echo "GCS_ENABLED=False" >> .env
+fi
+if ! grep -q "^GCS_BUCKET_NAME=" .env; then
+    echo "GCS_BUCKET_NAME=" >> .env
+fi
+if ! grep -q "^GCP_PROJECT_ID=" .env; then
+    echo "GCP_PROJECT_ID=" >> .env
+fi
+
 echo "--- .env preview (sensitive values masked) ---"
-grep -E "^(BASE_URL|LLM_PROVIDER|GEMINI_MODEL_NAME|GOOGLE_REDIRECT_URI|DATABASE_URL)" .env | sed 's|://[^@]*@|://***@|'
+grep -E "^(BASE_URL|LLM_PROVIDER|GEMINI_MODEL_NAME|GCS_ENABLED|GCS_BUCKET_NAME|GOOGLE_REDIRECT_URI|DATABASE_URL)" .env | sed 's|://[^@]*@|://***@|'
 
 echo "=== [3/6] Stop & remove old container ==="
 sudo docker stop support-ai 2>/dev/null || true
