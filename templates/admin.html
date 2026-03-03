@@ -346,6 +346,16 @@
                             <span id="sidebar-position" class="ml-1">--</span>
                         </div>
                     </div>
+
+                    <!-- Freshdesk History (if linked) -->
+                    <div id="sidebar-freshdesk-history" class="hidden">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">📋 Freshdesk History</p>
+                        <div class="bg-orange-50 px-3 py-2 rounded-lg mb-2">
+                            <p class="text-[10px] font-bold text-orange-600"><span id="sidebar-fd-total">0</span> historical tickets</p>
+                            <p class="text-[8px] text-orange-500" id="sidebar-fd-company">--</p>
+                        </div>
+                        <div id="sidebar-fd-tickets-list" class="space-y-1.5"></div>
+                    </div>
                 </div>
             </aside>
         </section>
@@ -569,6 +579,131 @@
             </div>
         </section>
 
+        <!-- ============ Freshdesk Historical Data View ============ -->
+        <section id="freshdesk-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">📋 Freshdesk Historical Data</h2>
+                    <p class="text-xs text-gray-400 mt-1">Browse imported customer tickets from Freshdesk (2022-2025). Use this data for trend analysis and customer insights.</p>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Tickets</p>
+                    <p class="text-2xl font-black text-blue-600" id="fd-stat-tickets">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Contacts</p>
+                    <p class="text-2xl font-black text-green-600" id="fd-stat-contacts">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Top Issue Type</p>
+                    <p class="text-sm font-bold text-purple-600 mt-1" id="fd-stat-top-type">--</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Top Agent</p>
+                    <p class="text-sm font-bold text-amber-600 mt-1" id="fd-stat-top-agent">--</p>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Ticket Types Distribution</h3>
+                    <canvas id="fd-type-chart" height="200"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Priority Distribution</h3>
+                    <canvas id="fd-priority-chart" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabs: Tickets | Contacts -->
+            <div class="flex gap-2 mb-4">
+                <button onclick="fdSwitchTab('tickets')" id="fd-tab-tickets"
+                    class="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest bg-blue-600 text-white">Tickets</button>
+                <button onclick="fdSwitchTab('contacts')" id="fd-tab-contacts"
+                    class="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest bg-gray-100 text-gray-500 hover:bg-gray-200">Contacts</button>
+            </div>
+
+            <!-- Tickets Sub-view -->
+            <div id="fd-tickets-panel">
+                <div class="flex gap-3 mb-4">
+                    <input type="text" id="fd-ticket-search" placeholder="Search tickets by subject, agent..."
+                        class="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+                        onkeyup="if(event.key==='Enter') loadFreshdeskTickets()">
+                    <select id="fd-ticket-type-filter" class="px-3 py-2 text-xs border border-gray-200 rounded-xl" onchange="loadFreshdeskTickets()">
+                        <option value="">All Types</option>
+                    </select>
+                    <select id="fd-ticket-status-filter" class="px-3 py-2 text-xs border border-gray-200 rounded-xl" onchange="loadFreshdeskTickets()">
+                        <option value="">All Statuses</option>
+                    </select>
+                    <button onclick="loadFreshdeskTickets()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead class="bg-gray-50/50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">ID</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Subject</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Type</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Status</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Priority</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Agent</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fd-ticket-list" class="divide-y divide-gray-50"></tbody>
+                    </table>
+                </div>
+                <div class="flex justify-between items-center mt-4">
+                    <p class="text-xs text-gray-400" id="fd-ticket-info">--</p>
+                    <div class="flex gap-2">
+                        <button onclick="fdTicketPage(-1)" class="px-3 py-1.5 rounded-lg text-xs bg-gray-100 hover:bg-gray-200">← Prev</button>
+                        <button onclick="fdTicketPage(1)" class="px-3 py-1.5 rounded-lg text-xs bg-gray-100 hover:bg-gray-200">Next →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacts Sub-view -->
+            <div id="fd-contacts-panel" class="hidden">
+                <div class="flex gap-3 mb-4">
+                    <input type="text" id="fd-contact-search" placeholder="Search contacts by name, email, company..."
+                        class="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+                        onkeyup="if(event.key==='Enter') loadFreshdeskContacts()">
+                    <button onclick="loadFreshdeskContacts()" class="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead class="bg-gray-50/50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Name</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Email</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Phone</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Company</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Tickets</th>
+                                <th class="px-4 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Linked</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fd-contact-list" class="divide-y divide-gray-50"></tbody>
+                    </table>
+                </div>
+                <div class="flex justify-between items-center mt-4">
+                    <p class="text-xs text-gray-400" id="fd-contact-info">--</p>
+                    <div class="flex gap-2">
+                        <button onclick="fdContactPage(-1)" class="px-3 py-1.5 rounded-lg text-xs bg-gray-100 hover:bg-gray-200">← Prev</button>
+                        <button onclick="fdContactPage(1)" class="px-3 py-1.5 rounded-lg text-xs bg-gray-100 hover:bg-gray-200">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Add/Edit Customer Modal -->
         <div id="customer-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
@@ -713,7 +848,7 @@
         let volumeChart = null, priorityChart = null;
 
         // --- Persistent Menu Logic ---
-        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'security', 'tickets', 'customers', 'macros', 'knowledge', 'settings', 'audit'];
+        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'security', 'tickets', 'customers', 'freshdesk', 'macros', 'knowledge', 'settings', 'audit'];
         let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
         let pinnedMenus = JSON.parse(localStorage.getItem('support_portal_pinned')) || [];
 
@@ -776,6 +911,7 @@
                 security: { icon: 'fa-shield-halved', label: 'Security', isDropdown: true, id: 'security', adminOnly: true },
                 tickets: { icon: 'fa-ticket-alt', label: 'All Tickets', onClick: "switchTab('tickets')" },
                 customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
+                freshdesk: { icon: 'fa-history', label: 'Freshdesk Data', onClick: "switchTab('freshdesk')" },
                 knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
                 macros: { icon: 'fa-bolt', label: 'Macros', onClick: "switchTab('macros')" },
                 settings: { icon: 'fa-cog', label: 'Settings', onClick: "switchTab('settings')" },
@@ -842,7 +978,7 @@
         function switchTab(tab, subOption = null) {
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
-            ['overview', 'inbox', 'team', 'tickets', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
+            ['overview', 'inbox', 'team', 'tickets', 'macros', 'knowledge', 'customers', 'freshdesk', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
                 if (document.getElementById(`${t}-view`)) document.getElementById(`${t}-view`).classList.toggle('hidden', t !== tab);
             });
             if (tab === 'overview') loadAnalytics();
@@ -853,6 +989,7 @@
             else if (tab === 'audit') loadAuditLogs();
             else if (tab === 'knowledge') { loadKnowledge(); loadKBStats(); }
             else if (tab === 'customers') loadCustomers();
+            else if (tab === 'freshdesk') loadFreshdeskData();
             else if (tab === 'usermst') loadUserMaster();
             else if (tab === 'groupperms') loadGroupPrivileges();
             else if (tab === 'privsetup') loadPrivilegeSetup();
@@ -1041,6 +1178,28 @@
                     ? new Date(ctx.profile.member_since).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})
                     : '--';
                 document.getElementById('sidebar-position').innerText = ctx.profile.position || '--';
+
+                // Freshdesk History (if linked)
+                const fdHistEl = document.getElementById('sidebar-freshdesk-history');
+                if (ctx.freshdesk_history) {
+                    fdHistEl.classList.remove('hidden');
+                    document.getElementById('sidebar-fd-total').innerText = ctx.freshdesk_history.total_historical_tickets || 0;
+                    document.getElementById('sidebar-fd-company').innerText = ctx.freshdesk_history.company || '--';
+                    const fdList = document.getElementById('sidebar-fd-tickets-list');
+                    fdList.innerHTML = (ctx.freshdesk_history.recent_historical || []).map(t => {
+                        const date = t.created ? new Date(t.created).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'2-digit'}) : '--';
+                        return `<div class="bg-orange-50/50 p-2 rounded-lg border border-orange-100">
+                            <div class="flex justify-between">
+                                <span class="text-[9px] font-mono text-orange-500">#${t.ticket_id}</span>
+                                <span class="text-[8px] text-orange-400">${date}</span>
+                            </div>
+                            <p class="text-[9px] text-gray-600 mt-0.5 line-clamp-1">${t.subject || '--'}</p>
+                            <span class="text-[8px] font-bold text-orange-500">${t.type || '--'}</span>
+                        </div>`;
+                    }).join('');
+                } else {
+                    fdHistEl.classList.add('hidden');
+                }
 
             } catch (e) { console.error('Customer context load failed:', e); }
         }
@@ -1486,6 +1645,164 @@
                 alert("Request error");
                 box.classList.add('hidden');
             }
+        }
+
+        // ============ Freshdesk Historical Data Functions ============
+        let fdTicketCurrentPage = 1, fdContactCurrentPage = 1;
+        let fdTypeChart = null, fdPriorityChart = null;
+        let fdStatsCache = null;
+
+        async function loadFreshdeskData() {
+            await loadFreshdeskStats();
+            loadFreshdeskTickets();
+        }
+
+        async function loadFreshdeskStats() {
+            try {
+                const res = await fetchWithAuth('/api/freshdesk/stats');
+                if (!res || !res.ok) return;
+                const data = await res.json();
+                fdStatsCache = data;
+
+                document.getElementById('fd-stat-tickets').textContent = (data.total_tickets || 0).toLocaleString();
+                document.getElementById('fd-stat-contacts').textContent = (data.total_contacts || 0).toLocaleString();
+                document.getElementById('fd-stat-top-type').textContent = data.ticket_types?.[0]?.type || '--';
+                document.getElementById('fd-stat-top-agent').textContent = data.top_agents?.[0]?.agent || '--';
+
+                // Populate filter dropdowns
+                const typeFilter = document.getElementById('fd-ticket-type-filter');
+                typeFilter.innerHTML = '<option value="">All Types</option>' +
+                    (data.ticket_types || []).map(t => `<option value="${t.type}">${t.type} (${t.count})</option>`).join('');
+                const statusFilter = document.getElementById('fd-ticket-status-filter');
+                statusFilter.innerHTML = '<option value="">All Statuses</option>' +
+                    (data.statuses || []).map(s => `<option value="${s.status}">${s.status} (${s.count})</option>`).join('');
+
+                // Render charts
+                renderFdTypeChart(data.ticket_types || []);
+                renderFdPriorityChart(data.priorities || []);
+            } catch (e) { console.error('Freshdesk stats error:', e); }
+        }
+
+        function renderFdTypeChart(types) {
+            const ctx = document.getElementById('fd-type-chart');
+            if (!ctx) return;
+            if (fdTypeChart) fdTypeChart.destroy();
+            const colors = ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#06B6D4','#84CC16','#F97316','#6366F1'];
+            fdTypeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: types.map(t=>t.type), datasets: [{ data: types.map(t=>t.count), backgroundColor: colors }] },
+                options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+            });
+        }
+
+        function renderFdPriorityChart(priorities) {
+            const ctx = document.getElementById('fd-priority-chart');
+            if (!ctx) return;
+            if (fdPriorityChart) fdPriorityChart.destroy();
+            const pColors = { 'Low':'#10B981', 'Medium':'#F59E0B', 'High':'#F97316', 'Urgent':'#EF4444' };
+            fdPriorityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: priorities.map(p=>p.priority),
+                    datasets: [{ label: 'Tickets', data: priorities.map(p=>p.count), backgroundColor: priorities.map(p=>pColors[p.priority]||'#6B7280') }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function fdSwitchTab(tab) {
+            document.getElementById('fd-tickets-panel').classList.toggle('hidden', tab !== 'tickets');
+            document.getElementById('fd-contacts-panel').classList.toggle('hidden', tab !== 'contacts');
+            document.getElementById('fd-tab-tickets').className = tab === 'tickets'
+                ? 'px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest bg-blue-600 text-white'
+                : 'px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest bg-gray-100 text-gray-500 hover:bg-gray-200';
+            document.getElementById('fd-tab-contacts').className = tab === 'contacts'
+                ? 'px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest bg-green-600 text-white'
+                : 'px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest bg-gray-100 text-gray-500 hover:bg-gray-200';
+            if (tab === 'contacts') loadFreshdeskContacts();
+        }
+
+        async function loadFreshdeskTickets() {
+            const search = document.getElementById('fd-ticket-search')?.value || '';
+            const typeFilter = document.getElementById('fd-ticket-type-filter')?.value || '';
+            const statusFilter = document.getElementById('fd-ticket-status-filter')?.value || '';
+            const params = new URLSearchParams({ page: fdTicketCurrentPage, per_page: 50 });
+            if (search) params.set('search', search);
+            if (typeFilter) params.set('ticket_type', typeFilter);
+            if (statusFilter) params.set('status', statusFilter);
+
+            try {
+                const res = await fetchWithAuth(`/api/freshdesk/tickets?${params}`);
+                if (!res || !res.ok) return;
+                const data = await res.json();
+                const tbody = document.getElementById('fd-ticket-list');
+                const statusColors = { 'Resolved':'text-green-600 bg-green-50', 'Closed':'text-gray-500 bg-gray-100', 'Open':'text-blue-600 bg-blue-50', 'Pending':'text-amber-600 bg-amber-50', 'Waiting on Customer':'text-orange-600 bg-orange-50', 'Waiting on Third Party':'text-purple-600 bg-purple-50' };
+                const prioColors = { 'Low':'text-green-600','Medium':'text-amber-600','High':'text-orange-600','Urgent':'text-red-600' };
+
+                tbody.innerHTML = data.tickets.length ? data.tickets.map(t => `
+                    <tr class="hover:bg-gray-50/50 cursor-pointer" onclick="showFdTicketDetail(${t.ticket_id})">
+                        <td class="px-4 py-3 text-xs font-mono text-gray-500">#${t.ticket_id}</td>
+                        <td class="px-4 py-3 text-xs font-medium text-gray-700 max-w-xs truncate">${t.subject || '-'}</td>
+                        <td class="px-4 py-3"><span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">${t.ticket_type || '-'}</span></td>
+                        <td class="px-4 py-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColors[t.status] || 'text-gray-500 bg-gray-100'}">${t.status || '-'}</span></td>
+                        <td class="px-4 py-3 text-xs font-bold ${prioColors[t.priority] || 'text-gray-500'}">${t.priority || '-'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-500">${t.agent || '-'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-400">${t.created_time ? new Date(t.created_time).toLocaleDateString() : '-'}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">No tickets found</td></tr>';
+
+                document.getElementById('fd-ticket-info').textContent =
+                    `Showing ${(data.page-1)*data.per_page+1}-${Math.min(data.page*data.per_page, data.total)} of ${data.total} tickets (Page ${data.page}/${data.pages})`;
+            } catch (e) { console.error('Freshdesk tickets error:', e); }
+        }
+
+        async function loadFreshdeskContacts() {
+            const search = document.getElementById('fd-contact-search')?.value || '';
+            const params = new URLSearchParams({ page: fdContactCurrentPage, per_page: 50 });
+            if (search) params.set('search', search);
+
+            try {
+                const res = await fetchWithAuth(`/api/freshdesk/contacts?${params}`);
+                if (!res || !res.ok) return;
+                const data = await res.json();
+                const tbody = document.getElementById('fd-contact-list');
+
+                tbody.innerHTML = data.contacts.length ? data.contacts.map(c => `
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="px-4 py-3 text-xs font-medium text-gray-700">${c.full_name || '-'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-500">${c.email || '-'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-500">${c.mobile_phone || c.work_phone || '-'}</td>
+                        <td class="px-4 py-3"><span class="text-[10px] font-bold bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">${c.company_name || '-'}</span></td>
+                        <td class="px-4 py-3 text-xs font-bold text-blue-600">${c.total_tickets || 0}</td>
+                        <td class="px-4 py-3">${c.internal_user_id
+                            ? '<span class="text-[10px] font-bold bg-green-50 text-green-600 px-2 py-0.5 rounded-full">✓ Linked</span>'
+                            : '<span class="text-[10px] text-gray-400">—</span>'}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 text-sm">No contacts found</td></tr>';
+
+                document.getElementById('fd-contact-info').textContent =
+                    `Showing ${(data.page-1)*data.per_page+1}-${Math.min(data.page*data.per_page, data.total)} of ${data.total} contacts (Page ${data.page}/${data.pages})`;
+            } catch (e) { console.error('Freshdesk contacts error:', e); }
+        }
+
+        function fdTicketPage(dir) {
+            fdTicketCurrentPage = Math.max(1, fdTicketCurrentPage + dir);
+            loadFreshdeskTickets();
+        }
+
+        function fdContactPage(dir) {
+            fdContactCurrentPage = Math.max(1, fdContactCurrentPage + dir);
+            loadFreshdeskContacts();
+        }
+
+        async function showFdTicketDetail(ticketId) {
+            // Simple modal showing ticket details
+            const res = await fetchWithAuth(`/api/freshdesk/tickets?search=${ticketId}`);
+            if (!res || !res.ok) return;
+            const data = await res.json();
+            const t = data.tickets.find(x => x.ticket_id === ticketId);
+            if (!t) return;
+            alert(`Ticket #${t.ticket_id}\n\nSubject: ${t.subject}\nType: ${t.ticket_type}\nStatus: ${t.status}\nPriority: ${t.priority}\nAgent: ${t.agent}\nCreated: ${t.created_time}\nResolved: ${t.resolved_time || '-'}\nSLA: ${t.resolution_status || '-'}\nTags: ${t.tags || '-'}\n\nSummary:\n${t.summary || '(none)'}`);
         }
 
         init(); setInterval(() => { updateSidebarCounts(); if (document.getElementById('tab-overview').classList.contains('active')) loadAnalytics(); }, 15000);

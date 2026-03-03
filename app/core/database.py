@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, func, or_, desc, literal_column
 from sqlalchemy.orm import sessionmaker, scoped_session
-from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink
+from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, FreshdeskContact, FreshdeskTicket
 from app.core.config import settings
 from app.core.logging import logger
 import json
@@ -535,6 +535,29 @@ class DatabaseManager:
             # Message count
             msg_count = session.query(func.count(Message.id)).filter_by(user_id=user_id).scalar() or 0
 
+            # Check for linked Freshdesk history
+            freshdesk_data = None
+            try:
+                fd_contact = session.query(FreshdeskContact).filter_by(internal_user_id=user_id).first()
+                if fd_contact:
+                    fd_tickets = session.query(FreshdeskTicket).filter_by(
+                        contact_id=fd_contact.freshdesk_id
+                    ).order_by(desc(FreshdeskTicket.created_time)).limit(5).all()
+                    freshdesk_data = {
+                        "contact_name": fd_contact.full_name,
+                        "company": fd_contact.company_name,
+                        "total_historical_tickets": fd_contact.total_tickets or 0,
+                        "recent_historical": [{
+                            "ticket_id": ft.ticket_id,
+                            "subject": ft.subject,
+                            "type": ft.ticket_type,
+                            "status": ft.status,
+                            "created": str(ft.created_time) if ft.created_time else None
+                        } for ft in fd_tickets]
+                    }
+            except Exception:
+                pass
+
             return {
                 "found": True,
                 "profile": {
@@ -552,7 +575,8 @@ class DatabaseManager:
                 },
                 "recent_tickets": recent,
                 "top_categories": [{"category": c, "count": n} for c, n in top_categories],
-                "is_recurring_customer": total_tickets > 1
+                "is_recurring_customer": total_tickets > 1,
+                "freshdesk_history": freshdesk_data
             }
         except Exception as e:
             logger.error(f"Error getting customer context: {e}")
@@ -1002,6 +1026,320 @@ class DatabaseManager:
         try:
             session.query(AuthMagicLink).filter_by(id=link_id).delete()
             session.commit()
+        finally:
+            self.Session.remove()
+
+    # ============ Freshdesk Historical Data ============
+
+    def upsert_freshdesk_contact(self, data: dict):
+        """Insert or update a Freshdesk contact."""
+        session = self.get_session()
+        try:
+            contact = session.query(FreshdeskContact).filter_by(
+                freshdesk_id=data.get("freshdesk_id")
+            ).first()
+            if contact:
+                for k, v in data.items():
+                    if k != "freshdesk_id" and v is not None:
+                        setattr(contact, k, v)
+            else:
+                contact = FreshdeskContact(**data)
+                session.add(contact)
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error upserting freshdesk contact: {e}")
+            return False
+        finally:
+            self.Session.remove()
+
+    def upsert_freshdesk_ticket(self, data: dict):
+        """Insert or update a Freshdesk ticket."""
+        session = self.get_session()
+        try:
+            ticket = session.query(FreshdeskTicket).filter_by(
+                ticket_id=data.get("ticket_id")
+            ).first()
+            if ticket:
+                for k, v in data.items():
+                    if k != "ticket_id" and v is not None:
+                        setattr(ticket, k, v)
+            else:
+                ticket = FreshdeskTicket(**data)
+                session.add(ticket)
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error upserting freshdesk ticket: {e}")
+            return False
+        finally:
+            self.Session.remove()
+
+    def bulk_upsert_freshdesk_contacts(self, contacts: list):
+        """Bulk upsert freshdesk contacts. Returns (inserted, updated, errors)."""
+        session = self.get_session()
+        inserted, updated, errors = 0, 0, 0
+        try:
+            for data in contacts:
+                try:
+                    existing = session.query(FreshdeskContact).filter_by(
+                        freshdesk_id=data.get("freshdesk_id")
+                    ).first()
+                    if existing:
+                        for k, v in data.items():
+                            if k != "freshdesk_id" and v is not None:
+                                setattr(existing, k, v)
+                        updated += 1
+                    else:
+                        session.add(FreshdeskContact(**data))
+                        inserted += 1
+                except Exception as e:
+                    logger.error(f"Error upserting contact {data.get('freshdesk_id')}: {e}")
+                    errors += 1
+            session.commit()
+            return inserted, updated, errors
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Bulk contact upsert failed: {e}")
+            return inserted, updated, errors + len(contacts)
+        finally:
+            self.Session.remove()
+
+    def bulk_upsert_freshdesk_tickets(self, tickets: list):
+        """Bulk upsert freshdesk tickets. Returns (inserted, updated, errors)."""
+        session = self.get_session()
+        inserted, updated, errors = 0, 0, 0
+        try:
+            for data in tickets:
+                try:
+                    existing = session.query(FreshdeskTicket).filter_by(
+                        ticket_id=data.get("ticket_id")
+                    ).first()
+                    if existing:
+                        for k, v in data.items():
+                            if k != "ticket_id" and v is not None:
+                                setattr(existing, k, v)
+                        updated += 1
+                    else:
+                        session.add(FreshdeskTicket(**data))
+                        inserted += 1
+                except Exception as e:
+                    logger.error(f"Error upserting ticket {data.get('ticket_id')}: {e}")
+                    errors += 1
+            session.commit()
+            return inserted, updated, errors
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Bulk ticket upsert failed: {e}")
+            return inserted, updated, errors + len(tickets)
+        finally:
+            self.Session.remove()
+
+    def get_freshdesk_contacts(self, search: str = None, page: int = 1, per_page: int = 50):
+        """Get freshdesk contacts with optional search and pagination."""
+        session = self.get_session()
+        try:
+            q = session.query(FreshdeskContact)
+            if search:
+                search_term = f"%{search}%"
+                q = q.filter(or_(
+                    FreshdeskContact.full_name.ilike(search_term),
+                    FreshdeskContact.email.ilike(search_term),
+                    FreshdeskContact.company_name.ilike(search_term),
+                    FreshdeskContact.freshdesk_id.ilike(search_term),
+                    FreshdeskContact.mobile_phone.ilike(search_term)
+                ))
+            total = q.count()
+            contacts = q.order_by(desc(FreshdeskContact.total_tickets)).offset((page-1)*per_page).limit(per_page).all()
+            return {
+                "contacts": [{
+                    "id": c.id,
+                    "freshdesk_id": c.freshdesk_id,
+                    "full_name": c.full_name,
+                    "email": c.email,
+                    "work_phone": c.work_phone,
+                    "mobile_phone": c.mobile_phone,
+                    "company_name": c.company_name,
+                    "industry": c.industry,
+                    "total_tickets": c.total_tickets or 0,
+                    "internal_user_id": c.internal_user_id,
+                    "created_at": str(c.created_at) if c.created_at else None
+                } for c in contacts],
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "pages": (total + per_page - 1) // per_page
+            }
+        finally:
+            self.Session.remove()
+
+    def get_freshdesk_contact(self, freshdesk_id: str):
+        """Get a single freshdesk contact by freshdesk_id."""
+        session = self.get_session()
+        try:
+            c = session.query(FreshdeskContact).filter_by(freshdesk_id=freshdesk_id).first()
+            if not c:
+                return None
+            return {
+                "id": c.id,
+                "freshdesk_id": c.freshdesk_id,
+                "full_name": c.full_name,
+                "email": c.email,
+                "work_phone": c.work_phone,
+                "mobile_phone": c.mobile_phone,
+                "company_name": c.company_name,
+                "industry": c.industry,
+                "timezone": c.timezone,
+                "language": c.language,
+                "account_tier": c.account_tier,
+                "health_score": c.health_score,
+                "total_tickets": c.total_tickets or 0,
+                "internal_user_id": c.internal_user_id,
+                "created_at": str(c.created_at) if c.created_at else None
+            }
+        finally:
+            self.Session.remove()
+
+    def get_freshdesk_tickets(self, contact_id: str = None, search: str = None,
+                              ticket_type: str = None, status: str = None,
+                              page: int = 1, per_page: int = 50):
+        """Get freshdesk tickets with filters and pagination."""
+        session = self.get_session()
+        try:
+            q = session.query(FreshdeskTicket)
+            if contact_id:
+                q = q.filter(FreshdeskTicket.contact_id == contact_id)
+            if ticket_type:
+                q = q.filter(FreshdeskTicket.ticket_type == ticket_type)
+            if status:
+                q = q.filter(FreshdeskTicket.status == status)
+            if search:
+                search_term = f"%{search}%"
+                q = q.filter(or_(
+                    FreshdeskTicket.subject.ilike(search_term),
+                    FreshdeskTicket.summary.ilike(search_term),
+                    FreshdeskTicket.agent.ilike(search_term)
+                ))
+            total = q.count()
+            tickets = q.order_by(desc(FreshdeskTicket.created_time)).offset((page-1)*per_page).limit(per_page).all()
+            return {
+                "tickets": [{
+                    "id": t.id,
+                    "ticket_id": t.ticket_id,
+                    "subject": t.subject,
+                    "status": t.status,
+                    "priority": t.priority,
+                    "ticket_type": t.ticket_type,
+                    "agent": t.agent,
+                    "contact_id": t.contact_id,
+                    "created_time": str(t.created_time) if t.created_time else None,
+                    "resolved_time": str(t.resolved_time) if t.resolved_time else None,
+                    "closed_time": str(t.closed_time) if t.closed_time else None,
+                    "resolution_status": t.resolution_status,
+                    "summary": t.summary,
+                    "tags": t.tags
+                } for t in tickets],
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "pages": (total + per_page - 1) // per_page
+            }
+        finally:
+            self.Session.remove()
+
+    def get_freshdesk_stats(self):
+        """Get aggregated stats from Freshdesk historical data."""
+        session = self.get_session()
+        try:
+            total_tickets = session.query(FreshdeskTicket).count()
+            total_contacts = session.query(FreshdeskContact).count()
+            # Ticket type distribution
+            type_dist = session.query(
+                FreshdeskTicket.ticket_type, func.count(FreshdeskTicket.id)
+            ).group_by(FreshdeskTicket.ticket_type).order_by(
+                desc(func.count(FreshdeskTicket.id))
+            ).limit(10).all()
+            # Status distribution
+            status_dist = session.query(
+                FreshdeskTicket.status, func.count(FreshdeskTicket.id)
+            ).group_by(FreshdeskTicket.status).all()
+            # Priority distribution
+            priority_dist = session.query(
+                FreshdeskTicket.priority, func.count(FreshdeskTicket.id)
+            ).group_by(FreshdeskTicket.priority).all()
+            # Top agents
+            top_agents = session.query(
+                FreshdeskTicket.agent, func.count(FreshdeskTicket.id)
+            ).group_by(FreshdeskTicket.agent).order_by(
+                desc(func.count(FreshdeskTicket.id))
+            ).limit(10).all()
+            # Top companies
+            top_companies = session.query(
+                FreshdeskContact.company_name, func.count(FreshdeskContact.id)
+            ).filter(FreshdeskContact.company_name.isnot(None), FreshdeskContact.company_name != "").group_by(
+                FreshdeskContact.company_name
+            ).order_by(desc(func.count(FreshdeskContact.id))).limit(10).all()
+
+            return {
+                "total_tickets": total_tickets,
+                "total_contacts": total_contacts,
+                "ticket_types": [{"type": t[0] or "Unknown", "count": t[1]} for t in type_dist],
+                "statuses": [{"status": s[0] or "Unknown", "count": s[1]} for s in status_dist],
+                "priorities": [{"priority": p[0] or "Unknown", "count": p[1]} for p in priority_dist],
+                "top_agents": [{"agent": a[0] or "Unassigned", "count": a[1]} for a in top_agents],
+                "top_companies": [{"company": c[0], "count": c[1]} for c in top_companies]
+            }
+        finally:
+            self.Session.remove()
+
+    def link_freshdesk_contact_to_user(self, freshdesk_id: str, user_id: str):
+        """Link a Freshdesk contact to an internal portal User."""
+        session = self.get_session()
+        try:
+            contact = session.query(FreshdeskContact).filter_by(freshdesk_id=freshdesk_id).first()
+            if not contact:
+                return False
+            contact.internal_user_id = user_id
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error linking freshdesk contact: {e}")
+            return False
+        finally:
+            self.Session.remove()
+
+    def get_freshdesk_history_for_user(self, user_id: str):
+        """Get Freshdesk ticket history for a linked internal user."""
+        session = self.get_session()
+        try:
+            # Find linked FreshdeskContact
+            contact = session.query(FreshdeskContact).filter_by(internal_user_id=user_id).first()
+            if not contact:
+                return None
+            # Get tickets
+            tickets = session.query(FreshdeskTicket).filter_by(
+                contact_id=contact.freshdesk_id
+            ).order_by(desc(FreshdeskTicket.created_time)).limit(20).all()
+            return {
+                "contact": {
+                    "freshdesk_id": contact.freshdesk_id,
+                    "full_name": contact.full_name,
+                    "company_name": contact.company_name,
+                    "total_tickets": contact.total_tickets
+                },
+                "tickets": [{
+                    "ticket_id": t.ticket_id,
+                    "subject": t.subject,
+                    "status": t.status,
+                    "priority": t.priority,
+                    "ticket_type": t.ticket_type,
+                    "created_time": str(t.created_time) if t.created_time else None,
+                    "resolved_time": str(t.resolved_time) if t.resolved_time else None
+                } for t in tickets]
+            }
         finally:
             self.Session.remove()
 
