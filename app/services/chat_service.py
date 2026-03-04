@@ -496,6 +496,28 @@ class ChatService:
                 user = db_manager.get_user(user_id)
                 name = user.get('name', 'Customer') if user else 'Customer'
 
+                # --- Send email notification to assigned support person ---
+                try:
+                    notify_enabled = db_manager.get_setting("ticket_notify_enabled", "true")
+                    if notify_enabled == "true":
+                        notify_email = db_manager.get_setting("ticket_notify_email", "jay@edgeworks.com.sg")
+                        cc_email = db_manager.get_setting("ticket_notify_cc", "")
+                        if notify_email:
+                            from main import _send_ticket_email
+                            await _send_ticket_email(
+                                to_email=notify_email,
+                                ticket_id=ticket_id,
+                                summary=ticket_data.get('summary', 'Support request'),
+                                priority=ticket_data.get('priority', 'Medium'),
+                                category=ticket_data.get('category', 'General'),
+                                customer_name=name,
+                                customer_id=user_id,
+                                due_at_str=due_at.strftime('%d %b %Y %H:%M') if due_at else '-',
+                                cc_email=cc_email,
+                            )
+                except Exception as email_err:
+                    logger.error(f"Ticket email notification failed: {email_err}")
+
                 if option == 'ticket_and_notify':
                     summary_text = ticket_data.get('summary', '-')
                     priority_text = ticket_data.get('priority', 'Medium')

@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, func, or_, desc, literal_column
 from sqlalchemy.orm import sessionmaker, scoped_session
-from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, FreshdeskContact, FreshdeskTicket, WhatsAppMessage
+from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, FreshdeskContact, FreshdeskTicket, WhatsAppMessage, SystemSetting
 from app.core.config import settings
 from app.core.logging import logger
 import json
@@ -641,6 +641,41 @@ class DatabaseManager:
                 "outlet_address": u.outlet_address,
                 "category": u.category
             } for u in users ]
+        finally:
+            self.Session.remove()
+
+    # ============ System Settings ============
+    def get_setting(self, key: str, default: str = None) -> Optional[str]:
+        from app.models.models import SystemSetting
+        session = self.get_session()
+        try:
+            s = session.query(SystemSetting).filter_by(key=key).first()
+            return s.value if s else default
+        finally:
+            self.Session.remove()
+
+    def set_setting(self, key: str, value: str):
+        from app.models.models import SystemSetting
+        session = self.get_session()
+        try:
+            s = session.query(SystemSetting).filter_by(key=key).first()
+            if s:
+                s.value = value
+            else:
+                session.add(SystemSetting(key=key, value=value))
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error setting {key}: {e}")
+        finally:
+            self.Session.remove()
+
+    def get_all_settings(self) -> dict:
+        from app.models.models import SystemSetting
+        session = self.get_session()
+        try:
+            rows = session.query(SystemSetting).all()
+            return {r.key: r.value for r in rows}
         finally:
             self.Session.remove()
 

@@ -998,6 +998,44 @@
                         </div>
                     </div>
                 </div>
+                <!-- Ticket Email Notification -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6 lg:col-span-2">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                            <i class="fas fa-envelope text-indigo-600"></i> Ticket Email Notification</h3>
+                        <p class="text-xs text-gray-400 mb-6">When a customer ends a chat and creates a ticket, an email notification will be sent to the configured address.</p>
+                        <div class="space-y-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Enable Email Notification</p>
+                                    <p class="text-xs text-gray-400">Send email when a new ticket is created</p>
+                                </div>
+                                <button id="ticket-notify-toggle" onclick="toggleTicketNotify()" class="w-12 h-6 rounded-full bg-gray-300 relative transition-colors duration-200 cursor-pointer">
+                                    <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow"></div>
+                                </button>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Notify To (Primary)</label>
+                                <input type="email" id="ticket-notify-email" value="jay@edgeworks.com.sg" placeholder="e.g. jay@edgeworks.com.sg"
+                                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">CC (Optional, comma-separated)</label>
+                                <input type="text" id="ticket-notify-cc" value="" placeholder="e.g. support@edgeworks.com.sg, admin@edgeworks.com.sg"
+                                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                            </div>
+                            <div class="flex items-center gap-3 pt-2">
+                                <button onclick="saveTicketNotifySettings()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition shadow-sm">
+                                    <i class="fas fa-save mr-1"></i> Save
+                                </button>
+                                <button onclick="testTicketEmail()" class="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition">
+                                    <i class="fas fa-paper-plane mr-1"></i> Send Test Email
+                                </button>
+                                <span id="ticket-notify-status" class="text-xs text-gray-400"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
         <section id="audit-view" class="p-8 overflow-y-auto flex-1 hidden">
@@ -1224,6 +1262,7 @@
             else if (tab === 'audit') loadAuditLogs();
             else if (tab === 'knowledge') { loadKnowledge(); loadKBStats(); }
             else if (tab === 'customers') loadCustomers();
+            else if (tab === 'settings') loadTicketNotifySettings();
             else if (tab === 'usermst') loadUserMaster();
             else if (tab === 'groupperms') loadGroupPrivileges();
             else if (tab === 'privsetup') loadPrivilegeSetup();
@@ -1807,6 +1846,100 @@
                     showToast(err.detail || 'Failed to toggle test mode', 'error');
                 }
             } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        // ============ Ticket Email Notification Settings ============
+        let ticketNotifyEnabled = true;
+
+        function updateTicketNotifyToggle(enabled) {
+            ticketNotifyEnabled = enabled;
+            const btn = document.getElementById('ticket-notify-toggle');
+            if (!btn) return;
+            if (enabled) {
+                btn.classList.remove('bg-gray-300');
+                btn.classList.add('bg-indigo-600');
+                btn.querySelector('div').style.transform = 'translateX(24px)';
+            } else {
+                btn.classList.add('bg-gray-300');
+                btn.classList.remove('bg-indigo-600');
+                btn.querySelector('div').style.transform = 'translateX(0)';
+            }
+        }
+
+        function toggleTicketNotify() {
+            ticketNotifyEnabled = !ticketNotifyEnabled;
+            updateTicketNotifyToggle(ticketNotifyEnabled);
+        }
+
+        async function loadTicketNotifySettings() {
+            if (currentUser?.role !== 'admin') return;
+            try {
+                const res = await fetchWithAuth('/api/settings');
+                if (!res || !res.ok) return;
+                const data = await res.json();
+                const enabled = data.ticket_notify_enabled !== 'false';
+                updateTicketNotifyToggle(enabled);
+                document.getElementById('ticket-notify-email').value = data.ticket_notify_email || 'jay@edgeworks.com.sg';
+                document.getElementById('ticket-notify-cc').value = data.ticket_notify_cc || '';
+            } catch (e) { console.error('Failed to load settings', e); }
+        }
+
+        async function saveTicketNotifySettings() {
+            const statusEl = document.getElementById('ticket-notify-status');
+            statusEl.textContent = 'Saving...';
+            statusEl.className = 'text-xs text-gray-400';
+            try {
+                const res = await fetchWithAuth('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        ticket_notify_enabled: ticketNotifyEnabled ? 'true' : 'false',
+                        ticket_notify_email: document.getElementById('ticket-notify-email').value.trim(),
+                        ticket_notify_cc: document.getElementById('ticket-notify-cc').value.trim()
+                    })
+                });
+                if (res && res.ok) {
+                    statusEl.textContent = '✅ Saved';
+                    statusEl.className = 'text-xs text-green-600 font-bold';
+                    showToast('Notification settings saved', 'success');
+                } else {
+                    statusEl.textContent = '❌ Failed';
+                    statusEl.className = 'text-xs text-red-600 font-bold';
+                }
+            } catch (e) {
+                statusEl.textContent = '❌ Error';
+                statusEl.className = 'text-xs text-red-600 font-bold';
+            }
+            setTimeout(() => { statusEl.textContent = ''; }, 3000);
+        }
+
+        async function testTicketEmail() {
+            const statusEl = document.getElementById('ticket-notify-status');
+            // Save first, then send test
+            await saveTicketNotifySettings();
+            statusEl.textContent = '📧 Sending test email...';
+            statusEl.className = 'text-xs text-indigo-600 font-bold';
+            try {
+                const res = await fetchWithAuth('/api/settings/test-email', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                if (res && res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'sent') {
+                        statusEl.textContent = `✅ Test email sent to ${data.to}`;
+                        statusEl.className = 'text-xs text-green-600 font-bold';
+                        showToast(`Test email sent to ${data.to}`, 'success');
+                    } else {
+                        statusEl.textContent = `❌ ${data.message || 'Send failed'}`;
+                        statusEl.className = 'text-xs text-red-600 font-bold';
+                    }
+                }
+            } catch (e) {
+                statusEl.textContent = '❌ Error sending test';
+                statusEl.className = 'text-xs text-red-600 font-bold';
+            }
+            setTimeout(() => { statusEl.textContent = ''; }, 5000);
         }
 
         function openSimulateModal() {

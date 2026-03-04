@@ -1333,6 +1333,151 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
 
     return {"status": "success", "trace_id": trace_id, "response": response_text}
 
+# ============ System Settings API ============
+
+@app.get("/api/settings")
+async def get_settings(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get all system settings (admin only)."""
+    if agent.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Admin only")
+    db = _require_db()
+    all_settings = db.get_all_settings()
+    # Set defaults if not yet configured
+    defaults = {
+        "ticket_notify_enabled": "true",
+        "ticket_notify_email": "jay@edgeworks.com.sg",
+        "ticket_notify_cc": "",
+        "email_provider": settings.EMAIL_PROVIDER or "gmail",
+    }
+    for k, v in defaults.items():
+        if k not in all_settings:
+            all_settings[k] = v
+    return all_settings
+
+@app.post("/api/settings")
+async def save_settings(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Save system settings (admin only)."""
+    if agent.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Admin only")
+    db = _require_db()
+    allowed_keys = {"ticket_notify_enabled", "ticket_notify_email", "ticket_notify_cc"}
+    saved = []
+    for k, v in data.items():
+        if k in allowed_keys:
+            db.set_setting(k, str(v))
+            saved.append(k)
+    logger.info(f"Settings updated by {agent.get('username')}: {saved}")
+    return {"status": "ok", "saved": saved}
+
+@app.post("/api/settings/test-email")
+async def test_email_notification(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Send a test email notification to verify email settings work."""
+    if agent.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="Admin only")
+    db = _require_db()
+    to_email = db.get_setting("ticket_notify_email", "jay@edgeworks.com.sg")
+    try:
+        success = await _send_ticket_email(
+            to_email=to_email,
+            ticket_id=0,
+            summary="This is a test email from Edgeworks Support Portal",
+            priority="Medium",
+            category="Test",
+            customer_name="Test User",
+            customer_id="test",
+            due_at_str="-",
+        )
+        return {"status": "sent" if success else "failed", "to": to_email}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+async def _send_ticket_email(
+    to_email: str,
+    ticket_id: int,
+    summary: str,
+    priority: str,
+    category: str,
+    customer_name: str,
+    customer_id: str,
+    due_at_str: str,
+    cc_email: str = "",
+):
+    """Send ticket notification email via Gmail SMTP."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    gmail_email = settings.GMAIL_EMAIL
+    gmail_password = settings.GMAIL_PASSWORD
+    from_addr = settings.EMAIL_FROM_ADDRESS or gmail_email
+
+    if not gmail_email or not gmail_password:
+        logger.warning(f"[EMAIL] Gmail not configured — MOCK email to {to_email}")
+        logger.info(f"[EMAIL] Ticket #{ticket_id} | {summary} | Priority: {priority}")
+        return True  # Mock success so ticket creation doesn't fail
+
+    # Build HTML email
+    priority_colors = {"Urgent": "#dc2626", "High": "#ea580c", "Medium": "#2563eb", "Low": "#16a34a"}
+    p_color = priority_colors.get(priority, "#2563eb")
+
+    html = f"""
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #1e293b; padding: 24px; border-radius: 12px 12px 0 0;">
+            <h2 style="color: #fff; margin: 0; font-size: 18px;">🎫 New Support Ticket #{ticket_id}</h2>
+        </div>
+        <div style="background: #fff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 120px;">Customer</td>
+                    <td style="padding: 8px 0; font-weight: 600;">{customer_name} ({customer_id})</td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Priority</td>
+                    <td style="padding: 8px 0;"><span style="background: {p_color}; color: #fff; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600;">{priority}</span></td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Category</td>
+                    <td style="padding: 8px 0; font-weight: 600;">{category}</td></tr>
+                <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Due</td>
+                    <td style="padding: 8px 0; font-weight: 600;">{due_at_str}</td></tr>
+            </table>
+            <div style="margin-top: 16px; padding: 16px; background: #f8fafc; border-radius: 8px; border-left: 4px solid {p_color};">
+                <p style="margin: 0; color: #334155; font-size: 14px; line-height: 1.6;"><strong>Summary:</strong> {summary}</p>
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="{settings.BASE_URL}/admin" style="display: inline-block; background: #2563eb; color: #fff; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Open Dashboard →</a>
+            </div>
+        </div>
+        <div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 11px;">
+            Edgeworks Support Portal • Automated Notification
+        </div>
+    </div>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"[Ticket #{ticket_id}] {priority} — {summary[:80]}"
+    msg["From"] = from_addr
+    msg["To"] = to_email
+    if cc_email:
+        msg["Cc"] = cc_email
+    msg.attach(MIMEText(html, "html"))
+
+    recipients = [to_email]
+    if cc_email:
+        recipients.extend([e.strip() for e in cc_email.split(",") if e.strip()])
+
+    try:
+        import asyncio
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: _smtp_send(gmail_email, gmail_password, recipients, msg))
+        logger.info(f"[EMAIL] ✅ Ticket #{ticket_id} notification sent to {to_email}")
+        return True
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send ticket #{ticket_id} notification: {e}")
+        return False
+
+def _smtp_send(gmail_email, gmail_password, recipients, msg):
+    """Blocking SMTP send (runs in executor)."""
+    import smtplib
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(gmail_email, gmail_password)
+        server.sendmail(gmail_email, recipients, msg.as_string())
+
 # ============ WhatsApp API (Admin Dashboard) ============
 
 @app.get("/api/whatsapp/conversations")

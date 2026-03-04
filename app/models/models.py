@@ -251,6 +251,14 @@ class WhatsAppMessage(Base):
 
 # ============ Freshdesk Historical Data ============
 
+class SystemSetting(Base):
+    """Key-value store for system settings (e.g. ticket notification email)."""
+    __tablename__ = "SystemSettings"
+    __table_args__ = {"schema": "app"}
+    key = Column("SettingKey", Unicode(100), primary_key=True)
+    value = Column("SettingValue", UnicodeText, nullable=True)
+    updated_at = Column("UpdatedAt", DateTime, server_default=func.now(), onupdate=func.now())
+
 class FreshdeskContact(Base):
     """Imported customer contacts from Freshdesk ticket exports."""
     __tablename__ = "FreshdeskContacts"
