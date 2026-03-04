@@ -465,12 +465,13 @@ class ChatService:
             history_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
 
             try:
-                from app.services.rag_engine import rag_engine
-                if not rag_engine:
-                    return {"status": "error", "message": "RAG Engine is not ready yet."}
+                # Get LLM from rag_service (already initialized at startup)
+                llm = self.rag_service._get_llm() if self.rag_service else None
+                if not llm:
+                    return {"status": "error", "message": "LLM service is not ready yet."}
 
                 # Use LLM to summarize and determine priority
-                res = await rag_engine.llm.ainvoke(
+                res = await llm.ainvoke(
                     "You are a support ticket summarizer. Create a JSON with the following fields:\n"
                     "- 'summary': summarize the issue in 1-2 sentences in English\n"
                     "- 'priority': one of Urgent, High, Medium, Low\n"
