@@ -97,6 +97,27 @@ class ChatService:
         # Ambiguous short messages like "hi", "hello", "halo" — return None to ask
         return None
 
+    @staticmethod
+    def _detect_language_switch(text: str) -> str | None:
+        """Detect if user is requesting a language switch (e.g. 'can i use english?', 'english please').
+        Returns target language code or None."""
+        t = text.strip().lower()
+        # Direct language names or switch phrases
+        en_triggers = {'english', 'use english', 'can i use english', 'switch to english', 'english please', 'i want english', 'in english'}
+        id_triggers = {'indonesia', 'bahasa', 'bahasa indonesia', 'use indonesia', 'use bahasa', 'switch to indonesia', 'indonesian'}
+        zh_triggers = {'chinese', 'mandarin', 'use chinese', 'switch to chinese', '中文', '切换中文', '用中文'}
+        
+        # Remove trailing punctuation for matching
+        t_clean = t.rstrip('?!.,')
+        
+        if t_clean in en_triggers or any(t_clean.startswith(p) for p in ('can i use eng', 'switch to eng', 'i want eng', 'change to eng')):
+            return 'en'
+        if t_clean in id_triggers or any(t_clean.startswith(p) for p in ('can i use indo', 'switch to indo', 'change to indo', 'can i use bahasa')):
+            return 'id'
+        if t_clean in zh_triggers or any(t_clean.startswith(p) for p in ('can i use chin', 'switch to chin', 'change to chin', 'can i use mand')):
+            return 'zh'
+        return None
+
     def _get_lang_str(self, lang: str, key: str, **kwargs) -> str:
         """Get localized string with fallback to English."""
         strings = self.LANG_STRINGS.get(lang, self.LANG_STRINGS['en'])
@@ -171,6 +192,11 @@ class ChatService:
             return f"{welcome.get(detected_lang, welcome['en'])}\n{self._get_lang_str(detected_lang, 'ask_name')}"
         
         if state == 'asking_name':
+            # Check if user is trying to switch language instead of giving name
+            switch_lang = self._detect_language_switch(query)
+            if switch_lang:
+                db_manager.create_or_update_user(user_id, state='asking_name', language=switch_lang)
+                return self._get_lang_str(switch_lang, 'ask_name')
             # User is providing their name
             name = query.strip().title()
             if len(name) < 2 or len(name) > 100:
@@ -179,6 +205,12 @@ class ChatService:
             return self._get_lang_str(lang, 'ask_company', name=name)
 
         if state == 'asking_company':
+            # Check if user is trying to switch language instead of giving company
+            switch_lang = self._detect_language_switch(query)
+            if switch_lang:
+                db_manager.create_or_update_user(user_id, state='asking_company', language=switch_lang)
+                name = user.get('name', 'Customer') if user else 'Customer'
+                return self._get_lang_str(switch_lang, 'ask_company', name=name)
             # User is providing company/outlet name
             company = query.strip()
             if len(company) < 2:
@@ -188,11 +220,12 @@ class ChatService:
             return self._get_lang_str(lang, 'onboard_complete', name=name, company=company)
         
         if state == 'complete':
-            # Existing customer — detect language from current message if not set
-            if not user.get('language'):
-                detected = self.detect_language(query)
-                if detected:
-                    db_manager.create_or_update_user(user_id, state='complete', language=detected)
+            # Detect language from current message and update if clearly different
+            detected = self.detect_language(query)
+            if detected and detected != (user.get('language') or 'en'):
+                db_manager.create_or_update_user(user_id, state='complete', language=detected)
+            elif not user.get('language') and detected:
+                db_manager.create_or_update_user(user_id, state='complete', language=detected)
             # No onboarding needed
             return None
         
@@ -308,7 +341,7 @@ class ChatService:
 
             # 6. Get AI Answer via RAG Service
             rag_query = query + customer_context if customer_context else query
-            user_lang = self.get_user_language(user_id)
+            user_lang = self.get_user_language(user_id)  # Re-read from DB (may have been updated by onboarding detection)
             rag_res = await self.rag_service.query(rag_query, language=user_lang)
             answer = _sanitize_text(rag_res.answer)
 
