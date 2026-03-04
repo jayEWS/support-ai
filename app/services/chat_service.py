@@ -24,7 +24,7 @@ class ChatService:
     # ============ Multi-Language Support ============
     LANG_STRINGS = {
         'id': {
-            'ask_language': "Halo! 👋 Selamat datang di Edgeworks Support.\nSilakan pilih bahasa:\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文 (Chinese)\n\nKetik 1, 2, atau 3:",
+            'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
             'ask_name': "Siapa nama kamu? 😊",
             'invalid_name': "Hmm, boleh tulis nama lengkap kamu? 😊",
             'ask_company': "Hai {name}! 👋\nNama perusahaan atau outlet kamu apa ya?\n(contoh: PT ABC / Warung Makan XYZ)",
@@ -34,7 +34,7 @@ class ChatService:
             'welcome_back_no_name': "Halo! 👋 Senang ketemu lagi.\nAda yang bisa saya bantu hari ini?",
         },
         'en': {
-            'ask_language': "Hello! 👋 Welcome to Edgeworks Support.\nPlease choose your language:\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文 (Chinese)\n\nType 1, 2, or 3:",
+            'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
             'ask_name': "What is your name? 😊",
             'invalid_name': "Could you please type your full name? 😊",
             'ask_company': "Hi {name}! 👋\nWhat is your company or outlet name?\n(e.g. PT ABC / Restaurant XYZ)",
@@ -44,7 +44,7 @@ class ChatService:
             'welcome_back_no_name': "Hello! 👋 Great to see you again.\nHow can I help you today?",
         },
         'zh': {
-            'ask_language': "你好！👋 欢迎来到 Edgeworks 支持中心。\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文 (Chinese)\n\n请输入 1、2 或 3：",
+            'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
             'ask_name': "请问您的名字是？😊",
             'invalid_name': "请输入您的全名 😊",
             'ask_company': "{name} 您好！👋\n请问您的公司或门店名称是什么？\n（例如：PT ABC / 餐厅 XYZ）",
@@ -161,7 +161,7 @@ class ChatService:
             # User is selecting language
             detected_lang = self.detect_language(query)
             if not detected_lang:
-                return "Silakan ketik 1 (Indonesia), 2 (English), atau 3 (中文)\nPlease type 1, 2, or 3:"
+                return "Please select your language / Silakan pilih bahasa Anda / 请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊"
             db_manager.create_or_update_user(user_id, state='asking_name', language=detected_lang)
             welcome = {
                 'id': "Halo! 👋 Selamat datang di Edgeworks Support.\nSebelum mulai, boleh kenalan dulu?",

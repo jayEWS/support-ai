@@ -31,12 +31,14 @@ class CustomerService:
         """Multi-language greeting based on customer's language preference."""
         if customer.is_new:
             # New customer — language not yet known, use multi-language prompt
-            return ("Halo! 👋 Selamat datang di Edgeworks Support.\n"
-                    "Silakan pilih bahasa / Please choose your language:\n\n"
+            return ("👋 Welcome to *Edgeworks Support*!\n\n"
+                    "Please select your preferred language:\n"
+                    "Silakan pilih bahasa Anda:\n"
+                    "请选择您的语言：\n\n"
                     "1️⃣ Bahasa Indonesia\n"
                     "2️⃣ English\n"
-                    "3️⃣ 中文 (Chinese)\n\n"
-                    "Ketik 1, 2, atau 3 / Type 1, 2, or 3:")
+                    "3️⃣ 中文\n\n"
+                    "Reply with 1, 2, or 3 😊")
         
         # Existing customer — get their language
         user = db_manager.get_user(customer.identifier)
