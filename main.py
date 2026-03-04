@@ -862,17 +862,56 @@ async def batch_delete_knowledge(
 
 # ============ Customer Management APIs ============
 
+def _mask_phone(phone: str) -> str:
+    """Mask phone number: +6281234****90"""
+    if not phone or len(phone) < 6:
+        return phone
+    visible_start = min(5, len(phone) - 2)
+    visible_end = 2
+    masked_len = len(phone) - visible_start - visible_end
+    if masked_len <= 0:
+        return phone
+    return phone[:visible_start] + '*' * masked_len + phone[-visible_end:]
+
+def _mask_email(email: str) -> str:
+    """Mask email: jo***@gm***.com"""
+    if not email or '@' not in email:
+        return email
+    local, domain = email.rsplit('@', 1)
+    parts = domain.rsplit('.', 1)
+    domain_name = parts[0]
+    tld = '.' + parts[1] if len(parts) > 1 else ''
+    masked_local = local[:2] + '***' if len(local) > 2 else local[0] + '***'
+    masked_domain = domain_name[:2] + '***' if len(domain_name) > 2 else domain_name[0] + '***'
+    return f"{masked_local}@{masked_domain}{tld}"
+
+def _mask_customer(c: dict) -> dict:
+    """Mask sensitive fields (phone/email) in a customer dict."""
+    c = dict(c)
+    if c.get('mobile'):
+        c['mobile'] = _mask_phone(c['mobile'])
+    if c.get('email'):
+        c['email'] = _mask_email(c['email'])
+    return c
+
 @app.get("/api/customers")
-async def get_customers(agent: Annotated[dict, Depends(get_current_agent)]):
-    """List all customers (users) from DB."""
-    return _require_db().get_all_users()
+async def get_customers(agent: Annotated[dict, Depends(get_current_agent)], unmask: bool = False):
+    """List all customers. Phone/email masked unless admin requests unmask=true."""
+    is_admin = agent.get('role') == 'admin'
+    customers = _require_db().get_all_users()
+    if not (is_admin and unmask):
+        customers = [_mask_customer(c) for c in customers]
+    return customers
 
 @app.get("/api/customers/{identifier}")
-async def get_customer(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get single customer details."""
+async def get_customer(identifier: str, agent: Annotated[dict, Depends(get_current_agent)], unmask: bool = False):
+    """Get single customer details. Phone/email masked unless admin requests unmask=true."""
+    is_admin = agent.get('role') == 'admin'
     user = _require_db().get_user(identifier)
     if not user:
         return JSONResponse({"error": "Customer not found"}, status_code=404)
+    if not (is_admin and unmask):
+        user = _mask_customer(user)
     return user
 
 @app.get("/api/customers/{identifier}/context")

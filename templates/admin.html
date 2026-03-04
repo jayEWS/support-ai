@@ -691,6 +691,9 @@
                     <p class="text-xs text-gray-400 mt-1">Manage customer profiles. Import existing customers so AI recognizes them automatically.</p>
                 </div>
                 <div class="flex gap-3">
+                    <button id="cdt-unmask-btn" onclick="toggleUnmask()" class="hidden bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition flex items-center gap-2" title="Show/Hide sensitive data">
+                        <i class="fas fa-eye-slash" id="cdt-unmask-icon"></i> <span id="cdt-unmask-label">Show</span>
+                    </button>
                     <button onclick="document.getElementById('customer-import-input').click()"
                         class="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-green-600/20 hover:bg-green-700 transition flex items-center gap-2">
                         <i class="fas fa-file-import"></i> Import
@@ -2117,6 +2120,26 @@
 
         // ============ Customer Management ============
         let allCustomers = [];
+        let customerUnmasked = false;
+
+        function toggleUnmask() {
+            customerUnmasked = !customerUnmasked;
+            const icon = document.getElementById('cdt-unmask-icon');
+            const label = document.getElementById('cdt-unmask-label');
+            const btn = document.getElementById('cdt-unmask-btn');
+            if (customerUnmasked) {
+                icon.className = 'fas fa-eye';
+                label.innerText = 'Hide';
+                btn.classList.remove('bg-gray-100','text-gray-600');
+                btn.classList.add('bg-amber-100','text-amber-700');
+            } else {
+                icon.className = 'fas fa-eye-slash';
+                label.innerText = 'Show';
+                btn.classList.remove('bg-amber-100','text-amber-700');
+                btn.classList.add('bg-gray-100','text-gray-600');
+            }
+            loadCustomers();
+        }
 
         // --- Customer DataTable Engine ---
         const CDT = {
@@ -2413,7 +2436,8 @@
 
         async function loadCustomers() {
             try {
-                const res = await fetchWithAuth('/api/customers');
+                const url = customerUnmasked ? '/api/customers?unmask=true' : '/api/customers';
+                const res = await fetchWithAuth(url);
                 if (!res) return;
                 allCustomers = await res.json();
 
@@ -2424,6 +2448,12 @@
                 document.getElementById('cust-stat-total').innerText = total;
                 document.getElementById('cust-stat-onboarded').innerText = onboarded;
                 document.getElementById('cust-stat-pending').innerText = pending;
+
+                // Show unmask toggle only for admins
+                const unmaskBtn = document.getElementById('cdt-unmask-btn');
+                if (unmaskBtn && currentUser?.role === 'admin') {
+                    unmaskBtn.classList.remove('hidden');
+                }
 
                 CDT.render();
             } catch (e) { console.error('Load customers failed:', e); }
