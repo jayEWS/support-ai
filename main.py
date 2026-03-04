@@ -1201,6 +1201,56 @@ async def get_chat_history(request: Request, user_id: str = "web_portal_user"):
 async def get_history_sessions(request: Request, user_id: str = "web_portal_user"):
     return {"sessions": _require_db().get_unified_history(user_id)}
 
+# ============ Screen Recording Upload ============
+@app.post("/api/chat/upload-recording")
+async def upload_screen_recording(
+    request: Request,
+    file: UploadFile = File(...),
+    user_id: str = Form("web_portal_user"),
+    session_id: str = Form("")
+):
+    """Upload a screen recording from the chat widget."""
+    set_trace_id()
+    
+    # Validate file type
+    allowed_video_ext = [".webm", ".mp4", ".mov"]
+    ext = os.path.splitext(file.filename or "recording.webm")[1].lower()
+    if ext not in allowed_video_ext:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_video_ext)}")
+    
+    # Read file bytes
+    file_bytes = await file.read()
+    
+    # Max 50MB
+    if len(file_bytes) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum 50MB.")
+    
+    # Save using file handler
+    from app.utils.file_handler import save_upload
+    metadata = save_upload(file_bytes, file.filename or "recording.webm", destination="chat")
+    
+    # Log the recording
+    logger.info(f"[SCREEN_RECORDING] User {user_id} uploaded recording: {metadata['stored_name']} ({metadata['size']} bytes)")
+    
+    # Save as chat message if we have a DB
+    try:
+        db = _require_db()
+        db.save_chat_history(
+            user_id=user_id,
+            message=f"📹 Screen Recording: {metadata['url']}",
+            role="user",
+            channel="web"
+        )
+    except Exception as e:
+        logger.warning(f"Could not save recording to chat history: {e}")
+    
+    return {
+        "status": "ok",
+        "url": metadata["url"],
+        "filename": metadata["stored_name"],
+        "size": metadata["size"]
+    }
+
 @app.post("/api/chat")
 @limiter.limit("5/minute")
 async def chat_directly(

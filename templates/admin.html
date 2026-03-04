@@ -1564,7 +1564,19 @@
         function addMessageToUI(type, content) {
             const area = document.getElementById('chat-messages'); const isMe = type === 'agent' || type === 'assistant'; const div = document.createElement('div');
             div.className = `flex ${isMe ? 'justify-end' : ''} gap-3 fade-in`;
-            div.innerHTML = `<div class="message-bubble ${isMe ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-4 text-sm rounded-2xl">${content}</div>`;
+            // Detect screen recording links
+            const videoMatch = content.match(/📹 Screen Recording: (\/uploads\/chat\/[\w.-]+\.webm)/);
+            if (videoMatch) {
+                div.innerHTML = `<div class="${isMe ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-3 text-sm rounded-2xl" style="max-width:320px">
+                    <video src="${videoMatch[1]}" controls playsinline preload="metadata" style="border-radius:10px; width:100%; max-height:220px;"></video>
+                    <div class="flex items-center gap-2 mt-2 text-xs ${isMe ? 'text-gray-400' : 'text-blue-100'}">
+                        <i class="fas fa-video"></i> Screen Recording
+                        <a href="${videoMatch[1]}" download class="ml-auto hover:underline"><i class="fas fa-download"></i></a>
+                    </div>
+                </div>`;
+            } else {
+                div.innerHTML = `<div class="message-bubble ${isMe ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-4 text-sm rounded-2xl">${content}</div>`;
+            }
             area.appendChild(div); area.scrollTop = area.scrollHeight;
         }
 
@@ -1784,15 +1796,20 @@
                     const time = m.created_at ? new Date(m.created_at).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) : '';
                     const ticketBadge = m.ticket_id ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-1">🎫 #${m.ticket_id}</span>` : '';
                     const statusIcon = m.status === 'failed' ? ' ❌' : (m.status === 'pending' ? ' 🕐' : (m.direction === 'outbound' ? ' ✓✓' : ''));
+                    // Detect screen recording
+                    const videoMatch = m.content.match(/📹 Screen Recording: (\/uploads\/chat\/[\w.-]+\.webm)/);
+                    const contentHtml = videoMatch 
+                        ? `<video src="${videoMatch[1]}" controls playsinline preload="metadata" style="border-radius:10px; width:100%; max-height:220px;"></video><div class="flex items-center gap-2 mt-1 text-xs text-gray-400"><i class="fas fa-video"></i> Screen Recording <a href="${videoMatch[1]}" download class="ml-auto hover:underline"><i class="fas fa-download"></i></a></div>`
+                        : `<p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>`;
                     if (isInbound) {
                         return `<div class="flex justify-start"><div class="max-w-[70%] bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
-                            <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                            ${contentHtml}
                             <div class="flex items-center justify-end gap-1 mt-1"><span class="text-[10px] text-gray-400">${time}</span></div>
                         </div></div>`;
                     } else {
                         const pendingStyle = m.status === 'pending' ? 'bg-yellow-50 border border-yellow-200' : 'bg-[#dcf8c6]';
                         return `<div class="flex justify-end"><div class="max-w-[70%] ${pendingStyle} rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
-                            <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                            ${contentHtml}
                             <div class="flex items-center justify-end gap-1 mt-1">${ticketBadge}<span class="text-[10px] text-gray-400">${time}${statusIcon}</span></div>
                         </div></div>`;
                     }
