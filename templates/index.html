@@ -574,6 +574,37 @@
             height: 1px;
             background: linear-gradient(90deg, transparent, rgba(46,107,255,0.2), rgba(99,102,241,0.15), transparent);
         }
+
+        /* Chat meta (name + timestamp) */
+        .chat-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            padding: 0 0.25rem;
+        }
+        .chat-meta-name {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        .chat-meta-name.user-name {
+            color: #2e6bff;
+        }
+        html.dark .chat-meta-name.user-name {
+            color: #5694ff;
+        }
+        .chat-meta-name.ai-name {
+            color: #6366f1;
+        }
+        html.dark .chat-meta-name.ai-name {
+            color: #818cf8;
+        }
+        .chat-meta-time {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: var(--text-tertiary);
+        }
     </style>
 </head>
 
@@ -1252,7 +1283,7 @@
                     data.history.forEach(msg => {
                         let attachment = null;
                         if (msg.attachments) { try { attachment = JSON.parse(msg.attachments); } catch (e) { } }
-                        addMessage(msg.content, msg.role, attachment);
+                        addMessage(msg.content, msg.role, attachment, msg.timestamp);
                     });
                 }
             } catch (err) {
@@ -1410,16 +1441,61 @@
             return t;
         }
 
+        /* ── Timestamp Formatter ── */
+        function formatTimestamp(ts) {
+            if (!ts) return null;
+            const d = (ts instanceof Date) ? ts : new Date(ts);
+            if (isNaN(d.getTime())) return null;
+            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const day = days[d.getDay()];
+            const dd = String(d.getDate()).padStart(2,'0');
+            const mon = months[d.getMonth()];
+            const year = d.getFullYear();
+            const hh = String(d.getHours()).padStart(2,'0');
+            const mm = String(d.getMinutes()).padStart(2,'0');
+            const ss = String(d.getSeconds()).padStart(2,'0');
+            return `${day}, ${dd} ${mon} ${year} ${hh}:${mm}:${ss}`;
+        }
+
+        function getUserDisplayName() {
+            if (customerProfile && customerProfile.name) return customerProfile.name;
+            return 'You';
+        }
+
         /* ── Add Message ── */
-        function addMessage(text, type, attachment) {
+        function addMessage(text, type, attachment, timestamp) {
+            const isUser = (type === 'user' || type === 'customer');
             const wrapper = document.createElement('div');
-            wrapper.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`;
+            wrapper.className = `flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-fade-in-up`;
+
+            // Meta line: name + timestamp
+            const meta = document.createElement('div');
+            meta.className = 'chat-meta' + (isUser ? ' justify-end' : '');
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'chat-meta-name ' + (isUser ? 'user-name' : 'ai-name');
+            nameSpan.textContent = isUser ? getUserDisplayName() : 'Edgeworks AI';
+            meta.appendChild(nameSpan);
+            const timeStr = formatTimestamp(timestamp || new Date());
+            if (timeStr) {
+                const dot = document.createElement('span');
+                dot.textContent = '·';
+                dot.style.color = 'var(--text-tertiary)';
+                dot.style.fontSize = '0.6rem';
+                meta.appendChild(dot);
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'chat-meta-time';
+                timeSpan.textContent = timeStr;
+                meta.appendChild(timeSpan);
+            }
+            wrapper.appendChild(meta);
+
             const bubble = document.createElement('div');
-            bubble.className = `px-5 py-3.5 max-w-xl leading-relaxed text-[14.5px] ${type === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`;
+            bubble.className = `px-5 py-3.5 max-w-xl leading-relaxed text-[14.5px] ${isUser ? 'chat-bubble-user' : 'chat-bubble-ai'}`;
 
             if (text) {
                 const textEl = document.createElement('div');
-                if (type === 'user') {
+                if (isUser) {
                     textEl.innerText = text;
                 } else {
                     textEl.className = 'msg-text';
@@ -1495,7 +1571,7 @@
                         if (text && text.startsWith('[User uploaded a ') && attachment) {
                             text = `📎 ${attachment.original_name}`;
                         }
-                        addMessage(text, msg.role, attachment);
+                        addMessage(text, msg.role, attachment, msg.timestamp);
                     }
                 }
             } catch (err) {
