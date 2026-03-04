@@ -5,10 +5,10 @@ Run once on production to support multi-language feature.
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import Database
+from app.core.database import DatabaseManager
 
 def migrate():
-    db = Database()
+    db = DatabaseManager()
     engine = db.engine
     with engine.connect() as conn:
         # Check if column already exists
