@@ -101,21 +101,43 @@ class ChatService:
     def _detect_language_switch(text: str) -> str | None:
         """Detect if user is requesting a language switch (e.g. 'can i use english?', 'english please').
         Returns target language code or None."""
-        t = text.strip().lower()
-        # Direct language names or switch phrases
-        en_triggers = {'english', 'use english', 'can i use english', 'switch to english', 'english please', 'i want english', 'in english'}
-        id_triggers = {'indonesia', 'bahasa', 'bahasa indonesia', 'use indonesia', 'use bahasa', 'switch to indonesia', 'indonesian'}
-        zh_triggers = {'chinese', 'mandarin', 'use chinese', 'switch to chinese', '中文', '切换中文', '用中文'}
+        import re
+        # Normalize: lowercase, strip, remove punctuation
+        t = re.sub(r'[^a-z0-9\u4e00-\u9fff\s]', '', text.strip().lower()).strip()
+        words = set(t.split())
         
-        # Remove trailing punctuation for matching
-        t_clean = t.rstrip('?!.,')
+        # Check for English language keywords anywhere in the text
+        en_keywords = {'english', 'inggris'}
+        id_keywords = {'indonesia', 'bahasa', 'indonesian'}
+        zh_keywords = {'chinese', 'mandarin', 'zhongwen'}
         
-        if t_clean in en_triggers or any(t_clean.startswith(p) for p in ('can i use eng', 'switch to eng', 'i want eng', 'change to eng')):
-            return 'en'
-        if t_clean in id_triggers or any(t_clean.startswith(p) for p in ('can i use indo', 'switch to indo', 'change to indo', 'can i use bahasa')):
-            return 'id'
-        if t_clean in zh_triggers or any(t_clean.startswith(p) for p in ('can i use chin', 'switch to chin', 'change to chin', 'can i use mand')):
+        # Chinese character triggers
+        if any(c in t for c in ('中文', '切换中文', '用中文', '华文', '华语')):
             return 'zh'
+        
+        # Switch intent words (user wants to change language)
+        switch_words = {'use', 'switch', 'change', 'want', 'can', 'please', 'prefer', 'speak', 'pakai', 'ganti', 'mau', 'tolong', 'bisa'}
+        has_switch_intent = bool(words & switch_words)
+        
+        # If any language keyword found + switch intent → language switch
+        if words & en_keywords:
+            if has_switch_intent or len(words) <= 2:
+                return 'en'
+        if words & id_keywords:
+            if has_switch_intent or len(words) <= 2:
+                return 'id'
+        if words & zh_keywords:
+            if has_switch_intent or len(words) <= 2:
+                return 'zh'
+        
+        # Exact single-word match (user just types the language name)
+        if t in ('english', 'inggris'):
+            return 'en'
+        if t in ('indonesia', 'bahasa', 'indonesian', 'bahasa indonesia'):
+            return 'id'
+        if t in ('chinese', 'mandarin', 'zhongwen'):
+            return 'zh'
+        
         return None
 
     def _get_lang_str(self, lang: str, key: str, **kwargs) -> str:

@@ -160,29 +160,12 @@
                 History
             </a>
 
-            <!-- Only visible for Agents -->
-            <div id="agent-links" class="hidden pt-4 mt-4 border-t border-slate-100">
-                <a href="/admin"
-                    class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Agent Dashboard
-                </a>
-            </div>
+
         </nav>
-        <div class="p-6 mt-auto border-t bg-slate-50 rounded-t-3xl">
-            <div class="flex items-center">
-                <div id="user-initial"
-                    class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                    U</div>
-                <div class="ml-3">
-                    <p id="user-name-display" class="text-sm font-bold text-slate-800">Welcome User</p>
-                    <p id="user-role-display" class="text-xs text-slate-500">Self Service</p>
-                </div>
-            </div>
-        </div>
+        <!-- Hidden profile elements (used by JS but not displayed) -->
+        <div id="user-initial" class="hidden">U</div>
+        <p id="user-name-display" class="hidden">Welcome User</p>
+        <p id="user-role-display" class="hidden">Self Service</p>
     </aside>
 
     <!-- Main Chat Workspace -->
@@ -327,20 +310,9 @@
         async function initPortal() {
             try {
                 const res = await fetch('/api/auth/me');
-                if (res.ok) {
-                    const agent = await res.json();
-                    document.getElementById('agent-links').classList.remove('hidden');
-                    document.getElementById('user-name-display').innerText = agent.name;
-                    document.getElementById('user-role-display').innerText = agent.role;
-                    document.getElementById('user-initial').innerText = agent.name.charAt(0).toUpperCase();
-                }
+                // Agent status checked silently, no UI changes needed
             } catch (err) {
-                // Not an agent - show customer profile if available
-                if (customerProfile && customerProfile.name) {
-                    document.getElementById('user-name-display').innerText = customerProfile.name;
-                    document.getElementById('user-role-display').innerText = 'Customer';
-                    document.getElementById('user-initial').innerText = customerProfile.name.charAt(0).toUpperCase();
-                }
+                // Not an agent - customer portal
             }
         }
 
