@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     WHATSAPP_BUSINESS_ACCOUNT_ID: str = ""  # WhatsApp Business Account ID
     WHATSAPP_VERIFY_TOKEN: str = "edgeworks_wa_verify_2024"  # Webhook verification token (you set this)
     WHATSAPP_APP_SECRET: str = ""  # Meta App Secret for signature validation
+    WHATSAPP_TEST_MODE: bool = True  # Enable test mode (local chat without Meta API)
     
     # Email / Mailgun Settings
     MAILGUN_API_KEY: str = ""  # Set via environment variable

@@ -424,7 +424,14 @@
                 <div class="p-4 border-b bg-green-600">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="font-bold text-white flex items-center gap-2"><i class="fab fa-whatsapp text-lg"></i> WhatsApp</h2>
-                        <button onclick="loadWhatsApp()" class="text-green-200 hover:text-white transition"><i class="fas fa-sync-alt text-xs"></i></button>
+                        <div class="flex items-center gap-2">
+                            <button id="wa-simulate-btn" onclick="openSimulateModal()" class="text-green-200 hover:text-white transition hidden" title="Simulate incoming message (Test Mode)"><i class="fas fa-flask text-xs"></i></button>
+                            <button onclick="loadWhatsApp()" class="text-green-200 hover:text-white transition"><i class="fas fa-sync-alt text-xs"></i></button>
+                        </div>
+                    </div>
+                    <!-- Test mode banner -->
+                    <div id="wa-test-banner" class="hidden bg-yellow-400 text-yellow-900 text-[10px] font-bold px-3 py-1.5 rounded-lg mb-2 flex items-center gap-2">
+                        <i class="fas fa-flask"></i> TEST MODE — Messages are local only, not sent to WhatsApp
                     </div>
                     <input type="text" id="wa-search" placeholder="Search phone number..."
                         class="w-full border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-300 bg-green-700 text-white placeholder-green-300"
@@ -916,13 +923,41 @@
             </div>
         </section>
 
+        <!-- Simulate WhatsApp Inbound Modal -->
+        <div id="wa-simulate-modal" class="modal-overlay hidden">
+            <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-fade-in">
+                <div class="bg-green-600 p-6 flex justify-between items-center">
+                    <h3 class="text-white font-bold flex items-center gap-2"><i class="fas fa-flask"></i> Simulate Inbound Message</h3>
+                    <button onclick="document.getElementById('wa-simulate-modal').classList.add('hidden')" class="text-green-200 hover:text-white"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-gray-500">Simulate a customer sending a WhatsApp message. It will be processed through the full AI pipeline (intent classification → RAG → response).</p>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone Number</label>
+                        <input type="text" id="sim-phone" placeholder="+628199887766" class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Customer Message</label>
+                        <textarea id="sim-message" rows="3" placeholder="e.g. Bagaimana cara closing di V5?" class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none resize-none"></textarea>
+                    </div>
+                    <div id="sim-result" class="hidden bg-green-50 border border-green-200 rounded-xl p-4">
+                        <p class="text-[10px] font-bold text-green-600 uppercase mb-1">AI Response:</p>
+                        <p id="sim-result-text" class="text-sm text-gray-700 whitespace-pre-wrap"></p>
+                    </div>
+                    <button onclick="runSimulation()" id="sim-run-btn" class="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-play"></i> Send Simulated Message
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <section id="settings-view" class="p-8 overflow-y-auto flex-1 hidden">
             <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight">System Settings</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- AI Preferences -->
                 <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
                     <div>
-                        <h3
-                            class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
                             <i class="fas fa-robot text-blue-600"></i> AI Preferences</h3>
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
@@ -931,6 +966,27 @@
                                     <p class="text-xs text-gray-400">Generate ticket summaries</p>
                                 </div><input type="checkbox" checked
                                     class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- WhatsApp Settings -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                            <i class="fab fa-whatsapp text-green-600"></i> WhatsApp Settings</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Test Mode</p>
+                                    <p class="text-xs text-gray-400">Chat locally without Meta API credentials</p>
+                                </div>
+                                <button id="wa-testmode-toggle" onclick="toggleTestMode()" class="w-12 h-6 rounded-full bg-gray-300 relative transition-colors duration-200 cursor-pointer">
+                                    <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow"></div>
+                                </button>
+                            </div>
+                            <div id="wa-meta-status" class="text-xs text-gray-400 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+                                <i class="fas fa-circle-notch fa-spin text-gray-300"></i> Checking...
                             </div>
                         </div>
                     </div>
@@ -1452,26 +1508,48 @@
         let waSelectedName = null;
         let waPollingInterval = null;
         let waLastMessageCount = 0;
+        let waTestMode = false;
 
         async function loadWhatsApp() {
             try {
-                // Check Meta API config status
+                // Check Meta API config status + test mode
                 try {
                     const cfgRes = await fetchWithAuth('/api/whatsapp/config-status');
                     const cfg = await cfgRes.json();
-                    const banner = document.getElementById('wa-config-banner');
-                    if (banner) banner.remove();
-                    if (!cfg.configured) {
-                        const waSection = document.getElementById('wa-stat-total')?.closest('section') || document.querySelector('[data-section]');
-                        const bannerEl = document.createElement('div');
-                        bannerEl.id = 'wa-config-banner';
-                        bannerEl.className = 'mx-4 mb-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3';
-                        bannerEl.innerHTML = `<i class="fas fa-exclamation-triangle text-amber-500 mt-0.5"></i>
-                            <div><p class="text-sm font-bold text-amber-800">WhatsApp Meta API Not Configured</p>
-                            <p class="text-xs text-amber-600 mt-1">Messages will be saved locally but NOT delivered to WhatsApp. Set <code class="bg-amber-100 px-1 rounded">WHATSAPP_API_TOKEN</code> and <code class="bg-amber-100 px-1 rounded">WHATSAPP_PHONE_NUMBER_ID</code> in .env to enable sending.</p></div>`;
-                        const statsRow = document.getElementById('wa-stat-total')?.closest('.grid');
-                        if (statsRow) statsRow.parentNode.insertBefore(bannerEl, statsRow);
+                    waTestMode = cfg.test_mode;
+                    
+                    // Update test mode banner in WhatsApp panel
+                    const testBanner = document.getElementById('wa-test-banner');
+                    const simBtn = document.getElementById('wa-simulate-btn');
+                    if (cfg.test_mode && !cfg.configured) {
+                        testBanner.classList.remove('hidden');
+                        simBtn.classList.remove('hidden');
+                    } else {
+                        testBanner.classList.add('hidden');
+                        simBtn.classList.add('hidden');
                     }
+                    
+                    // Update settings page toggle
+                    updateTestModeToggle(cfg.test_mode);
+                    
+                    // Update meta status in settings
+                    const metaStatus = document.getElementById('wa-meta-status');
+                    if (metaStatus) {
+                        if (cfg.configured) {
+                            metaStatus.innerHTML = '<i class="fas fa-check-circle text-green-500"></i> <span class="text-green-700 font-semibold">Meta WhatsApp Cloud API is active and connected.</span>';
+                            metaStatus.className = 'text-xs bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2';
+                        } else if (cfg.test_mode) {
+                            metaStatus.innerHTML = '<i class="fas fa-flask text-yellow-500"></i> <span class="text-yellow-700 font-semibold">Test Mode active — messages processed locally. Set META credentials in .env to go live.</span>';
+                            metaStatus.className = 'text-xs bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center gap-2';
+                        } else {
+                            metaStatus.innerHTML = '<i class="fas fa-times-circle text-red-400"></i> <span class="text-red-600 font-semibold">Not configured. Set WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID in .env.</span>';
+                            metaStatus.className = 'text-xs bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2';
+                        }
+                    }
+                    
+                    // Remove old amber banner
+                    const oldBanner = document.getElementById('wa-config-banner');
+                    if (oldBanner) oldBanner.remove();
                 } catch(_) {}
 
                 const statsRes = await fetchWithAuth('/api/whatsapp/stats');
@@ -1632,8 +1710,8 @@
                     box.value = ''; box.style.height = 'auto';
                     await refreshWaThread();
                     await loadWhatsAppConversations(document.getElementById('wa-search').value);
-                    if (result.status === 'pending') {
-                        showToast('Message saved locally (Meta WhatsApp API not configured yet)', 'warning');
+                    if (result.test_mode) {
+                        showToast('Message saved locally (Test Mode)', 'info');
                     }
                 } else {
                     const err = await res.json();
@@ -1686,6 +1764,85 @@
             toast.innerHTML = `<i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : type === 'error' ? 'times-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}`;
             document.body.appendChild(toast);
             setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000);
+        }
+
+        // ============ WhatsApp Test Mode Functions ============
+        function updateTestModeToggle(enabled) {
+            const toggle = document.getElementById('wa-testmode-toggle');
+            if (!toggle) return;
+            const dot = toggle.querySelector('div');
+            if (enabled) {
+                toggle.className = 'w-12 h-6 rounded-full bg-green-500 relative transition-colors duration-200 cursor-pointer';
+                dot.style.transform = 'translateX(24px)';
+            } else {
+                toggle.className = 'w-12 h-6 rounded-full bg-gray-300 relative transition-colors duration-200 cursor-pointer';
+                dot.style.transform = 'translateX(0)';
+            }
+        }
+
+        async function toggleTestMode() {
+            const secret = prompt('Enter API Secret Key to toggle test mode:');
+            if (!secret) return;
+            try {
+                const res = await fetchWithAuth('/api/whatsapp/test-mode', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ secret, enabled: !waTestMode })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    waTestMode = data.test_mode;
+                    updateTestModeToggle(waTestMode);
+                    showToast(`WhatsApp test mode ${waTestMode ? 'ENABLED' : 'DISABLED'}`, waTestMode ? 'success' : 'warning');
+                    loadWhatsApp();
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || 'Failed to toggle test mode', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        function openSimulateModal() {
+            document.getElementById('sim-result').classList.add('hidden');
+            if (waSelectedPhone) {
+                document.getElementById('sim-phone').value = waSelectedPhone;
+            }
+            document.getElementById('sim-message').value = '';
+            document.getElementById('wa-simulate-modal').classList.remove('hidden');
+        }
+
+        async function runSimulation() {
+            const phone = document.getElementById('sim-phone').value.trim();
+            const message = document.getElementById('sim-message').value.trim();
+            if (!phone || !message) return showToast('Phone and message required', 'warning');
+
+            const btn = document.getElementById('sim-run-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            document.getElementById('sim-result').classList.add('hidden');
+
+            try {
+                const res = await fetchWithAuth('/api/whatsapp/simulate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone_number: phone, message })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('sim-result-text').textContent = data.ai_response;
+                    document.getElementById('sim-result').classList.remove('hidden');
+                    showToast('Simulated message processed!', 'success');
+                    // Auto-select this conversation
+                    await loadWhatsAppConversations();
+                    await selectWaConversation(phone);
+                } else {
+                    showToast(data.detail || 'Simulation failed', 'error');
+                }
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+            finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Send Simulated Message';
+            }
         }
 
         let waSearchTimeout;

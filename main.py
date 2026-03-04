@@ -1304,14 +1304,91 @@ async def get_whatsapp_stats(agent: Annotated[dict, Depends(get_current_agent)])
 
 @app.get("/api/whatsapp/config-status")
 async def get_whatsapp_config_status(agent: Annotated[dict, Depends(get_current_agent)]):
-    """Check if WhatsApp Meta API is configured."""
+    """Check if WhatsApp Meta API is configured and test mode status."""
     from app.adapters.whatsapp_meta import is_meta_configured
     configured = is_meta_configured()
+    test_mode = settings.WHATSAPP_TEST_MODE
     return {
         "configured": configured,
+        "test_mode": test_mode,
         "provider": "meta_cloud_api",
-        "note": "Set WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID in .env to enable sending." if not configured else "Meta WhatsApp Cloud API is active."
+        "note": "Test Mode ON — messages processed locally without Meta API." if test_mode and not configured else (
+            "Set WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID in .env to enable sending." if not configured else "Meta WhatsApp Cloud API is active."
+        )
     }
+
+@app.post("/api/whatsapp/test-mode")
+async def toggle_whatsapp_test_mode(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Toggle WhatsApp test mode (admin only). Requires API_SECRET_KEY for security."""
+    secret = data.get("secret", "")
+    if secret != settings.API_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Invalid secret key")
+    
+    enabled = data.get("enabled", True)
+    settings.WHATSAPP_TEST_MODE = bool(enabled)
+    logger.info(f"WhatsApp test mode {'ENABLED' if settings.WHATSAPP_TEST_MODE else 'DISABLED'} by {agent.get('username', 'unknown')}")
+    return {"test_mode": settings.WHATSAPP_TEST_MODE}
+
+@app.post("/api/whatsapp/simulate")
+async def simulate_whatsapp_inbound(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Simulate an inbound WhatsApp message (test mode only). 
+    This processes the message through the full AI pipeline and saves both inbound + AI response."""
+    if not settings.WHATSAPP_TEST_MODE:
+        raise HTTPException(status_code=403, detail="Test mode is disabled. Enable it in Settings first.")
+    
+    phone = data.get("phone_number", "").strip()
+    message_text = data.get("message", "").strip()
+    if not phone or not message_text:
+        raise HTTPException(status_code=400, detail="phone_number and message are required")
+    
+    # Normalize phone
+    if not phone.startswith("+"):
+        phone = f"+{phone}"
+    
+    db = _require_db()
+    
+    # Save the simulated inbound message
+    db.save_whatsapp_message(
+        phone_number=phone,
+        direction="inbound",
+        content=message_text,
+        bird_message_id=f"test_{int(__import__('time').time()*1000)}"
+    )
+    
+    # Process through AI pipeline
+    try:
+        customer = await app.state.customer_service.get_or_register_customer(phone)
+        classification = await app.state.intent_service.classify(message_text)
+        
+        response_text = ""
+        if classification.intent == IntentType.CRITICAL:
+            response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message_text}", message_text, True)
+        elif classification.intent == IntentType.ESCALATION:
+            response_text = await app.state.escalation_service.escalate(customer.identifier, f"Escalation: {message_text}", message_text)
+        elif classification.intent == IntentType.DEEP_REASONING:
+            response_text = await app.state.llm_service.reason(message_text)
+        else:
+            rag_res = await app.state.rag_service.query(message_text)
+            if rag_res.confidence < 0.5:
+                response_text = await app.state.escalation_service.escalate(customer.identifier, f"Low Confidence", message_text)
+            else:
+                response_text = rag_res.answer
+        
+        if customer.is_new:
+            response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
+        
+        # Save AI response
+        db.save_whatsapp_message(
+            phone_number=phone,
+            direction="outbound",
+            content=response_text,
+            status="sent"
+        )
+        
+        return {"status": "success", "inbound": message_text, "ai_response": response_text, "phone": phone}
+    except Exception as e:
+        logger.error(f"Simulate AI processing failed: {e}")
+        return {"status": "partial", "inbound": message_text, "ai_response": f"[AI Error] {str(e)}", "phone": phone}
 
 @app.post("/api/whatsapp/send")
 async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
@@ -1323,13 +1400,23 @@ async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_cur
 
     from app.adapters.whatsapp_meta import send_whatsapp_message, is_meta_configured
     meta_ready = is_meta_configured()
+    test_mode = settings.WHATSAPP_TEST_MODE
     send_success = False
     if meta_ready:
         send_success = await send_whatsapp_message(phone, message)
+    elif test_mode:
+        send_success = True  # In test mode, treat as successfully sent locally
 
     # Always save the message locally so it appears in the admin chat UI
     db = _require_db()
-    status = "sent" if send_success else ("pending" if not meta_ready else "failed")
+    if send_success:
+        status = "sent"
+    elif test_mode:
+        status = "sent"
+    elif not meta_ready:
+        status = "pending"
+    else:
+        status = "failed"
     msg_id = db.save_whatsapp_message(
         phone_number=phone,
         direction="outbound",
@@ -1337,11 +1424,9 @@ async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_cur
         status=status
     )
 
-    if not meta_ready:
-        return {"status": "pending", "message_id": msg_id, "note": "Message saved locally. WhatsApp Meta API not configured yet — will deliver once credentials are set."}
-    if not send_success:
+    if meta_ready and not send_success:
         raise HTTPException(status_code=502, detail="Failed to send via Meta WhatsApp API")
-    return {"status": "sent", "message_id": msg_id}
+    return {"status": status, "message_id": msg_id, "test_mode": test_mode}
 
 @app.post("/api/whatsapp/convert-ticket")
 async def convert_whatsapp_to_ticket(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
