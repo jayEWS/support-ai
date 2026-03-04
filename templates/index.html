@@ -130,6 +130,17 @@
             font-weight: bold;
             margin-left: auto;
         }
+
+        /* Screen Recording */
+        .rec-btn { transition: all 0.2s; }
+        .rec-btn:hover { background: rgba(239,68,68,0.15) !important; }
+        .rec-btn.recording { background: #fecaca !important; animation: recPulse 1s ease-in-out infinite; }
+        @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+        .rec-bar { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .video-bubble video { border-radius: 12px; max-width: 100%; cursor: pointer; }
+        .video-bubble video:hover { opacity: 0.9; }
+        .upload-progress { height: 3px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
+        .upload-progress-bar { height: 100%; background: #2563eb; transition: width 0.3s; }
     </style>
 </head>
 
@@ -199,6 +210,16 @@
             </div>
         </div>
 
+        <!-- Recording Banner -->
+        <div id="rec-banner" class="hidden rec-bar px-6 py-3 items-center justify-between text-white text-sm font-bold">
+            <div class="flex items-center gap-3">
+                <span class="w-3 h-3 bg-white rounded-full animate-pulse"></span>
+                <span>Recording screen...</span>
+                <span id="rec-timer" class="font-mono">00:00</span>
+            </div>
+            <button onclick="stopRecording()" class="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl transition text-white font-bold text-xs uppercase tracking-widest">⏹ Stop</button>
+        </div>
+
         <div class="p-8 bg-[#121417]/95 backdrop-blur-xl border-t border-white/5 py-10">
             <div class="max-w-5xl mx-auto flex flex-col gap-4">
                 <!-- Pending file bar -->
@@ -231,6 +252,19 @@
                             </button>
                             <input type="file" id="file-input" class="hidden"
                                 accept=".pdf,.txt,.doc,.docx,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.ogg,.m4a,.mp4,.mov,.webm,$*.*" />
+
+                            <!-- Screen Record button -->
+                            <button type="button" id="rec-btn" onclick="toggleRecording()"
+                                class="rec-btn w-12 h-12 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-white/5 rounded-2xl transition"
+                                title="Record Screen">
+                                <svg id="rec-icon-video" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                <svg id="rec-icon-stop" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24">
+                                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                                </svg>
+                            </button>
 
                             <button type="submit"
                                 class="px-8 py-3 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 uppercase text-xs tracking-widest">Send</button>
@@ -776,6 +810,196 @@
                 document.getElementById('close-chat').classList.remove('hidden');
             }
         });
+
+        // ====== Screen Recording ======
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let mediaStream = null;
+        let recTimerInterval = null;
+        let recStartTime = null;
+        let isRecording = false;
+
+        async function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        }
+
+        async function startRecording() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                addMessage('⚠️ Screen recording is not supported in this browser. Please use Chrome, Edge, or Firefox.', 'ai');
+                return;
+            }
+
+            try {
+                mediaStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { mediaSource: 'screen', frameRate: { ideal: 15, max: 30 } },
+                    audio: false
+                });
+
+                recordedChunks = [];
+                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                    ? 'video/webm;codecs=vp9'
+                    : 'video/webm';
+                mediaRecorder = new MediaRecorder(mediaStream, { mimeType, videoBitsPerSecond: 1000000 });
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    cleanupRecordingUI();
+                    if (recordedChunks.length === 0) return;
+
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    recordedChunks = [];
+
+                    if (blob.size > 50 * 1024 * 1024) {
+                        addMessage('⚠️ Recording is too large (max 50MB). Try a shorter recording.', 'ai');
+                        return;
+                    }
+
+                    await uploadRecording(blob);
+                };
+
+                // If user stops sharing via browser UI
+                mediaStream.getVideoTracks()[0].onended = () => {
+                    if (isRecording) stopRecording();
+                };
+
+                mediaRecorder.start(1000);
+                isRecording = true;
+
+                // Update UI
+                document.getElementById('rec-btn').classList.add('recording');
+                document.getElementById('rec-icon-video').classList.add('hidden');
+                document.getElementById('rec-icon-stop').classList.remove('hidden');
+                document.getElementById('rec-banner').classList.remove('hidden');
+                document.getElementById('rec-banner').classList.add('flex');
+
+                // Start timer
+                recStartTime = Date.now();
+                recTimerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - recStartTime) / 1000);
+                    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                    const secs = String(elapsed % 60).padStart(2, '0');
+                    document.getElementById('rec-timer').textContent = `${mins}:${secs}`;
+
+                    // Auto-stop at 3 minutes
+                    if (elapsed >= 180) stopRecording();
+                }, 1000);
+
+            } catch (err) {
+                cleanupRecordingUI();
+                if (err.name !== 'NotAllowedError') {
+                    addMessage('⚠️ Could not start screen recording. Please try again.', 'ai');
+                }
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+        }
+
+        function cleanupRecordingUI() {
+            isRecording = false;
+            clearInterval(recTimerInterval);
+            document.getElementById('rec-btn').classList.remove('recording');
+            document.getElementById('rec-icon-video').classList.remove('hidden');
+            document.getElementById('rec-icon-stop').classList.add('hidden');
+            document.getElementById('rec-banner').classList.add('hidden');
+            document.getElementById('rec-banner').classList.remove('flex');
+            document.getElementById('rec-timer').textContent = '00:00';
+        }
+
+        async function uploadRecording(blob) {
+            // Show uploading indicator
+            const uploadDiv = document.createElement('div');
+            uploadDiv.className = 'flex justify-end animate-in slide-in-from-bottom-2 duration-300';
+            uploadDiv.id = 'upload-progress-msg';
+            uploadDiv.innerHTML = `
+                <div class="p-5 max-w-xl shadow-sm leading-relaxed chat-bubble-user">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="animate-spin">⏳</span>
+                        <span id="upload-status-text">Uploading recording...</span>
+                    </div>
+                    <div class="upload-progress"><div class="upload-progress-bar" id="upload-bar" style="width:0%"></div></div>
+                </div>
+            `;
+            chatbox.appendChild(uploadDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+
+            try {
+                const formData = new FormData();
+                const filename = `screen_recording_${Date.now()}.webm`;
+                formData.append('file', blob, filename);
+                formData.append('user_id', userId);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/chat/upload-recording');
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        const bar = document.getElementById('upload-bar');
+                        const txt = document.getElementById('upload-status-text');
+                        if (bar) bar.style.width = pct + '%';
+                        if (txt) txt.textContent = `Uploading... ${pct}%`;
+                    }
+                };
+
+                xhr.onload = () => {
+                    const progressMsg = document.getElementById('upload-progress-msg');
+                    if (progressMsg) progressMsg.remove();
+
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        addVideoMessage(data.url, data.filename);
+                        addMessage('📹 Got your screen recording! Our team will review it to understand the issue better.', 'ai');
+                    } else {
+                        addMessage('⚠️ Failed to upload recording. Please try again.', 'ai');
+                    }
+                };
+
+                xhr.onerror = () => {
+                    const progressMsg = document.getElementById('upload-progress-msg');
+                    if (progressMsg) progressMsg.remove();
+                    addMessage('⚠️ Upload failed. Check your connection and try again.', 'ai');
+                };
+
+                xhr.send(formData);
+
+            } catch (err) {
+                const progressMsg = document.getElementById('upload-progress-msg');
+                if (progressMsg) progressMsg.remove();
+                addMessage('⚠️ Failed to upload recording.', 'ai');
+            }
+        }
+
+        function addVideoMessage(videoUrl, filename) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex justify-end animate-in slide-in-from-bottom-2 duration-300';
+            wrapper.innerHTML = `
+                <div class="p-4 max-w-xl shadow-sm video-bubble chat-bubble-user">
+                    <video src="${videoUrl}" controls playsinline preload="metadata" style="max-height:280px; border-radius:12px; width:100%;"></video>
+                    <div class="flex items-center gap-2 mt-2 text-xs text-blue-100">
+                        <span>📹</span>
+                        <span>Screen Recording</span>
+                        <a href="${videoUrl}" download class="ml-auto hover:underline">⬇ Download</a>
+                    </div>
+                </div>
+            `;
+            chatbox.appendChild(wrapper);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
     </script>
 </body>
 
