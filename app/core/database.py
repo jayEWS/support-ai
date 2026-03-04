@@ -341,6 +341,58 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
+    def get_active_portal_chats(self):
+        """Get users with active portal messages (live chats not yet closed).
+        Returns list of active chat sessions with user info and last message preview."""
+        session = self.get_session()
+        try:
+            from sqlalchemy import func as sa_func, case
+            
+            # Subquery: users with portal messages
+            active_users = session.query(
+                Message.user_id,
+                sa_func.count(Message.id).label('msg_count'),
+                sa_func.max(Message.timestamp).label('last_msg_time'),
+            ).group_by(Message.user_id).subquery()
+
+            # Join with User table for name/company
+            results = session.query(
+                active_users.c.user_id,
+                active_users.c.msg_count,
+                active_users.c.last_msg_time,
+                User.name,
+                User.company,
+            ).outerjoin(User, active_users.c.user_id == User.identifier) \
+             .order_by(active_users.c.last_msg_time.desc()).all()
+
+            chats = []
+            for r in results:
+                # Get last message content for preview
+                last_msg = session.query(Message).filter_by(user_id=r.user_id) \
+                    .order_by(Message.timestamp.desc()).first()
+                
+                # Get last user (customer) message to show their question
+                last_user_msg = session.query(Message).filter_by(user_id=r.user_id, role='user') \
+                    .order_by(Message.timestamp.desc()).first()
+
+                chats.append({
+                    "user_id": r.user_id,
+                    "name": r.name or "Anonymous",
+                    "company": r.company or "",
+                    "message_count": r.msg_count,
+                    "last_message": last_msg.content[:100] if last_msg and last_msg.content else "",
+                    "last_message_role": last_msg.role if last_msg else "",
+                    "last_user_message": last_user_msg.content[:100] if last_user_msg and last_user_msg.content else "",
+                    "last_activity": r.last_msg_time.isoformat() if r.last_msg_time else "",
+                    "status": "waiting" if (last_msg and last_msg.role == 'user') else "replied"
+                })
+            return chats
+        except Exception as e:
+            logger.error(f"Error getting active portal chats: {e}")
+            return []
+        finally:
+            self.Session.remove()
+
     def get_unified_history(self, user_id: str, ticket_id: Optional[int] = None):
         """Merges messages from both bot portal and live chat for a full view."""
         session = self.get_session()

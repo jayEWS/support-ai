@@ -75,7 +75,7 @@ from app.services.llm_service import LLMService
 from app.services.ticket_service import TicketService
 from app.services.escalation_service import EscalationService
 from app.services.chat_service import ChatService
-from app.services.websocket_manager import manager
+from app.services.websocket_manager import manager, portal_manager
 from app.webhook.whatsapp import WhatsAppWebhookService
 
 # Background Services
@@ -707,6 +707,64 @@ async def update_ticket_status(ticket_id: int, data: dict, agent: Annotated[dict
     if "status" in data:
         _require_db().update_ticket_status(ticket_id, data["status"])
     return {"status": "success"}
+
+# ============ Live Chat (Admin ↔ Customer Portal) ============
+
+@app.get("/api/livechat/sessions")
+async def get_livechat_sessions(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get all active portal chat sessions for admin live chat view."""
+    db = _require_db()
+    return db.get_active_portal_chats()
+
+@app.get("/api/livechat/{user_id}/messages")
+async def get_livechat_messages(user_id: str, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get all portal messages for a specific user (live chat view)."""
+    db = _require_db()
+    messages = db.get_messages(user_id)
+    return {"messages": messages, "user_id": user_id}
+
+@app.post("/api/livechat/{user_id}/reply")
+async def livechat_agent_reply(user_id: str, request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Agent sends a reply to a customer's portal chat."""
+    data = await request.json()
+    content = data.get("message", "").strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    
+    db = _require_db()
+    # Save as 'assistant' role (same as AI bot replies) so it shows on user's portal
+    db.save_message(user_id, "assistant", content)
+    
+    # Broadcast via WebSocket to the user's portal if connected
+    from app.services.websocket_manager import portal_manager
+    await portal_manager.send_to_user(user_id, {
+        "event": "message",
+        "role": "assistant",
+        "content": content,
+        "sender_name": agent.get("name", "Agent"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"status": "sent", "message": content}
+
+@app.post("/api/livechat/{user_id}/close")
+async def livechat_close_session(user_id: str, request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Agent closes a live chat session — creates a ticket if requested."""
+    data = await request.json()
+    option = data.get("option", "close")  # "close" or "ticket"
+    
+    result = await app.state.chat_service.close_chat(user_id, option)
+    
+    # Notify customer via WebSocket
+    from app.services.websocket_manager import portal_manager
+    await portal_manager.send_to_user(user_id, {
+        "event": "session_closed",
+        "message": result.get("message", "Chat closed by agent"),
+        "ticket_created": result.get("ticket_created", False),
+        "ticket_id": result.get("ticket_id")
+    })
+    
+    return result
 
 @app.get("/api/analytics")
 async def get_analytics(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
@@ -1815,6 +1873,76 @@ async def websocket_chat_endpoint(websocket: WebSocket, session_id: int, user_id
                 await manager.broadcast(session_id, {"event": "message", "message_id": msg_id, "sender_id": user_id, "sender_type": user_type, "content": content, "sent_at": datetime.now(timezone.utc).isoformat()})
     except: manager.disconnect(session_id, websocket)
 
+# Portal WebSocket: customer connects from index.html
+@app.websocket("/ws/portal/{user_id}")
+async def portal_websocket(websocket: WebSocket, user_id: str):
+    """WebSocket for portal users — receives real-time agent replies."""
+    from app.services.websocket_manager import portal_manager
+    try:
+        await portal_manager.connect_user(user_id, websocket)
+        while True:
+            data = await websocket.receive_text()
+            msg = json.loads(data)
+            # Customer sends a message via WebSocket — save and broadcast to admin watchers
+            if msg.get("event") == "message":
+                content = msg.get("content", "").strip()
+                if content:
+                    db = _require_db()
+                    db.save_message(user_id, "user", content)
+                    await portal_manager.send_to_admins(user_id, {
+                        "event": "message",
+                        "role": "user",
+                        "content": content,
+                        "user_id": user_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+            elif msg.get("event") == "typing":
+                await portal_manager.send_to_admins(user_id, {
+                    "event": "typing",
+                    "user_id": user_id
+                })
+    except Exception:
+        portal_manager.disconnect_user(user_id, websocket)
+
+# Portal WebSocket: admin watches a customer's chat
+@app.websocket("/ws/portal/admin/{user_id}")
+async def portal_admin_websocket(websocket: WebSocket, user_id: str):
+    """WebSocket for admin agents watching a customer portal chat."""
+    from app.services.websocket_manager import portal_manager
+    try:
+        await portal_manager.connect_admin(user_id, websocket)
+        while True:
+            data = await websocket.receive_text()
+            msg = json.loads(data)
+            if msg.get("event") == "message":
+                content = msg.get("content", "").strip()
+                if content:
+                    db = _require_db()
+                    db.save_message(user_id, "assistant", content)
+                    # Send to customer
+                    await portal_manager.send_to_user(user_id, {
+                        "event": "message",
+                        "role": "assistant",
+                        "content": content,
+                        "sender_name": msg.get("sender_name", "Agent"),
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    # Echo back to other admin watchers
+                    await portal_manager.send_to_admins(user_id, {
+                        "event": "message",
+                        "role": "assistant",
+                        "content": content,
+                        "sender_name": msg.get("sender_name", "Agent"),
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+            elif msg.get("event") == "typing":
+                await portal_manager.send_to_user(user_id, {
+                    "event": "typing",
+                    "sender_name": msg.get("sender_name", "Agent")
+                })
+    except Exception:
+        portal_manager.disconnect_admin(user_id, websocket)
+
 @app.get("/health")
 async def health():
     health_data = {"status": "ok"}
@@ -1917,7 +2045,7 @@ async def admin_spa(request: Request, tab: str):
     admin_tabs = {
         "overview", "inbox", "team", "tickets", "whatsapp",
         "macros", "knowledge", "customers", "settings",
-        "audit", "usermst", "groupperms", "privsetup"
+        "audit", "usermst", "groupperms", "privsetup", "livechat"
     }
     user_tabs = {
         "conversation", "history", "historydetail"

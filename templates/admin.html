@@ -390,6 +390,96 @@
             </aside>
         </section>
 
+        <!-- View: Live Chat -->
+        <section id="livechat-view" class="flex-1 flex overflow-hidden hidden">
+            <!-- LEFT: Active chat list -->
+            <aside class="w-80 bg-white border-r flex flex-col">
+                <div class="p-4 border-b bg-blue-600">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="font-bold text-white flex items-center gap-2"><i class="fas fa-headset text-lg"></i> Live Chat</h2>
+                        <button onclick="loadLiveChat()" class="text-blue-200 hover:text-white transition"><i class="fas fa-sync-alt text-xs"></i></button>
+                    </div>
+                    <input type="text" id="lc-search" placeholder="Search customer..."
+                        class="w-full border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 bg-blue-700 text-white placeholder-blue-300"
+                        oninput="filterLiveChats()">
+                </div>
+                <div class="grid grid-cols-3 text-center border-b bg-blue-50 py-2">
+                    <div><p class="text-sm font-black text-blue-700" id="lc-stat-total">0</p><p class="text-[8px] text-blue-400 font-bold uppercase">Active</p></div>
+                    <div><p class="text-sm font-black text-amber-600" id="lc-stat-waiting">0</p><p class="text-[8px] text-amber-400 font-bold uppercase">Waiting</p></div>
+                    <div><p class="text-sm font-black text-green-600" id="lc-stat-replied">0</p><p class="text-[8px] text-green-400 font-bold uppercase">Replied</p></div>
+                </div>
+                <div id="lc-conversation-list" class="flex-1 overflow-y-auto conversation-list">
+                    <div class="p-8 text-center text-gray-400 text-sm">Loading...</div>
+                </div>
+            </aside>
+
+            <!-- CENTER: Chat messages -->
+            <div class="flex-1 flex flex-col bg-[#f8f9fb] relative">
+                <header class="bg-white border-b p-4 flex justify-between items-center h-16 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div id="lc-avatar" class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">?</div>
+                        <div>
+                            <h3 id="lc-active-name" class="font-bold text-sm">Select a chat</h3>
+                            <p id="lc-active-meta" class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">No active session</p>
+                        </div>
+                    </div>
+                    <div id="lc-actions" class="hidden flex items-center gap-2">
+                        <span id="lc-typing-indicator" class="text-xs text-gray-400 italic hidden">Customer is typing...</span>
+                        <button onclick="lcCreateTicket()" class="px-4 py-1.5 bg-amber-500 text-white rounded-lg text-[10px] font-bold hover:bg-amber-600 transition uppercase tracking-widest flex items-center gap-1"><i class="fas fa-ticket-alt"></i> Create Ticket</button>
+                        <button onclick="lcCloseChat('close')" class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition uppercase tracking-widest flex items-center gap-1"><i class="fas fa-check"></i> Resolve</button>
+                    </div>
+                </header>
+                <div id="lc-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div class="flex flex-col items-center justify-center h-full opacity-30">
+                        <i class="fas fa-headset text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-400 font-bold text-sm uppercase tracking-widest">Select a chat to start</p>
+                    </div>
+                </div>
+                <footer class="p-4 bg-white border-t" id="lc-reply-area">
+                    <div class="flex items-end gap-2">
+                        <textarea id="lc-reply-box" rows="1" placeholder="Type a reply..."
+                            class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition resize-none text-sm"
+                            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();lcSendReply()}"></textarea>
+                        <button onclick="lcSendReply()"
+                            class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 active:scale-95 transition-all"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </footer>
+            </div>
+
+            <!-- RIGHT: Customer info sidebar -->
+            <aside class="w-72 bg-white border-l overflow-y-auto hidden lg:block">
+                <div class="p-6 border-b text-center">
+                    <div id="lc-sidebar-avatar" class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20 uppercase">?</div>
+                    <h3 id="lc-sidebar-name" class="font-bold text-lg">Customer</h3>
+                    <p id="lc-sidebar-company" class="text-sm text-gray-500 italic">--</p>
+                    <p id="lc-sidebar-userid" class="text-[9px] text-gray-400 font-mono mt-1">--</p>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Session Info</h4>
+                        <div class="space-y-3 text-xs">
+                            <p class="flex justify-between"><strong>Messages:</strong> <span id="lc-sidebar-msgcount">--</span></p>
+                            <p class="flex justify-between"><strong>Status:</strong> <span id="lc-sidebar-status" class="uppercase font-bold">--</span></p>
+                            <p class="flex justify-between"><strong>Last Activity:</strong> <span id="lc-sidebar-lastactivity">--</span></p>
+                        </div>
+                    </div>
+                    <div id="lc-sidebar-stats" class="hidden">
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-blue-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-blue-600" id="lc-total-tickets">0</p>
+                                <p class="text-[8px] text-blue-400 font-bold uppercase">Total Tickets</p>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-xl text-center">
+                                <p class="text-lg font-black text-green-600" id="lc-resolved-tickets">0</p>
+                                <p class="text-[8px] text-green-400 font-bold uppercase">Resolved</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </section>
+
         <!-- View: Team -->
         <section id="team-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
@@ -1167,7 +1257,7 @@
             updateSidebarCounts();
 
             // Determine active tab from URL path (e.g., /whatsapp, /team/admin)
-            const validTabs = ['overview','inbox','team','tickets','whatsapp','macros','knowledge','customers','settings','audit','usermst','groupperms','privsetup'];
+            const validTabs = ['overview','inbox','team','tickets','whatsapp','macros','knowledge','customers','settings','audit','usermst','groupperms','privsetup','livechat'];
             const pathParts = window.location.pathname.replace(/^\/+/, '').split('/');
             let startTab = 'overview', startSub = null;
             if (pathParts[0] && validTabs.includes(pathParts[0])) {
@@ -1179,7 +1269,7 @@
                 startSub = localStorage.getItem('support_portal_active_sub') || null;
             }
             // Auto-expand parent submenu for nested tabs
-            const submenuMap = {inbox:'chat', whatsapp:'chat', team:'team', tickets:'tickets', settings:'settings', macros:'settings', usermst:'settings', groupperms:'settings', privsetup:'settings', audit:'settings', knowledge:'settings'};
+            const submenuMap = {inbox:'chat', whatsapp:'chat', livechat:'chat', team:'team', tickets:'tickets', settings:'settings', macros:'settings', usermst:'settings', groupperms:'settings', privsetup:'settings', audit:'settings', knowledge:'settings'};
             const parentMenu = submenuMap[startTab];
             if (parentMenu) {
                 const sub = document.getElementById(`${parentMenu}-submenu`);
@@ -1255,6 +1345,7 @@
 
         function renderSubContent(id) {
             if (id === 'chat') return `
+                <a href="#" onclick="switchTab('livechat')" class="flex justify-between items-center px-4 py-2 text-xs text-blue-600 hover:text-blue-700 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fas fa-headset text-blue-500'></i> Live Chat</span> <span id='count-livechat' class='count-badge' style='background:#dbeafe;color:#2563eb'>0</span></a>
                 <a href="#" onclick="switchTab('inbox', 'all')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fas fa-envelope text-blue-500'></i> Email</span> <span id="count-all" class="count-badge">0</span></a>
                 <a href="#" onclick="switchTab('whatsapp')" class="flex justify-between items-center px-4 py-2 text-xs text-green-600 hover:text-green-700 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp'></i> WhatsApp</span> <span id='count-whatsapp' class='count-badge' style='background:#dcfce7;color:#16a34a'>0</span></a>
                 <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-instagram text-pink-400'></i> Instagram</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
@@ -1312,7 +1403,10 @@
             if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
             // Stop WhatsApp polling when leaving that tab
             if (tab !== 'whatsapp' && waPollingInterval) { clearInterval(waPollingInterval); waPollingInterval = null; }
-            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup'].forEach(t => {
+            // Stop LiveChat polling when leaving that tab
+            if (tab !== 'livechat' && lcPollingInterval) { clearInterval(lcPollingInterval); lcPollingInterval = null; }
+            if (tab !== 'livechat' && lcAdminWs) { try { lcAdminWs.close(); } catch(_) {} lcAdminWs = null; }
+            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat'].forEach(t => {
                 const el = document.getElementById(`${t}-view`);
                 if (el) el.classList.toggle('hidden', t !== tab);
             });
@@ -1329,6 +1423,7 @@
             else if (tab === 'usermst') loadUserMaster();
             else if (tab === 'groupperms') loadGroupPrivileges();
             else if (tab === 'privsetup') loadPrivilegeSetup();
+            else if (tab === 'livechat') loadLiveChat();
         }
 
         function initSortable() {
@@ -1370,6 +1465,15 @@
                     if (el) el.innerText = wa.unique_contacts || 0;
                 }
             } catch(_) {}
+            // Live Chat count
+            try {
+                const lcRes = await fetchWithAuth('/api/livechat/sessions');
+                if (lcRes && lcRes.ok) {
+                    const lc = await lcRes.json();
+                    const el = document.getElementById('count-livechat');
+                    if (el) el.innerText = lc.length || 0;
+                }
+            } catch(_) {}
         }
 
         async function loadAnalytics() {
@@ -1394,6 +1498,325 @@
 
             document.getElementById('agent-leaderboard').innerHTML = data.agent_performance.map(a => `<tr class="text-sm"><td class="px-4 py-3 font-bold text-gray-700">${a.name}</td><td class="px-4 py-3 text-center text-gray-500">${a.tickets}</td><td class="px-4 py-3 text-right"><span class="font-black text-amber-600">${a.csat}</span><i class="fas fa-star text-[10px] text-amber-400 ml-1"></i></td></tr>`).join('');
             document.getElementById('ai-trends').innerText = data.ai_trends;
+        }
+
+        // ====== LIVE CHAT ======
+        let lcCurrentUserId = null;
+        let lcAdminWs = null;
+        let lcAllChats = [];
+        let lcPollingInterval = null;
+
+        async function loadLiveChat() {
+            try {
+                const res = await fetchWithAuth('/api/livechat/sessions');
+                if (!res || !res.ok) return;
+                lcAllChats = await res.json();
+                renderLiveChatList(lcAllChats);
+
+                // Update stats
+                document.getElementById('lc-stat-total').innerText = lcAllChats.length;
+                document.getElementById('lc-stat-waiting').innerText = lcAllChats.filter(c => c.status === 'waiting').length;
+                document.getElementById('lc-stat-replied').innerText = lcAllChats.filter(c => c.status === 'replied').length;
+
+                // Update sidebar badge
+                const badge = document.getElementById('count-livechat');
+                if (badge) badge.innerText = lcAllChats.length;
+
+                // Start polling for updates
+                if (lcPollingInterval) clearInterval(lcPollingInterval);
+                lcPollingInterval = setInterval(async () => {
+                    try {
+                        const r = await fetchWithAuth('/api/livechat/sessions');
+                        if (r && r.ok) {
+                            lcAllChats = await r.json();
+                            renderLiveChatList(lcAllChats);
+                            document.getElementById('lc-stat-total').innerText = lcAllChats.length;
+                            document.getElementById('lc-stat-waiting').innerText = lcAllChats.filter(c => c.status === 'waiting').length;
+                            document.getElementById('lc-stat-replied').innerText = lcAllChats.filter(c => c.status === 'replied').length;
+                            const b = document.getElementById('count-livechat');
+                            if (b) b.innerText = lcAllChats.length;
+                        }
+                    } catch(_) {}
+                }, 8000);
+            } catch (err) {
+                console.error('Failed to load live chats:', err);
+            }
+        }
+
+        function renderLiveChatList(chats) {
+            const list = document.getElementById('lc-conversation-list');
+            if (chats.length === 0) {
+                list.innerHTML = `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-inbox text-4xl text-gray-200 mb-3"></i>
+                        <p class="text-gray-400 text-sm font-bold">No active chats</p>
+                        <p class="text-gray-300 text-xs mt-1">Customers will appear here when they start chatting</p>
+                    </div>`;
+                return;
+            }
+            list.innerHTML = chats.map(c => {
+                const isActive = lcCurrentUserId === c.user_id;
+                const isWaiting = c.status === 'waiting';
+                const timeAgo = c.last_activity ? getTimeAgo(new Date(c.last_activity)) : '';
+                return `
+                <div onclick="lcSelectChat('${c.user_id}')" class="p-4 border-b hover:bg-blue-50 cursor-pointer transition ${isActive ? 'bg-blue-50 border-l-4 border-blue-600' : ''}">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <div class="w-10 h-10 rounded-full ${isWaiting ? 'bg-amber-400' : 'bg-blue-400'} flex items-center justify-center text-white font-bold uppercase">${(c.name || 'A').charAt(0)}</div>
+                            ${isWaiting ? '<span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>' : ''}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-sm text-gray-900 truncate">${c.name || 'Anonymous'}</p>
+                            <p class="text-xs text-gray-500 truncate">${c.last_message || 'No messages'}</p>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex justify-between items-center">
+                        <span class="text-[9px] font-bold uppercase tracking-widest ${isWaiting ? 'text-amber-600' : 'text-green-600'}">
+                            <i class="fas ${isWaiting ? 'fa-clock' : 'fa-check-circle'} mr-1"></i>${isWaiting ? 'Waiting' : 'Replied'}
+                        </span>
+                        <span class="text-[10px] text-gray-400 font-medium">${timeAgo}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterLiveChats() {
+            const q = document.getElementById('lc-search').value.toLowerCase();
+            const filtered = lcAllChats.filter(c =>
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.user_id || '').toLowerCase().includes(q) ||
+                (c.company || '').toLowerCase().includes(q)
+            );
+            renderLiveChatList(filtered);
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+            return `${Math.floor(diff/86400)}d ago`;
+        }
+
+        async function lcSelectChat(userId) {
+            lcCurrentUserId = userId;
+
+            // Update left panel selection
+            renderLiveChatList(lcAllChats);
+
+            // Find chat info
+            const chatInfo = lcAllChats.find(c => c.user_id === userId) || {};
+
+            // Update header
+            document.getElementById('lc-active-name').innerText = chatInfo.name || 'Anonymous';
+            document.getElementById('lc-active-meta').innerText = `${chatInfo.company || 'Portal Chat'} • ${chatInfo.message_count || 0} messages`;
+            document.getElementById('lc-avatar').innerText = (chatInfo.name || 'A').charAt(0).toUpperCase();
+            document.getElementById('lc-actions').classList.remove('hidden');
+
+            // Update sidebar
+            document.getElementById('lc-sidebar-name').innerText = chatInfo.name || 'Anonymous';
+            document.getElementById('lc-sidebar-company').innerText = chatInfo.company || '--';
+            document.getElementById('lc-sidebar-userid').innerText = userId;
+            document.getElementById('lc-sidebar-avatar').innerText = (chatInfo.name || 'A').charAt(0).toUpperCase();
+            document.getElementById('lc-sidebar-msgcount').innerText = chatInfo.message_count || '--';
+            document.getElementById('lc-sidebar-status').innerText = chatInfo.status || '--';
+            document.getElementById('lc-sidebar-lastactivity').innerText = chatInfo.last_activity ? new Date(chatInfo.last_activity).toLocaleString() : '--';
+
+            // Load customer ticket history for sidebar
+            try {
+                const ctxRes = await fetchWithAuth(`/api/customers/${encodeURIComponent(userId)}/context`);
+                if (ctxRes && ctxRes.ok) {
+                    const ctx = await ctxRes.json();
+                    if (ctx.found) {
+                        document.getElementById('lc-sidebar-stats').classList.remove('hidden');
+                        document.getElementById('lc-total-tickets').innerText = ctx.stats.total_tickets;
+                        document.getElementById('lc-resolved-tickets').innerText = ctx.stats.resolved_tickets;
+                    }
+                }
+            } catch(_) {}
+
+            // Load messages
+            const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(userId)}/messages`);
+            if (!res || !res.ok) return;
+            const data = await res.json();
+            const area = document.getElementById('lc-messages');
+
+            if (!data.messages || data.messages.length === 0) {
+                area.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs uppercase font-bold tracking-widest opacity-50">No messages yet</div>';
+            } else {
+                area.innerHTML = data.messages.map(m => {
+                    const isAgent = m.role === 'assistant' || m.role === 'bot';
+                    const roleLabel = m.role === 'user' ? 'Customer' : (m.role === 'assistant' ? 'Agent' : 'AI Bot');
+                    const roleColor = m.role === 'user' ? 'text-blue-400' : (m.role === 'assistant' ? 'text-green-400' : 'text-purple-400');
+                    const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : '';
+
+                    // Check for video recordings
+                    let contentHtml = m.content;
+                    if (m.content && m.content.includes('📹 Screen Recording:')) {
+                        const urlMatch = m.content.match(/https?:\/\/[^\s]+/);
+                        if (urlMatch) {
+                            contentHtml = `<div class="mb-2">📹 Screen Recording</div><video src="${urlMatch[0]}" controls playsinline preload="metadata" style="max-height:200px; border-radius:8px; width:100%;"></video>`;
+                        }
+                    }
+
+                    return `<div class="flex ${isAgent ? 'justify-end' : ''} gap-3">
+                        <div class="message-bubble ${isAgent ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-4 text-sm rounded-2xl">
+                            ${contentHtml}
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[8px] ${isAgent ? roleColor : 'text-blue-200'} uppercase font-black tracking-tighter">${roleLabel}</span>
+                                <span class="text-[8px] ${isAgent ? 'text-gray-300' : 'text-blue-200'}">${time}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+            area.scrollTop = area.scrollHeight;
+
+            // Connect admin WebSocket to watch this user's chat in real-time
+            lcConnectAdminWs(userId);
+        }
+
+        function lcConnectAdminWs(userId) {
+            if (lcAdminWs) { try { lcAdminWs.close(); } catch(_) {} }
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            lcAdminWs = new WebSocket(`${protocol}//${window.location.host}/ws/portal/admin/${encodeURIComponent(userId)}`);
+
+            lcAdminWs.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.event === 'message') {
+                    lcAppendMessage(data);
+                    // Refresh list to update preview
+                    loadLiveChat();
+                } else if (data.event === 'typing') {
+                    const indicator = document.getElementById('lc-typing-indicator');
+                    indicator.classList.remove('hidden');
+                    setTimeout(() => indicator.classList.add('hidden'), 3000);
+                } else if (data.event === 'session_closed') {
+                    lcAppendSystemMessage('Chat session has been closed');
+                    loadLiveChat();
+                }
+            };
+
+            lcAdminWs.onerror = () => console.warn('LiveChat admin WS error');
+            lcAdminWs.onclose = () => { lcAdminWs = null; };
+        }
+
+        function lcAppendMessage(data) {
+            const area = document.getElementById('lc-messages');
+            const isAgent = data.role === 'assistant' || data.role === 'bot';
+            const roleLabel = data.role === 'user' ? 'Customer' : (data.role === 'assistant' ? 'Agent' : 'AI Bot');
+            const roleColor = data.role === 'user' ? 'text-blue-400' : (data.role === 'assistant' ? 'text-green-400' : 'text-purple-400');
+            const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '';
+
+            const div = document.createElement('div');
+            div.className = `flex ${isAgent ? 'justify-end' : ''} gap-3 fade-in`;
+            div.innerHTML = `
+                <div class="message-bubble ${isAgent ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-4 text-sm rounded-2xl">
+                    ${data.content}
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[8px] ${isAgent ? roleColor : 'text-blue-200'} uppercase font-black tracking-tighter">${roleLabel}</span>
+                        <span class="text-[8px] ${isAgent ? 'text-gray-300' : 'text-blue-200'}">${time}</span>
+                    </div>
+                </div>
+            `;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function lcAppendSystemMessage(text) {
+            const area = document.getElementById('lc-messages');
+            const div = document.createElement('div');
+            div.className = 'flex justify-center fade-in';
+            div.innerHTML = `<div class="bg-gray-100 text-gray-500 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest">${text}</div>`;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        async function lcSendReply() {
+            const box = document.getElementById('lc-reply-box');
+            const text = box.value.trim();
+            if (!text || !lcCurrentUserId) return;
+
+            box.value = '';
+
+            // Send via WebSocket if connected, otherwise via API
+            if (lcAdminWs && lcAdminWs.readyState === WebSocket.OPEN) {
+                lcAdminWs.send(JSON.stringify({
+                    event: 'message',
+                    content: text,
+                    sender_name: currentUser?.name || 'Agent'
+                }));
+                // Message will appear via onmessage echo
+            } else {
+                // Fallback to REST API
+                try {
+                    const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(lcCurrentUserId)}/reply`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: text })
+                    });
+                    if (res && res.ok) {
+                        lcAppendMessage({ role: 'assistant', content: text, timestamp: new Date().toISOString() });
+                    }
+                } catch (err) {
+                    console.error('Failed to send reply:', err);
+                }
+            }
+        }
+
+        async function lcCreateTicket() {
+            if (!lcCurrentUserId) return;
+            if (!confirm('Create a follow-up ticket for this conversation?')) return;
+
+            try {
+                const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(lcCurrentUserId)}/close`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ option: 'ticket_and_notify' })
+                });
+                if (res && res.ok) {
+                    const data = await res.json();
+                    if (data.ticket_created) {
+                        lcAppendSystemMessage(`Ticket #${data.ticket_id} created — ${data.summary || 'Follow-up'}`);
+                        alert(`Ticket #${data.ticket_id} created successfully!\nPriority: ${data.priority || 'Medium'}`);
+                    } else {
+                        lcAppendSystemMessage(data.message || 'Chat closed');
+                    }
+                    lcCurrentUserId = null;
+                    loadLiveChat();
+                    // Reset view
+                    document.getElementById('lc-active-name').innerText = 'Select a chat';
+                    document.getElementById('lc-active-meta').innerText = 'No active session';
+                    document.getElementById('lc-actions').classList.add('hidden');
+                }
+            } catch (err) {
+                alert('Failed to create ticket. Please try again.');
+            }
+        }
+
+        async function lcCloseChat(option = 'close') {
+            if (!lcCurrentUserId) return;
+            if (!confirm('Resolve and close this chat?')) return;
+
+            try {
+                const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(lcCurrentUserId)}/close`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ option })
+                });
+                if (res && res.ok) {
+                    const data = await res.json();
+                    lcAppendSystemMessage(data.message || 'Chat resolved');
+                    lcCurrentUserId = null;
+                    loadLiveChat();
+                    document.getElementById('lc-active-name').innerText = 'Select a chat';
+                    document.getElementById('lc-active-meta').innerText = 'No active session';
+                    document.getElementById('lc-actions').classList.add('hidden');
+                }
+            } catch (err) {
+                alert('Failed to close chat. Please try again.');
+            }
         }
 
         async function loadInbox(filter = 'all') {

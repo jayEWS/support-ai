@@ -158,3 +158,98 @@ class ConnectionManager:
 
 # Global manager instance
 manager = ConnectionManager()
+
+
+class PortalConnectionManager:
+    """WebSocket manager for portal user connections (user_id based).
+    Used to push agent replies and events to customer portal in real-time."""
+
+    def __init__(self):
+        # Map of user_id -> set of WebSocket connections
+        self.connections: Dict[str, Set[WebSocket]] = {}
+        # Map of user_id -> set of admin WebSocket connections watching this chat
+        self.admin_watchers: Dict[str, Set[WebSocket]] = {}
+
+    async def connect_user(self, user_id: str, websocket: WebSocket):
+        """Register a customer portal WebSocket connection."""
+        await websocket.accept()
+        if user_id not in self.connections:
+            self.connections[user_id] = set()
+        self.connections[user_id].add(websocket)
+        logger.info(f"Portal user {user_id} connected via WebSocket")
+
+    async def connect_admin(self, user_id: str, websocket: WebSocket):
+        """Register an admin watching a customer's chat."""
+        await websocket.accept()
+        if user_id not in self.admin_watchers:
+            self.admin_watchers[user_id] = set()
+        self.admin_watchers[user_id].add(websocket)
+        logger.info(f"Admin connected to watch portal user {user_id}")
+
+    def disconnect_user(self, user_id: str, websocket: WebSocket):
+        """Remove a customer portal connection."""
+        if user_id in self.connections:
+            self.connections[user_id].discard(websocket)
+            if not self.connections[user_id]:
+                del self.connections[user_id]
+        logger.info(f"Portal user {user_id} disconnected")
+
+    def disconnect_admin(self, user_id: str, websocket: WebSocket):
+        """Remove an admin watcher connection."""
+        if user_id in self.admin_watchers:
+            self.admin_watchers[user_id].discard(websocket)
+            if not self.admin_watchers[user_id]:
+                del self.admin_watchers[user_id]
+
+    async def send_to_user(self, user_id: str, data: dict):
+        """Send a message to a specific portal user."""
+        if user_id not in self.connections:
+            return
+        message = json.dumps(data)
+        dead = []
+        for ws in self.connections[user_id]:
+            try:
+                await ws.send_text(message)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.connections[user_id].discard(ws)
+
+    async def send_to_admins(self, user_id: str, data: dict):
+        """Send a message to all admins watching a user's chat."""
+        if user_id not in self.admin_watchers:
+            return
+        message = json.dumps(data)
+        dead = []
+        for ws in self.admin_watchers[user_id]:
+            try:
+                await ws.send_text(message)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.admin_watchers[user_id].discard(ws)
+
+    async def broadcast_to_all_admins(self, data: dict):
+        """Send a message to ALL connected admin watchers (e.g., new chat notification)."""
+        message = json.dumps(data)
+        for user_id in list(self.admin_watchers.keys()):
+            dead = []
+            for ws in self.admin_watchers[user_id]:
+                try:
+                    await ws.send_text(message)
+                except Exception:
+                    dead.append(ws)
+            for ws in dead:
+                self.admin_watchers[user_id].discard(ws)
+
+    def get_online_users(self) -> list:
+        """Get list of user_ids currently connected via portal WebSocket."""
+        return list(self.connections.keys())
+
+    def is_user_online(self, user_id: str) -> bool:
+        """Check if a user is currently connected."""
+        return user_id in self.connections and len(self.connections[user_id]) > 0
+
+
+# Global portal manager instance
+portal_manager = PortalConnectionManager()

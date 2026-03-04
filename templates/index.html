@@ -789,7 +789,68 @@
                     history.replaceState({ view: 'conversation' }, '', '/conversation');
                 }
             }
+
+            // Connect portal WebSocket for real-time agent messages
+            connectPortalWs();
         });
+
+        // ====== Portal WebSocket (real-time agent ↔ customer) ======
+        let portalWs = null;
+        let portalWsRetries = 0;
+
+        function connectPortalWs() {
+            if (portalWs && portalWs.readyState === WebSocket.OPEN) return;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            portalWs = new WebSocket(`${protocol}//${window.location.host}/ws/portal/${encodeURIComponent(userId)}`);
+
+            portalWs.onopen = () => {
+                portalWsRetries = 0;
+                console.log('Portal WebSocket connected');
+            };
+
+            portalWs.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.event === 'message' && data.role === 'assistant') {
+                    // Agent reply received — show in chat
+                    const senderLabel = data.sender_name ? `💬 ${data.sender_name}` : '';
+                    addMessage(data.content, 'ai');
+                } else if (data.event === 'typing') {
+                    // Show typing indicator briefly (optional)
+                } else if (data.event === 'session_closed') {
+                    // Agent closed the session
+                    addMessage(data.message || 'Chat has been closed by the agent.', 'ai');
+                    if (data.ticket_created && data.ticket_id) {
+                        addMessage(`📝 Ticket #${data.ticket_id} created. Our team will follow up.`, 'ai');
+                    }
+                    // Disable input
+                    userInput.disabled = true;
+                    userInput.placeholder = 'Chat ended by agent';
+                    document.querySelector('#chat-form button[type="submit"]').disabled = true;
+                    document.getElementById('close-chat').classList.add('hidden');
+                    // Show restart button
+                    setTimeout(() => {
+                        const restartDiv = document.createElement('div');
+                        restartDiv.className = 'flex justify-center animate-in slide-in-from-bottom-2 duration-300 mt-4';
+                        restartDiv.innerHTML = `<button onclick="window.location.href='/conversation'" class="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 transition shadow-lg uppercase tracking-widest">💬 Start New Chat</button>`;
+                        chatbox.appendChild(restartDiv);
+                        chatbox.scrollTop = chatbox.scrollHeight;
+                    }, 1000);
+                }
+            };
+
+            portalWs.onclose = () => {
+                portalWs = null;
+                // Auto-reconnect with backoff
+                if (portalWsRetries < 10) {
+                    portalWsRetries++;
+                    setTimeout(connectPortalWs, Math.min(portalWsRetries * 2000, 15000));
+                }
+            };
+
+            portalWs.onerror = () => {
+                console.warn('Portal WebSocket error');
+            };
+        }
 
         // Handle browser back/forward
         window.addEventListener('popstate', (e) => {
