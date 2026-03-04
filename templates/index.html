@@ -34,6 +34,25 @@
             border: 1px solid #e5e7eb;
         }
 
+        /* AI message formatted content */
+        .chat-bubble-ai .msg-text p { margin: 0 0 0.5em 0; }
+        .chat-bubble-ai .msg-text p:last-child { margin-bottom: 0; }
+        .chat-bubble-ai .msg-text strong { font-weight: 700; }
+        .chat-bubble-ai .msg-text em { font-style: italic; }
+        .chat-bubble-ai .msg-text ul,
+        .chat-bubble-ai .msg-text ol { margin: 0.4em 0 0.4em 1.4em; padding: 0; }
+        .chat-bubble-ai .msg-text li { margin-bottom: 0.25em; }
+        .chat-bubble-ai .msg-text hr { border: none; border-top: 1px solid #e5e7eb; margin: 0.75em 0; }
+        .chat-bubble-ai .msg-text code { background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+        .chat-bubble-ai .msg-text pre { background: #f1f5f9; padding: 0.75em; border-radius: 0.5rem; overflow-x: auto; margin: 0.5em 0; }
+        .chat-bubble-ai .msg-text pre code { background: none; padding: 0; }
+        .chat-bubble-ai .msg-text h1,
+        .chat-bubble-ai .msg-text h2,
+        .chat-bubble-ai .msg-text h3 { font-weight: 700; margin: 0.6em 0 0.3em 0; }
+        .chat-bubble-ai .msg-text h1 { font-size: 1.15em; }
+        .chat-bubble-ai .msg-text h2 { font-size: 1.08em; }
+        .chat-bubble-ai .msg-text h3 { font-size: 1.02em; }
+
         /* File attachment styles */
         .file-preview {
             display: flex;
@@ -672,6 +691,63 @@
 
 
 
+        /* ── Markdown-light formatter for AI messages ── */
+        function formatMessage(raw) {
+            if (!raw) return '';
+            // 1. Escape HTML
+            let t = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+            // 2. Code blocks ```…```
+            t = t.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`);
+            // Inline code `…`
+            t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+            // 3. Bold **…** and __…__
+            t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            t = t.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            // Italic *…* and _…_ (single)
+            t = t.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+            t = t.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>');
+
+            // 4. Headings ### / ## / #
+            t = t.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            t = t.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            t = t.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+            // 5. Horizontal rule ---
+            t = t.replace(/^---$/gm, '<hr>');
+
+            // 6. Unordered list items: lines starting with - or • or *
+            //    Group consecutive list items into <ul>…</ul>
+            t = t.replace(/((?:^[ \t]*(?:[-•\*])[ \t]+.+\n?)+)/gm, (block) => {
+                const items = block.trim().split('\n').map(line =>
+                    '<li>' + line.replace(/^[ \t]*(?:[-•\*])[ \t]+/, '') + '</li>'
+                ).join('');
+                return '<ul>' + items + '</ul>';
+            });
+
+            // 7. Ordered list items: lines starting with 1. 2. etc.
+            t = t.replace(/((?:^[ \t]*\d+\.[ \t]+.+\n?)+)/gm, (block) => {
+                const items = block.trim().split('\n').map(line =>
+                    '<li>' + line.replace(/^[ \t]*\d+\.[ \t]+/, '') + '</li>'
+                ).join('');
+                return '<ol>' + items + '</ol>';
+            });
+
+            // 8. Paragraphs: split by double newlines, wrap non-block content in <p>
+            const blocks = t.split(/\n{2,}/);
+            t = blocks.map(b => {
+                b = b.trim();
+                if (!b) return '';
+                // Don't wrap if already a block element
+                if (/^<(ul|ol|pre|h[1-3]|hr|p)/i.test(b)) return b;
+                // Convert remaining single newlines to <br>
+                return '<p>' + b.replace(/\n/g, '<br>') + '</p>';
+            }).join('');
+
+            return t;
+        }
+
         function addMessage(text, type, attachment) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`;
@@ -681,7 +757,12 @@
             // Text content
             if (text) {
                 const textEl = document.createElement('div');
-                textEl.innerText = text;
+                if (type === 'user') {
+                    textEl.innerText = text;            // plain text for user messages
+                } else {
+                    textEl.className = 'msg-text';
+                    textEl.innerHTML = formatMessage(text); // formatted for AI messages
+                }
                 bubble.appendChild(textEl);
             }
 
