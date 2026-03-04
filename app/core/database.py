@@ -631,10 +631,10 @@ class DatabaseManager:
             users = session.query(User).all()
             return [ { 
                 "identifier": u.identifier,
-                "account_id": u.account_id,
+                "account_id": u.identifier,
                 "name": u.name, 
                 "email": u.email,
-                "mobile": u.mobile or u.identifier,
+                "mobile": u.mobile or '',
                 "company": u.company,
                 "position": u.position,
                 "outlet_pos": u.outlet_pos,

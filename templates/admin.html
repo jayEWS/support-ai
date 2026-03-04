@@ -2145,12 +2145,12 @@
         const CDT = {
             columns: [
                 { key:'_no',      label:'No',             visible:true, sortable:false, getter: (c,i)=> i+1 },
-                { key:'accountId',label:'Account ID',     visible:true, sortable:true,  getter: c=> c.account_id||'' },
+                { key:'accountId',label:'Account ID',     visible:true, sortable:true,  getter: c=> c.identifier||'', numeric: true },
                 { key:'title',    label:'Title',          visible:true, sortable:true,  getter: c=> c.title||'' },
                 { key:'firstName',label:'First Name',     visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p[0]||''; }},
                 { key:'lastName', label:'Last Name',      visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p.length>1?p.slice(1).join(' '):''; }},
                 { key:'email',    label:'Email',          visible:true, sortable:true,  getter: c=> c.email||'' },
-                { key:'mobile',   label:'Mobile',         visible:true, sortable:true,  getter: c=> c.mobile||c.identifier||'' },
+                { key:'mobile',   label:'Mobile',         visible:true, sortable:true,  getter: c=> c.mobile||'' },
                 { key:'company',  label:'Company',        visible:true, sortable:true,  getter: c=> c.company||'' },
                 { key:'outlet',   label:'Outlet',         visible:true, sortable:true,  getter: c=> c.outlet_pos||'' },
                 { key:'address',  label:'Outlet Address', visible:true, sortable:true,  getter: c=> c.outlet_address||'' },
@@ -2208,6 +2208,12 @@
                 if (col && col.sortable && col.getter) {
                     const dir = this.sortAsc ? 1 : -1;
                     data = [...data].sort((a,b)=>{
+                        if (col.numeric) {
+                            // Extract number from strings like 'EWS000002' for numeric sort
+                            const na = parseInt((col.getter(a,0).toString().match(/\d+/) || ['0'])[0]);
+                            const nb = parseInt((col.getter(b,0).toString().match(/\d+/) || ['0'])[0]);
+                            return (na - nb) * dir;
+                        }
                         const va = col.getter(a,0).toString().toLowerCase();
                         const vb = col.getter(b,0).toString().toLowerCase();
                         return va < vb ? -dir : va > vb ? dir : 0;

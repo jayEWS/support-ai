@@ -886,7 +886,7 @@ def _mask_email(email: str) -> str:
     return f"{masked_local}@{masked_domain}{tld}"
 
 def _mask_customer(c: dict) -> dict:
-    """Mask sensitive fields (phone/email) in a customer dict."""
+    """Mask sensitive fields (phone and email) in a customer dict."""
     c = dict(c)
     if c.get('mobile'):
         c['mobile'] = _mask_phone(c['mobile'])
