@@ -1166,6 +1166,21 @@ async def gcs_list_files(agent: Annotated[dict, Depends(get_current_agent)]):
 async def get_macros(agent: Annotated[dict, Depends(get_current_agent)]):
     return _require_db().get_macros()
 
+@app.post("/api/macros")
+async def create_macro(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
+    name = data.get("name", "").strip()
+    content = data.get("content", "").strip()
+    category = data.get("category", "General").strip()
+    if not name or not content:
+        raise HTTPException(status_code=400, detail="name and content are required")
+    _require_db().create_macro(name, content, category)
+    return {"status": "ok"}
+
+@app.delete("/api/macros/{macro_id}")
+async def delete_macro(macro_id: int, agent: Annotated[dict, Depends(get_current_agent)]):
+    _require_db().delete_macro(macro_id)
+    return {"status": "ok"}
+
 @app.get("/api/audit-logs")
 async def get_audit_logs(agent: Annotated[dict, Depends(get_current_agent)]):
     return _require_db().get_audit_logs()
