@@ -609,7 +609,8 @@ class DatabaseManager:
         try:
             u = session.query(User).get(identifier)
             return { 
-                "identifier": u.identifier, 
+                "identifier": u.identifier,
+                "account_id": u.account_id,
                 "name": u.name, 
                 "email": u.email,
                 "mobile": u.mobile,
@@ -629,10 +630,11 @@ class DatabaseManager:
         try:
             users = session.query(User).all()
             return [ { 
-                "identifier": u.identifier, 
+                "identifier": u.identifier,
+                "account_id": u.account_id,
                 "name": u.name, 
                 "email": u.email,
-                "mobile": u.mobile,
+                "mobile": u.mobile or u.identifier,
                 "company": u.company,
                 "position": u.position,
                 "outlet_pos": u.outlet_pos,
@@ -642,7 +644,29 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
+    def _get_next_account_id(self, session):
+        """Generate next EWS account ID (EWS1, EWS2, ...) by finding the current max."""
+        from sqlalchemy import func as sa_func
+        import re
+        # Get all existing account_ids that match EWS pattern
+        existing = session.query(User.account_id).filter(
+            User.account_id.isnot(None),
+            User.account_id.like('EWS%')
+        ).all()
+        max_num = 0
+        for (aid,) in existing:
+            m = re.match(r'^EWS(\d+)$', aid)
+            if m:
+                num = int(m.group(1))
+                if num > max_num:
+                    max_num = num
+        return f"EWS{max_num + 1}"
+
     def create_or_update_user(self, identifier: str, name: str = None, company: str = None, position: str = None, outlet_pos: str = None, state: str = 'idle', email: str = None, mobile: str = None, outlet_address: str = None, category: str = None, language: str = None):
+        import re
+        # Auto-fill mobile from identifier if it looks like a phone number
+        if not mobile and identifier and re.match(r'^\+?\d{8,15}$', identifier.replace(' ','')):
+            mobile = identifier
         session = self.get_session()
         try:
             user = session.query(User).get(identifier)
@@ -657,8 +681,15 @@ class DatabaseManager:
                 if category: user.category = category
                 if language: user.language = language
                 user.state = state
+                # Auto-assign account_id if missing
+                if not user.account_id:
+                    user.account_id = self._get_next_account_id(session)
+                # Auto-fill mobile from identifier if still empty
+                if not user.mobile and re.match(r'^\+?\d{8,15}$', identifier.replace(' ','')):
+                    user.mobile = identifier
             else:
-                user = User(identifier=identifier, name=name, company=company, position=position, outlet_pos=outlet_pos, state=state, email=email, mobile=mobile, outlet_address=outlet_address, category=category, language=language)
+                account_id = self._get_next_account_id(session)
+                user = User(identifier=identifier, account_id=account_id, name=name, company=company, position=position, outlet_pos=outlet_pos, state=state, email=email, mobile=mobile, outlet_address=outlet_address, category=category, language=language)
                 session.add(user)
             session.commit()
         except Exception as e:

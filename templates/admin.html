@@ -858,6 +858,10 @@
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
                 <h3 class="text-lg font-bold text-gray-800 mb-6 uppercase tracking-tight" id="customer-modal-title">Add Customer</h3>
                 <div class="space-y-4">
+                    <div id="cust-account-id-row" class="hidden">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Account ID</label>
+                        <input type="text" id="cust-account-id" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-500 font-mono" readonly>
+                    </div>
                     <div>
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Name *</label>
                         <input type="text" id="cust-name" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="Customer name">
@@ -867,8 +871,8 @@
                         <input type="text" id="cust-company" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="PT ABC / Outlet XYZ">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Phone / ID *</label>
-                        <input type="text" id="cust-identifier" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="628123456789">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Mobile / Phone *</label>
+                        <input type="text" id="cust-identifier" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="+628123456789">
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Position</label>
@@ -2118,19 +2122,19 @@
         const CDT = {
             columns: [
                 { key:'_no',      label:'No',             visible:true, sortable:false, getter: (c,i)=> i+1 },
-                { key:'identifier',label:'Account ID',    visible:true, sortable:true,  getter: c=> c.identifier||'' },
+                { key:'accountId',label:'Account ID',     visible:true, sortable:true,  getter: c=> c.account_id||'' },
                 { key:'title',    label:'Title',          visible:true, sortable:true,  getter: c=> c.title||'' },
                 { key:'firstName',label:'First Name',     visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p[0]||''; }},
                 { key:'lastName', label:'Last Name',      visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p.length>1?p.slice(1).join(' '):''; }},
                 { key:'email',    label:'Email',          visible:true, sortable:true,  getter: c=> c.email||'' },
-                { key:'mobile',   label:'Mobile',         visible:true, sortable:true,  getter: c=> c.mobile||'' },
+                { key:'mobile',   label:'Mobile',         visible:true, sortable:true,  getter: c=> c.mobile||c.identifier||'' },
                 { key:'company',  label:'Company',        visible:true, sortable:true,  getter: c=> c.company||'' },
                 { key:'outlet',   label:'Outlet',         visible:true, sortable:true,  getter: c=> c.outlet_pos||'' },
                 { key:'address',  label:'Outlet Address', visible:true, sortable:true,  getter: c=> c.outlet_address||'' },
                 { key:'category', label:'Column1',        visible:true, sortable:true,  getter: c=> c.category||'' },
                 { key:'_actions', label:'Actions',        visible:true, sortable:false, getter: null }
             ],
-            sortCol: 'identifier',
+            sortCol: 'accountId',
             sortAsc: true,
             page: 1,
             perPage: 50,
@@ -2153,7 +2157,7 @@
                         this.columns = reordered;
                     }
                     if (p.hidden) this.columns.forEach(c=> { if(p.hidden.includes(c.key)) c.visible=false; });
-                    if (p.sortCol) this.sortCol = p.sortCol;
+                    if (p.sortCol && this.columns.some(c=>c.key===p.sortCol)) this.sortCol = p.sortCol;
                     if (p.sortAsc !== undefined) this.sortAsc = p.sortAsc;
                     if (p.perPage) this.perPage = p.perPage;
                 } catch(e){}
@@ -2167,6 +2171,7 @@
                     data = data.filter(c =>
                         (c.name||'').toLowerCase().includes(q) ||
                         (c.company||'').toLowerCase().includes(q) ||
+                        (c.account_id||'').toLowerCase().includes(q) ||
                         (c.identifier||'').toLowerCase().includes(q) ||
                         (c.outlet_pos||'').toLowerCase().includes(q) ||
                         (c.email||'').toLowerCase().includes(q) ||
@@ -2256,6 +2261,13 @@
                                 html += `<td style="text-align:center;color:#94a3b8;font-family:monospace;">${globalIdx+1}</td>`;
                             } else if (col.key === '_actions') {
                                 html += `<td style="text-align:right;"><button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button><button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button></td>`;
+                            } else if (col.key === 'accountId') {
+                                const v = col.getter(c, globalIdx);
+                                if (v) {
+                                    html += `<td><span class="px-2 py-1 text-[10px] font-bold font-mono uppercase rounded-lg bg-indigo-50 text-indigo-600">${v}</span></td>`;
+                                } else {
+                                    html += '<td style="color:#94a3b8;">--</td>';
+                                }
                             } else if (col.key === 'category') {
                                 const v = col.getter(c, globalIdx);
                                 if (v) {
@@ -2427,6 +2439,7 @@
             document.getElementById('cust-identifier').value = '';
             document.getElementById('cust-identifier').readOnly = false;
             document.getElementById('cust-position').value = '';
+            document.getElementById('cust-account-id-row').classList.add('hidden');
             document.getElementById('customer-modal').classList.remove('hidden');
         }
 
@@ -2439,6 +2452,13 @@
             document.getElementById('cust-identifier').value = c.identifier;
             document.getElementById('cust-identifier').readOnly = true;
             document.getElementById('cust-position').value = c.position || '';
+            // Show Account ID
+            if (c.account_id) {
+                document.getElementById('cust-account-id').value = c.account_id;
+                document.getElementById('cust-account-id-row').classList.remove('hidden');
+            } else {
+                document.getElementById('cust-account-id-row').classList.add('hidden');
+            }
             document.getElementById('customer-modal').classList.remove('hidden');
         }
 
@@ -2452,13 +2472,13 @@
             const identifier = document.getElementById('cust-identifier').value.trim();
             const position = document.getElementById('cust-position').value.trim();
 
-            if (!name || !identifier) return alert('Name and Phone/ID are required.');
+            if (!name || !identifier) return alert('Name and Mobile/Phone are required.');
 
             try {
                 const res = await fetchWithAuth('/api/customers', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identifier, name, company, outlet: company, position })
+                    body: JSON.stringify({ identifier, name, company, outlet: company, position, mobile: identifier })
                 });
                 if (res && res.ok) {
                     closeCustomerModal();

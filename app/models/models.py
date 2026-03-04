@@ -105,6 +105,7 @@ class User(Base):
     __tablename__ = "Users"
     __table_args__ = {"schema": "app"}
     identifier = Column("UserID", Unicode(100), primary_key=True)
+    account_id = Column("AccountID", Unicode(20), unique=True, nullable=True)  # EWS1, EWS2, ...
     name = Column("DisplayName", Unicode(255))
     email = Column("Email", Unicode(255), nullable=True)
     mobile = Column("Mobile", Unicode(50), nullable=True)
