@@ -253,6 +253,12 @@ async def login_page(request: Request):
 async def admin_dashboard(request: Request):
     return templates.TemplateResponse(request, "admin.html")
 
+@app.get("/user", response_class=HTMLResponse)
+async def user_portal(request: Request):
+    response = templates.TemplateResponse(request, "index.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
 # ============ Auth APIs ============
 
 @app.post("/api/auth/login")
@@ -1193,13 +1199,32 @@ async def get_audit_logs(agent: Annotated[dict, Depends(get_current_agent)]):
 
 @app.get("/api/history")
 @limiter.limit("10/minute")
-async def get_chat_history(request: Request, user_id: str = "web_portal_user"):
-    return {"history": _require_db().get_messages(user_id)}
+async def get_chat_history(request: Request, user_id: str = "web_portal_user", ticket_id: Optional[int] = None):
+    db = _require_db()
+    if ticket_id:
+        # Return unified history (portal messages + live chat) for this ticket
+        return {"history": db.get_unified_history(user_id, ticket_id)}
+    return {"history": db.get_messages(user_id)}
 
 @app.get("/api/history/sessions")
 @limiter.limit("10/minute")
 async def get_history_sessions(request: Request, user_id: str = "web_portal_user"):
-    return {"sessions": _require_db().get_unified_history(user_id)}
+    """Return ticket-based sessions for user's history view."""
+    db = _require_db()
+    tickets = db.get_tickets_by_user(user_id, limit=50)
+    sessions = []
+    for t in tickets:
+        sessions.append({
+            "session_id": f"ticket_{t['id']}",
+            "ticket_id": t["id"],
+            "summary": t.get("summary", "Support request"),
+            "status": t.get("status", "open"),
+            "category": t.get("category", "Support"),
+            "timestamp": t.get("created_at", ""),
+            "agent_name": t.get("assigned_to") or "AI Assistant",
+            "priority": t.get("priority", "Medium")
+        })
+    return {"sessions": sessions}
 
 # ============ Screen Recording Upload ============
 @app.post("/api/chat/upload-recording")
@@ -1235,11 +1260,10 @@ async def upload_screen_recording(
     # Save as chat message if we have a DB
     try:
         db = _require_db()
-        db.save_chat_history(
+        db.save_message(
             user_id=user_id,
-            message=f"📹 Screen Recording: {metadata['url']}",
             role="user",
-            channel="web"
+            content=f"📹 Screen Recording: {metadata['url']}"
         )
     except Exception as e:
         logger.warning(f"Could not save recording to chat history: {e}")
@@ -1882,14 +1906,21 @@ async def freshdesk_import_endpoint(request: Request, background_tasks: Backgrou
 # ============ SPA Catch-all (MUST be last route) ============
 @app.get("/{tab:path}", response_class=HTMLResponse)
 async def admin_spa(request: Request, tab: str):
-    valid_tabs = {
+    admin_tabs = {
         "overview", "inbox", "team", "tickets", "whatsapp",
         "macros", "knowledge", "customers", "settings",
         "audit", "usermst", "groupperms", "privsetup"
     }
+    user_tabs = {
+        "conversation", "history", "historydetail"
+    }
     root = tab.split("/")[0]
-    if root in valid_tabs:
+    if root in admin_tabs:
         return templates.TemplateResponse(request, "admin.html")
+    if root in user_tabs:
+        response = templates.TemplateResponse(request, "index.html")
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
     return HTMLResponse(status_code=404, content="Not Found")
 
 if __name__ == "__main__":

@@ -328,11 +328,24 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
+    def clear_messages(self, user_id: str):
+        """Clear all portal messages for a user (after session ends and ticket is created)."""
+        session = self.get_session()
+        try:
+            session.query(Message).filter_by(user_id=user_id).delete()
+            session.commit()
+            logger.info(f"Cleared messages for user {user_id}")
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error clearing messages for {user_id}: {e}")
+        finally:
+            self.Session.remove()
+
     def get_unified_history(self, user_id: str, ticket_id: Optional[int] = None):
         """Merges messages from both bot portal and live chat for a full view."""
         session = self.get_session()
         try:
-            # 1. Fetch portal messages
+            # 1. Fetch portal messages (may be empty if cleared after close)
             portal_msgs = session.query(
                 literal_column("'bot'").label("source"),
                 Message.role.label("role"),
@@ -364,6 +377,20 @@ class DatabaseManager:
                     "timestamp": m.time.isoformat() if m.time else None
                 })
             
+            # 3. Fallback: if no messages found but ticket exists, parse from ticket's full_history
+            if not all_msgs and ticket_id:
+                ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+                if ticket and ticket.full_history:
+                    for line in ticket.full_history.split("\n"):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        if line.startswith("USER:"):
+                            all_msgs.append({"source": "bot", "role": "user", "content": line[5:].strip(), "timestamp": None})
+                        elif line.startswith("BOT:") or line.startswith("ASSISTANT:"):
+                            prefix_len = 4 if line.startswith("BOT:") else 10
+                            all_msgs.append({"source": "bot", "role": "bot", "content": line[prefix_len:].strip(), "timestamp": None})
+
             return sorted(all_msgs, key=lambda x: x['timestamp'] or '')
         finally:
             self.Session.remove()

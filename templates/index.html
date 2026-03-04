@@ -142,7 +142,7 @@
             <p class="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Enterprise Edition</p>
         </div>
         <nav class="flex-1 px-4 space-y-2">
-            <a href="#" onclick="showChat()" id="nav-chat"
+            <a href="/conversation" onclick="event.preventDefault(); showChat()" id="nav-chat"
                 class="sidebar-link active flex items-center px-4 py-3 text-slate-600 rounded-xl font-semibold transition">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -151,7 +151,7 @@
                 Conversations
             </a>
 
-            <a href="#" onclick="showHistory()" id="nav-history"
+            <a href="/history" onclick="event.preventDefault(); showHistory()" id="nav-history"
                 class="sidebar-link flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-semibold transition">
                 <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -428,6 +428,9 @@
             userInput.placeholder = "Type your message...";
             document.querySelector('#chat-form button[type="submit"]').disabled = false;
             document.getElementById('close-chat').classList.remove('hidden');
+
+            // Update URL
+            history.pushState({ view: 'conversation' }, '', '/conversation');
         }
 
         async function showHistory() {
@@ -436,6 +439,9 @@
             historyView.classList.remove('hidden');
             document.getElementById('nav-chat').classList.remove('active');
             document.getElementById('nav-history').classList.add('active');
+
+            // Update URL
+            history.pushState({ view: 'history' }, '', '/history');
 
             const list = document.getElementById('history-list');
             list.innerHTML = `
@@ -497,6 +503,8 @@
 
         async function loadSession(sessionId, ticketId, summary) {
             showChat();
+            // Update URL to historydetail
+            history.pushState({ view: 'historydetail', ticketId, summary }, '', '/historydetail');
             chatbox.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-10 opacity-50">
                     <div class="px-4 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase rounded-full border border-blue-500/20 mb-4">History Mode (Read Only)</div>
@@ -623,7 +631,7 @@
                 } else {
                     addMessage(data.message || 'Chat closed.', 'ai');
                 }
-                setTimeout(() => location.reload(), 2000);
+                setTimeout(() => { window.location.href = '/conversation'; }, 2000);
             } catch (err) { addMessage("Failed to close session. Please try again.", 'ai'); }
             finally { closeBtn.disabled = false; }
         }
@@ -732,7 +740,42 @@
         }
 
         // Load history on load
-        window.addEventListener('DOMContentLoaded', loadHistory);
+        window.addEventListener('DOMContentLoaded', () => {
+            // Route based on URL path
+            const path = window.location.pathname.replace(/\/$/, '');
+            if (path === '/history') {
+                showHistory();
+            } else if (path === '/historydetail') {
+                // Can't restore detail without ticket context, show history list
+                showHistory();
+            } else {
+                // /conversation, /user, / or anything else → show chat
+                loadHistory();
+                if (path !== '/conversation' && path !== '/' && path !== '/user' && path !== '') {
+                    history.replaceState({ view: 'conversation' }, '', '/conversation');
+                }
+            }
+        });
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', (e) => {
+            const state = e.state;
+            if (state && state.view === 'history') {
+                showHistory();
+            } else if (state && state.view === 'historydetail' && state.ticketId) {
+                loadSession(`ticket_${state.ticketId}`, state.ticketId, state.summary || 'Support');
+            } else {
+                // Default to conversation
+                document.getElementById('chat-workspace').classList.remove('hidden');
+                document.getElementById('history-view').classList.add('hidden');
+                document.getElementById('nav-chat').classList.add('active');
+                document.getElementById('nav-history').classList.remove('active');
+                userInput.disabled = false;
+                userInput.placeholder = "Type your message...";
+                document.querySelector('#chat-form button[type="submit"]').disabled = false;
+                document.getElementById('close-chat').classList.remove('hidden');
+            }
+        });
     </script>
 </body>
 

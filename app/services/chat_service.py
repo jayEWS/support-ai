@@ -448,10 +448,39 @@ class ChatService:
         if option == 'close':
             close_msg = close_msgs.get(lang, close_msgs['en'])
             db_manager.save_message(user_id, "bot", close_msg)
+
+            # Create a resolved ticket so it appears in history
+            ticket_id = None
+            if messages and len(messages) > 1:
+                try:
+                    history_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
+                    # Quick summary via LLM
+                    llm = self.rag_service._get_llm() if self.rag_service else None
+                    summary = "Chat resolved by customer"
+                    if llm:
+                        try:
+                            import json as _json
+                            res = await llm.ainvoke(
+                                "Summarize this support chat in 1 short sentence (English):\n" + history_text[:2000]
+                            )
+                            summary = res.content.strip()[:200]
+                        except:
+                            pass
+                    ticket_id = db_manager.create_ticket(
+                        user_id, summary, history_text,
+                        priority="Low", status="closed"
+                    )
+                    logger.info(f"[CLOSE] Created resolved ticket #{ticket_id} for user {user_id}")
+                except Exception as e:
+                    logger.error(f"Failed to create resolved ticket: {e}")
+
             self._sessions.pop(user_id, None)
+            # Clear portal messages so next chat starts fresh
+            db_manager.clear_messages(user_id)
             return {
                 "status": "closed",
-                "ticket_created": False,
+                "ticket_created": bool(ticket_id),
+                "ticket_id": ticket_id,
                 "message": close_msg,
                 "message_count": msg_count
             }
@@ -534,6 +563,8 @@ class ChatService:
                     db_manager.save_message(user_id, "bot", simple_close.get(lang, simple_close['en']))
 
                 self._sessions.pop(user_id, None)
+                # Clear portal messages so next chat starts fresh
+                db_manager.clear_messages(user_id)
                 return {
                     "status": "closed",
                     "ticket_created": True,
