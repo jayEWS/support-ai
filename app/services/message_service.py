@@ -40,7 +40,7 @@ async def process_incoming_message(data: dict):
     # Handle media-only messages or media with text
     if not text and attachments:
         # If user only sent media, acknowledge it
-        response = "Terima kasih, saya telah menerima lampiran Anda. Ada yang bisa saya bantu terkait lampiran tersebut?"
+        response = "Thank you, I've received your attachment. Is there anything I can help you with regarding it?"
     else:
         # Process text with RAG
         response = await rag_engine.rag_engine.ask(text, user_id=user_id)

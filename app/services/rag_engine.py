@@ -15,24 +15,24 @@ from app.utils.security_utils import SecurityEngine
 
 from langchain.prompts import PromptTemplate
 
-SUPPORT_PROMPT_TEMPLATE = """Kamu adalah asisten dukungan teknis Edgeworks yang ramah dan helpful. Tugasmu memberikan solusi yang akurat, jelas, dan mudah dipahami.
+SUPPORT_PROMPT_TEMPLATE = """You are a friendly and helpful Edgeworks technical support assistant. Your job is to provide accurate, clear, and easy-to-understand solutions.
 
-Konteks Dokumen (termasuk tanggal unggah):
+Document Context (including upload dates):
 {context}
 
-Pertanyaan Pengguna: {question}
+User Question: {question}
 
-Panduan Merespons:
-1. IDENTITAS: Jika pengguna baru menyapa, perkenalkan diri dan tanyakan Nama, No WA, Nama Outlet, dan kendalanya.
-2. PRIORITAS: Jika ada info berbeda antar dokumen, gunakan dokumen dengan TANGGAL TERBARU.
-3. BAHASA ({target_language}): Gunakan nada santai tapi profesional. Panggil 'Kak' atau langsung saja. Hindari bahasa terlalu kaku.
-4. AKURASI: Gunakan HANYA info dari konteks dokumen. Jangan mengarang.
-5. PROAKTIF: Kalau masalah belum jelas, tanyakan langkah yang sudah dilakukan atau minta screenshot.
-6. SUMBER: Sebutkan nama file sumber di akhir jawaban.
-7. TIDAK TAHU: Jika info tidak ditemukan, bilang: "Maaf ya, info ini belum ada di panduan kami. Boleh info Nama dan Outlet kamu? Nanti kami hubungkan dengan tim yang bisa bantu langsung."
-8. FORMAT: Gunakan bullet points atau langkah bernomor untuk instruksi. Buat mudah diikuti.
+Response Guidelines:
+1. IDENTITY: If a new user greets you, introduce yourself and ask for their Name, WhatsApp Number, Outlet Name, and their issue.
+2. PRIORITY: If there is conflicting info between documents, use the document with the LATEST DATE.
+3. LANGUAGE ({target_language}): Use a friendly yet professional tone.
+4. ACCURACY: Use ONLY information from the document context. Do not make things up.
+5. PROACTIVE: If the issue is unclear, ask what steps have been taken or request a screenshot.
+6. SOURCE: Mention the source file name at the end of your answer.
+7. UNKNOWN: If the info is not found, say: "I'm sorry, this information is not yet available in our guides. Could you share your Name and Outlet? We'll connect you with a team member who can help directly."
+8. FORMAT: Use bullet points or numbered steps for instructions. Make it easy to follow.
 
-Jawaban (singkat, jelas, helpful):"""
+Answer (concise, clear, helpful):"""
 
 from app.core.database import db_manager
 from app.services.gcs_service import get_gcs_service
@@ -342,16 +342,16 @@ class RAGEngine:
         task.add_done_callback(self._background_tasks.discard)
         if errors: raise ValueError(f"Errors: {', '.join(errors)}")
 
-    async def ask(self, query: str, user_id: str = "default", language: str = 'id') -> str:
+    async def ask(self, query: str, user_id: str = "default", language: str = 'en') -> str:
         """Enterprise query flow with Version Awareness."""
         if SecurityEngine.check_jailbreak(query):
-            return "Maaf, sistem mendeteksi aktivitas yang tidak diizinkan."
+            return "Sorry, our system detected an unauthorized activity."
         
         masked_query = SecurityEngine.mask_pii(query)
         # db_manager.save_message(user_id, "user", masked_query) # Handled by callers now
 
         if not self.vector_store and not self.hybrid_retriever:
-            return "Sistem sedang memproses data. Mohon tunggu."
+            return "The system is currently processing data. Please wait a moment."
 
         # Retrieve more chunks to ensure we catch latest versions
         k_val = 10
@@ -385,7 +385,7 @@ class RAGEngine:
 
         confidence = calculate_confidence(masked_query, context_text)
         if confidence < 0.05 and "status" not in masked_query.lower():
-            return "Informasi tidak ditemukan secara memadai dalam basis pengetahuan kami. Mohon tunggu sejenak sementara saya menghubungkan Anda dengan spesialis produk kami."
+            return "The information was not found sufficiently in our knowledge base. Please wait a moment while we connect you with our product specialist."
 
         target_lang = "Bahasa Indonesia" if language == 'id' else "English"
         prompt = PromptTemplate(template=SUPPORT_PROMPT_TEMPLATE, input_variables=["context", "question", "target_language"])
@@ -398,19 +398,19 @@ class RAGEngine:
             return ai_response
         except Exception as e:
             logger.error(f"Synthesis Error: {e}")
-            return "Terjadi gangguan teknis saat menghubungi sistem pusat. Silakan coba lagi."
+            return "A technical error occurred while connecting to the central system. Please try again."
 
     async def get_analytics_trends(self) -> str:
         try:
             summaries = db_manager.get_recent_summaries(limit=20)
-            if not summaries: return "Tidak ada data tiket yang cukup untuk analisis tren."
-            res = await self.llm.ainvoke(f"Identifikasi 3 tren utama keluhan pelanggan dalam Bahasa Indonesia formal:\n" + "\n- ".join(summaries))
+            if not summaries: return "Not enough ticket data for trend analysis."
+            res = await self.llm.ainvoke(f"Identify the top 3 customer complaint trends in English:\n" + "\n- ".join(summaries))
             return res.content.strip()
-        except Exception: return "Analisis tren AI saat ini tidak tersedia."
+        except Exception: return "AI trend analysis is currently unavailable."
 
     async def finalize_ticket(self, user_id: str, option: int = 1) -> str:
         messages = db_manager.get_messages(user_id)
-        if not messages: return "Percakapan kosong."
+        if not messages: return "Conversation is empty."
         history_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
         try:
             if option == 1:
@@ -428,12 +428,12 @@ class RAGEngine:
                     priority=data['priority'],
                     due_at=due_at
                 )
-                return f"Tiket #{ticket_id} telah dibuat dengan prioritas {data['priority']}. Batas waktu pengerjaan: {due_at.strftime('%Y-%m-%d %H:%M')}."
+                return f"Ticket #{ticket_id} has been created with priority {data['priority']}. Deadline: {due_at.strftime('%Y-%m-%d %H:%M')}."
             else:
-                return "Sesi ditutup tanpa membuat tiket."
+                return "Session closed without creating a ticket."
         except Exception as e: 
             logger.error(f"Finalize Ticket Error: {e}")
-            return "Gagal membuat tiket secara otomatis. Mohon hubungi admin."
+            return "Failed to create ticket automatically. Please contact admin."
 
 # No auto-instantiation here to avoid RuntimeWarnings during module import
 rag_engine: Optional[RAGEngine] = None

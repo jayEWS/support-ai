@@ -18,6 +18,6 @@ class EscalationService:
         )
         
         if is_critical:
-            return f"Permintaan Anda bersifat mendesak dan telah kami tandai sebagai PRIORITAS TINGGI (Tiket #{ticket.id}). Spesialis senior akan segera menghubungi Anda."
+            return f"Your request is urgent and has been marked as HIGH PRIORITY (Ticket #{ticket.id}). A senior specialist will contact you shortly."
         
-        return f"Maaf, saya tidak dapat menjawab pertanyaan tersebut secara memadai. Saya telah membuatkan tiket bantuan (#{ticket.id}) untuk Anda dan akan segera ditangani oleh agen kami."
+        return f"I'm unable to fully answer your question. I've created a support ticket (#{ticket.id}) for you — our agent will handle it shortly."

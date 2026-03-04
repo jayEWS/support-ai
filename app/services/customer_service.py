@@ -42,7 +42,7 @@ class CustomerService:
         
         # Existing customer — get their language
         user = db_manager.get_user(customer.identifier)
-        lang = (user.get('language') if user else None) or 'id'
+        lang = (user.get('language') if user else None) or 'en'
         name = customer.name or ''
         
         greetings = {
@@ -50,4 +50,4 @@ class CustomerService:
             'en': f"Hi {name}! 👋 Great to see you again.\nHow can I help you today?",
             'zh': f"{name} 您好！👋 很高兴再次见到您。\n请问今天有什么可以帮助您的？",
         }
-        return greetings.get(lang, greetings['id'])
+        return greetings.get(lang, greetings['en'])

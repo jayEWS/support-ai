@@ -135,7 +135,7 @@ class RAGService:
         all_docs.sort(key=lambda x: x[1], reverse=True)
         return [doc for doc, _ in all_docs[:k_vector + k_bm25]]
 
-    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'id') -> RAGResponse:
+    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en') -> RAGResponse:
         """
         Query RAG with optional hybrid search
         - use_hybrid=True: Uses BM25 + Vector search (better recall)
@@ -147,7 +147,7 @@ class RAGService:
             'en': "Answer in English. Use a friendly and professional tone.",
             'zh': "请用中文回答。使用友好且专业的语气。",
         }
-        lang_instruction = lang_instructions.get(language, lang_instructions['id'])
+        lang_instruction = lang_instructions.get(language, lang_instructions['en'])
         
         with LogLatency("rag_service", "query"):
             # Handle greetings and short conversational queries directly via LLM
@@ -179,7 +179,7 @@ Ask how you can help today. Keep it short, 2-3 sentences."""
                         'zh': "你好！👋 我是 Edgeworks AI 助手。今天有什么可以帮助您的？",
                     }
                     return RAGResponse(
-                        answer=fallbacks.get(language, fallbacks['id']),
+                        answer=fallbacks.get(language, fallbacks['en']),
                         confidence=1.0,
                         source_documents=[]
                     )

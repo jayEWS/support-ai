@@ -1239,7 +1239,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     
     # Get user language for multi-language response
     chat_svc = getattr(app.state, 'chat_service', None)
-    user_lang = chat_svc.get_user_language(message.sender) if chat_svc else 'id'
+    user_lang = chat_svc.get_user_language(message.sender) if chat_svc else 'en'
     
     # Check if customer needs onboarding first
     state_info = chat_svc._get_user_state(message.sender) if chat_svc else {'state': 'complete'}
@@ -1375,7 +1375,7 @@ async def simulate_whatsapp_inbound(data: dict, agent: Annotated[dict, Depends(g
         
         # Get user language for multi-language response
         chat_svc = getattr(app.state, 'chat_service', None)
-        user_lang = chat_svc.get_user_language(phone) if chat_svc else 'id'
+        user_lang = chat_svc.get_user_language(phone) if chat_svc else 'en'
         
         # Check if customer needs onboarding first
         state_info = chat_svc._get_user_state(phone) if chat_svc else {'state': 'complete'}

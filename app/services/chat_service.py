@@ -98,9 +98,9 @@ class ChatService:
         return None
 
     def _get_lang_str(self, lang: str, key: str, **kwargs) -> str:
-        """Get localized string with fallback to Indonesian."""
-        strings = self.LANG_STRINGS.get(lang, self.LANG_STRINGS['id'])
-        template = strings.get(key, self.LANG_STRINGS['id'].get(key, ''))
+        """Get localized string with fallback to English."""
+        strings = self.LANG_STRINGS.get(lang, self.LANG_STRINGS['en'])
+        template = strings.get(key, self.LANG_STRINGS['en'].get(key, ''))
         return template.format(**kwargs) if kwargs else template
 
     def _get_user_state(self, user_id: str) -> dict:
@@ -137,7 +137,7 @@ class ChatService:
         """Handle customer onboarding flow with multi-language. Returns response string or None to continue to RAG."""
         state = state_info['state']
         user = state_info.get('user')
-        lang = (user.get('language') if user else None) or 'id'
+        lang = (user.get('language') if user else None) or 'en'
         
         if state == 'new':
             # Brand new user — detect language from their first message
@@ -151,11 +151,11 @@ class ChatService:
                     'en': "Hello! 👋 Welcome to Edgeworks Support.\nBefore we start, let me get to know you.",
                     'zh': "你好！👋 欢迎来到 Edgeworks 支持中心。\n在开始之前，让我先认识一下您。",
                 }
-                return f"{welcome.get(detected_lang, welcome['id'])}\n{greeting}"
+                return f"{welcome.get(detected_lang, welcome['en'])}\n{greeting}"
             else:
                 # Ambiguous (e.g. "hi") — ask for language preference
                 db_manager.create_or_update_user(user_id, name=None, state='asking_language')
-                return self._get_lang_str('id', 'ask_language')
+                return self._get_lang_str('en', 'ask_language')
         
         if state == 'asking_language':
             # User is selecting language
@@ -168,7 +168,7 @@ class ChatService:
                 'en': "Hello! 👋 Welcome to Edgeworks Support.\nBefore we start, let me get to know you.",
                 'zh': "你好！👋 欢迎来到 Edgeworks 支持中心。\n在开始之前，让我先认识一下您。",
             }
-            return f"{welcome.get(detected_lang, welcome['id'])}\n{self._get_lang_str(detected_lang, 'ask_name')}"
+            return f"{welcome.get(detected_lang, welcome['en'])}\n{self._get_lang_str(detected_lang, 'ask_name')}"
         
         if state == 'asking_name':
             # User is providing their name
@@ -183,7 +183,7 @@ class ChatService:
             company = query.strip()
             if len(company) < 2:
                 return self._get_lang_str(lang, 'invalid_company')
-            name = user.get('name', 'Kak') if user else 'Kak'
+            name = user.get('name', 'Customer') if user else 'Customer'
             db_manager.create_or_update_user(user_id, name=name, company=company, outlet_pos=company, state='complete', language=lang)
             return self._get_lang_str(lang, 'onboard_complete', name=name, company=company)
         
@@ -199,9 +199,9 @@ class ChatService:
         return None
 
     def get_user_language(self, user_id: str) -> str:
-        """Get user's preferred language. Default to 'id' (Indonesian)."""
+        """Get user's preferred language. Default to 'en' (English)."""
         user = db_manager.get_user(user_id)
-        return (user.get('language') if user else None) or 'id'
+        return (user.get('language') if user else None) or 'en'
 
     def _check_recurring_issues(self, user_id: str, query: str) -> Optional[str]:
         """Check if customer has asked about similar issues before.
@@ -237,12 +237,12 @@ class ChatService:
                 created = latest.get('created_at', '')[:10] if latest.get('created_at') else ''
 
                 if status in ('open', 'pending'):
-                    return (f"📋 Kak, sepertinya masalah ini masih dalam proses di Tiket #{ticket_id} "
-                            f"(dibuat {created}, status: {status}). "
-                            f"Apakah ada update baru atau kendala yang sama masih berlanjut?")
+                    return (f"📋 It looks like this issue is still being processed in Ticket #{ticket_id} "
+                            f"(created {created}, status: {status}). "
+                            f"Is there a new update, or is the same issue still ongoing?")
                 else:
-                    return (f"📋 Kak, masalah serupa pernah ditangani di Tiket #{ticket_id} ({created}). "
-                            f"Apakah masalah yang sama muncul lagi, atau ada kendala baru?")
+                    return (f"📋 A similar issue was previously handled in Ticket #{ticket_id} ({created}). "
+                            f"Is the same issue happening again, or is this a new problem?")
 
             return None
         except Exception as e:
@@ -391,7 +391,7 @@ class ChatService:
         }
 
         if option == 'close':
-            close_msg = close_msgs.get(lang, close_msgs['id'])
+            close_msg = close_msgs.get(lang, close_msgs['en'])
             db_manager.save_message(user_id, "bot", close_msg)
             self._sessions.pop(user_id, None)
             return {
@@ -405,21 +405,21 @@ class ChatService:
             # Need ticket - escalation or unresolved issue
             if not messages:
                 no_msg = {'id': 'Tidak ada percakapan untuk dibuatkan tiket.', 'en': 'No conversation found to create a ticket.', 'zh': '没有对话记录可以创建工单。'}
-                return {"status": "error", "message": no_msg.get(lang, no_msg['id'])}
+                return {"status": "error", "message": no_msg.get(lang, no_msg['en'])}
 
             history_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
 
             try:
                 from app.services.rag_engine import rag_engine
                 if not rag_engine:
-                    return {"status": "error", "message": "RAG Engine belum siap."}
+                    return {"status": "error", "message": "RAG Engine is not ready yet."}
 
                 # Use LLM to summarize and determine priority
                 res = await rag_engine.llm.ainvoke(
-                    "Kamu adalah support ticket summarizer. Buat JSON dengan field:\n"
-                    "- 'summary': ringkasan masalah dalam 1-2 kalimat Bahasa Indonesia\n"
-                    "- 'priority': salah satu dari Urgent, High, Medium, Low\n"
-                    "- 'category': kategori masalah (POS, Closing, Hardware, Network, dll)\n\n"
+                    "You are a support ticket summarizer. Create a JSON with the following fields:\n"
+                    "- 'summary': summarize the issue in 1-2 sentences in English\n"
+                    "- 'priority': one of Urgent, High, Medium, Low\n"
+                    "- 'category': issue category (POS, Closing, Hardware, Network, etc.)\n\n"
                     "Chat history:\n" + history_text
                 )
                 import json as _json
@@ -438,7 +438,7 @@ class ChatService:
 
                 # Get customer info for response
                 user = db_manager.get_user(user_id)
-                name = user.get('name', 'Kak') if user else 'Kak'
+                name = user.get('name', 'Customer') if user else 'Customer'
 
                 if option == 'ticket_and_notify':
                     summary_text = ticket_data.get('summary', '-')
@@ -449,11 +449,11 @@ class ChatService:
                         'en': f"Ticket #{ticket_id} has been created 📝\n• Issue: {summary_text}\n• Priority: {priority_text}\n• Target completion: {due_text}\n\nOur team will follow up with you, {name}. Thank you! 🙏",
                         'zh': f"工单 #{ticket_id} 已创建 📝\n• 问题：{summary_text}\n• 优先级：{priority_text}\n• 目标完成时间：{due_text}\n\n我们的团队会跟进，{name}。谢谢！🙏",
                     }
-                    notify_msg = notify_templates.get(lang, notify_templates['id'])
+                    notify_msg = notify_templates.get(lang, notify_templates['en'])
                     db_manager.save_message(user_id, "bot", notify_msg)
                 else:
                     simple_close = {'id': f'Tiket #{ticket_id} dibuat. Chat ditutup.', 'en': f'Ticket #{ticket_id} created. Chat closed.', 'zh': f'工单 #{ticket_id} 已创建。聊天已结束。'}
-                    db_manager.save_message(user_id, "bot", simple_close.get(lang, simple_close['id']))
+                    db_manager.save_message(user_id, "bot", simple_close.get(lang, simple_close['en']))
 
                 self._sessions.pop(user_id, None)
                 return {
@@ -470,6 +470,6 @@ class ChatService:
             except Exception as e:
                 logger.error(f"Smart close error: {e}")
                 err_msg = {'id': f'Gagal membuat tiket: {str(e)}', 'en': f'Failed to create ticket: {str(e)}', 'zh': f'创建工单失败：{str(e)}'}
-                return {"status": "error", "message": err_msg.get(lang, err_msg['id'])}
+                return {"status": "error", "message": err_msg.get(lang, err_msg['en'])}
 
         return {"status": "error", "message": "Invalid option"}

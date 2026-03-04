@@ -253,8 +253,24 @@
                                 class="px-8 py-3 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 uppercase text-xs tracking-widest">Send</button>
 
                             <button type="button" id="close-chat"
-                                class="px-6 py-3 bg-[#2a0e0e] text-red-500 border border-red-500/20 font-black rounded-2xl hover:bg-red-500 hover:text-white transition uppercase text-xs tracking-widest">End
+                                class="px-6 py-3 bg-[#2a0e0e] text-red-500 border border-red-500/20 font-black rounded-2xl hover:bg-red-500 hover:text-white transition uppercase text-xs tracking-widest relative">End
                                 Chat</button>
+
+                            <!-- End Chat Dropdown -->
+                            <div id="end-chat-menu" class="hidden absolute bottom-full right-0 mb-2 w-72 bg-[#1a1d21] border border-white/10 rounded-2xl shadow-2xl p-2 z-50">
+                                <p class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">End Conversation</p>
+                                <button onclick="doEndChat('close')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-green-500/10 transition flex items-center gap-3">
+                                    <span class="w-8 h-8 bg-green-500/20 text-green-400 rounded-lg flex items-center justify-center"><i class="fas fa-check"></i></span>
+                                    <div><p class="text-sm font-bold text-white">Resolved ✅</p><p class="text-[10px] text-gray-500">Issue solved, close chat</p></div>
+                                </button>
+                                <button onclick="doEndChat('ticket_and_notify')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-500/10 transition flex items-center gap-3">
+                                    <span class="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center"><i class="fas fa-ticket-alt"></i></span>
+                                    <div><p class="text-sm font-bold text-white">Create Ticket 📝</p><p class="text-[10px] text-gray-500">Need follow-up from our team</p></div>
+                                </button>
+                                <div class="border-t border-white/5 mt-1 pt-1">
+                                    <button onclick="document.getElementById('end-chat-menu').classList.add('hidden')" class="w-full text-center px-4 py-2 text-[10px] text-gray-500 hover:text-gray-300 font-bold uppercase tracking-widest">Cancel</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -599,46 +615,46 @@
             clearPendingFile();
         });
 
-        closeBtn.addEventListener('click', async () => {
-            const opt = prompt(
-                "Mau tutup chat?\n\n" +
-                "1. Tutup aja (sudah terbantu, tidak perlu tiket)\n" +
-                "2. Buat tiket (perlu investigasi / belum selesai)\n" +
-                "3. Buat tiket + kirim nomor tiket\n\n" +
-                "Pilih 1, 2, atau 3:"
-            );
+        closeBtn.addEventListener('click', () => {
+            const menu = document.getElementById('end-chat-menu');
+            menu.classList.toggle('hidden');
+        });
 
-            if (!['1','2','3'].includes(opt)) {
-                if (opt !== null) alert("Pilihan tidak valid.");
-                return;
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('end-chat-menu');
+            if (!menu.contains(e.target) && e.target !== closeBtn && !closeBtn.contains(e.target)) {
+                menu.classList.add('hidden');
             }
+        });
 
-            const optionMap = { '1': 'close', '2': 'ticket', '3': 'ticket_and_notify' };
+        async function doEndChat(option) {
+            document.getElementById('end-chat-menu').classList.add('hidden');
             closeBtn.disabled = true;
             
-            if (opt === '1') {
-                addMessage("Menutup chat...", 'ai');
+            if (option === 'close') {
+                addMessage("Closing chat...", 'ai');
             } else {
-                addMessage("Sedang membuat tiket, tunggu sebentar...", 'ai');
+                addMessage("Creating ticket, please wait...", 'ai');
             }
 
             try {
                 const res = await fetch('/api/close-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, option: optionMap[opt] })
+                    body: JSON.stringify({ user_id: userId, option: option })
                 });
                 const data = await res.json();
                 
                 if (data.ticket_created) {
-                    alert(`Tiket #${data.ticket_id} dibuat!\nPrioritas: ${data.priority}\n${data.summary}`);
+                    addMessage(`📝 Ticket #${data.ticket_id} created!\n• Priority: ${data.priority}\n• ${data.summary}`, 'ai');
                 } else {
-                    alert(data.message || 'Chat ditutup.');
+                    addMessage(data.message || 'Chat closed.', 'ai');
                 }
-                location.reload();
-            } catch (err) { alert("Failed to close session."); }
+                setTimeout(() => location.reload(), 2000);
+            } catch (err) { addMessage("Failed to close session. Please try again.", 'ai'); }
             finally { closeBtn.disabled = false; }
-        });
+        }
 
 
 
