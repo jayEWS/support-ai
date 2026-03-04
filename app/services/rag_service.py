@@ -135,27 +135,34 @@ class RAGService:
         all_docs.sort(key=lambda x: x[1], reverse=True)
         return [doc for doc, _ in all_docs[:k_vector + k_bm25]]
 
-    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True) -> RAGResponse:
+    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'id') -> RAGResponse:
         """
         Query RAG with optional hybrid search
         - use_hybrid=True: Uses BM25 + Vector search (better recall)
         - use_hybrid=False: Uses only vector search (faster)
+        - language: 'id' (Indonesian), 'en' (English), 'zh' (Chinese)
         """
+        lang_instructions = {
+            'id': "Jawab dalam Bahasa Indonesia. Gunakan nada santai tapi profesional, panggil 'Kak' atau langsung saja.",
+            'en': "Answer in English. Use a friendly and professional tone.",
+            'zh': "请用中文回答。使用友好且专业的语气。",
+        }
+        lang_instruction = lang_instructions.get(language, lang_instructions['id'])
+        
         with LogLatency("rag_service", "query"):
             # Handle greetings and short conversational queries directly via LLM
-            greeting_words = {"hi", "hello", "hey", "halo", "hai", "selamat", "pagi", "siang", "sore", "malam", "thanks", "terima", "kasih", "ok", "oke", "bye", "test"}
+            greeting_words = {"hi", "hello", "hey", "halo", "hai", "selamat", "pagi", "siang", "sore", "malam", "thanks", "terima", "kasih", "ok", "oke", "bye", "test", "你好", "谢谢", "早上好", "晚上好"}
             query_words = set(text.lower().strip().split())
             is_greeting = len(query_words) <= 3 and query_words.intersection(greeting_words)
             
             if is_greeting:
                 llm = self._get_llm()
-                prompt = f"""Kamu adalah asisten dukungan teknis Edgeworks yang ramah dan helpful.
-Pengguna menyapa: "{text}"
+                prompt = f"""You are a friendly Edgeworks technical support assistant.
+The user says: "{text}"
 
-Balas dengan santai tapi profesional. Perkenalkan diri sebagai asisten AI Edgeworks.
-Tanyakan: Nama, Nama Outlet, dan ada kendala apa yang bisa dibantu.
-Gunakan nada friendly, panggil 'Kak' atau langsung saja. Jangan terlalu kaku.
-Jawab singkat, 2-3 kalimat saja."""
+{lang_instruction}
+Reply casually but professionally. Introduce yourself as the Edgeworks AI assistant.
+Ask how you can help today. Keep it short, 2-3 sentences."""
                 try:
                     res = await asyncio.to_thread(llm.invoke, prompt)
                     return RAGResponse(
@@ -166,8 +173,13 @@ Jawab singkat, 2-3 kalimat saja."""
                     )
                 except Exception as e:
                     logger.error(f"LLM greeting error: {e}")
+                    fallbacks = {
+                        'id': "Halo! 👋 Saya asisten AI Edgeworks. Ada yang bisa saya bantu hari ini?",
+                        'en': "Hello! 👋 I'm the Edgeworks AI assistant. How can I help you today?",
+                        'zh': "你好！👋 我是 Edgeworks AI 助手。今天有什么可以帮助您的？",
+                    }
                     return RAGResponse(
-                        answer="Halo! 👋 Saya asisten AI Edgeworks. Ada yang bisa saya bantu hari ini?",
+                        answer=fallbacks.get(language, fallbacks['id']),
                         confidence=1.0,
                         source_documents=[]
                     )
@@ -175,11 +187,12 @@ Jawab singkat, 2-3 kalimat saja."""
             if not self.vector_store:
                 # No vector store - still try LLM for general questions
                 llm = self._get_llm()
-                prompt = f"""Kamu adalah asisten dukungan teknis Edgeworks yang ramah dan helpful.
-Pertanyaan pengguna: "{text}"
+                prompt = f"""You are a friendly Edgeworks technical support assistant.
+User question: "{text}"
 
-Jawab sebaik mungkin dengan nada santai tapi profesional.
-Kalau kamu tidak yakin jawabannya, bilang akan hubungkan dengan tim yang bisa bantu."""
+{lang_instruction}
+Answer as best as you can.
+If unsure, say you'll connect them with a team that can help."""
                 try:
                     res = await asyncio.to_thread(llm.invoke, prompt)
                     return RAGResponse(
@@ -221,37 +234,37 @@ Kalau kamu tidak yakin jawabannya, bilang akan hubungkan dengan tim yang bisa ba
                 
                 if confidence >= threshold:
                     # High confidence - use context-grounded prompt
-                    prompt = f"""Kamu adalah asisten dukungan teknis Edgeworks yang ramah dan helpful. Jawab berdasarkan dokumen berikut.
+                    prompt = f"""You are a friendly Edgeworks technical support assistant. Answer based on the following documents.
 
-Konteks Dokumen:
+Document Context:
 {context}
 
-Pertanyaan: {text}
+Question: {text}
 
-Panduan:
-1. Gunakan HANYA info dari dokumen di atas
-2. Gunakan nada santai tapi profesional, panggil 'Kak' atau langsung saja
-3. Buat jawaban singkat dan mudah diikuti (gunakan bullet points/langkah bernomor)
-4. Sebutkan nama file sumber di akhir
-5. Kalau info kurang lengkap, bilang dan tawarkan bantuan lanjut
+Instructions:
+1. Use ONLY information from the documents above
+2. {lang_instruction}
+3. Keep the answer concise and easy to follow (use bullet points/numbered steps)
+4. Mention the source file name at the end
+5. If information is incomplete, say so and offer further help
 
-Jawaban:"""
+Answer:"""
                 else:
                     # Low confidence - let LLM try but with disclaimer
-                    prompt = f"""Kamu adalah asisten dukungan teknis Edgeworks yang ramah dan helpful.
+                    prompt = f"""You are a friendly Edgeworks technical support assistant.
 
-Konteks yang ditemukan (mungkin kurang relevan):
+Context found (may not be fully relevant):
 {context}
 
-Pertanyaan: {text}
+Question: {text}
 
-Panduan:
-1. Coba jawab sebaik mungkin pakai konteks yang ada
-2. Kalau konteks tidak relevan, jawab dari pengetahuan umum tentang sistem POS/Edgeworks
-3. Kalau benar-benar tidak bisa jawab, bilang: "Maaf ya, info ini belum ada di panduan kami. Boleh info Nama dan Outlet kamu? Nanti kami hubungkan dengan tim yang bisa bantu langsung."
-4. Gunakan nada santai tapi profesional
+Instructions:
+1. Try to answer using the context provided
+2. If context is not relevant, answer from general knowledge about POS/Edgeworks systems
+3. If you truly cannot answer, apologize and offer to connect with a team that can help
+4. {lang_instruction}
 
-Jawaban:"""
+Answer:"""
                 
                 res = await asyncio.to_thread(llm.invoke, prompt)
                 

@@ -21,6 +21,88 @@ class ChatService:
         # Track active chat sessions: user_id -> {message_count, has_escalation, ticket_id}
         self._sessions = {}
 
+    # ============ Multi-Language Support ============
+    LANG_STRINGS = {
+        'id': {
+            'ask_language': "Halo! 👋 Selamat datang di Edgeworks Support.\nSilakan pilih bahasa:\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文 (Chinese)\n\nKetik 1, 2, atau 3:",
+            'ask_name': "Siapa nama kamu? 😊",
+            'invalid_name': "Hmm, boleh tulis nama lengkap kamu? 😊",
+            'ask_company': "Hai {name}! 👋\nNama perusahaan atau outlet kamu apa ya?\n(contoh: PT ABC / Warung Makan XYZ)",
+            'invalid_company': "Boleh tulis nama perusahaan atau outlet kamu?",
+            'onboard_complete': "Terima kasih {name}! ✅\nData kamu sudah kami simpan:\n• Nama: {name}\n• Outlet: {company}\n\nSekarang, ada yang bisa saya bantu hari ini? 😊",
+            'welcome_back': "Hai {name}! 👋 Senang ketemu lagi.\nAda yang bisa saya bantu hari ini?",
+            'welcome_back_no_name': "Halo! 👋 Senang ketemu lagi.\nAda yang bisa saya bantu hari ini?",
+        },
+        'en': {
+            'ask_language': "Hello! 👋 Welcome to Edgeworks Support.\nPlease choose your language:\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文 (Chinese)\n\nType 1, 2, or 3:",
+            'ask_name': "What is your name? 😊",
+            'invalid_name': "Could you please type your full name? 😊",
+            'ask_company': "Hi {name}! 👋\nWhat is your company or outlet name?\n(e.g. PT ABC / Restaurant XYZ)",
+            'invalid_company': "Could you please type your company or outlet name?",
+            'onboard_complete': "Thank you {name}! ✅\nYour data has been saved:\n• Name: {name}\n• Outlet: {company}\n\nHow can I help you today? 😊",
+            'welcome_back': "Hi {name}! 👋 Great to see you again.\nHow can I help you today?",
+            'welcome_back_no_name': "Hello! 👋 Great to see you again.\nHow can I help you today?",
+        },
+        'zh': {
+            'ask_language': "你好！👋 欢迎来到 Edgeworks 支持中心。\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文 (Chinese)\n\n请输入 1、2 或 3：",
+            'ask_name': "请问您的名字是？😊",
+            'invalid_name': "请输入您的全名 😊",
+            'ask_company': "{name} 您好！👋\n请问您的公司或门店名称是什么？\n（例如：PT ABC / 餐厅 XYZ）",
+            'invalid_company': "请输入您的公司或门店名称",
+            'onboard_complete': "谢谢 {name}！✅\n您的信息已保存：\n• 姓名：{name}\n• 门店：{company}\n\n请问今天有什么可以帮助您的？😊",
+            'welcome_back': "{name} 您好！👋 很高兴再次见到您。\n请问今天有什么可以帮助您的？",
+            'welcome_back_no_name': "您好！👋 很高兴再次见到您。\n请问今天有什么可以帮助您的？",
+        }
+    }
+
+    @staticmethod
+    def detect_language(text: str) -> str | None:
+        """Detect language from text. Returns 'id', 'en', 'zh', or None if ambiguous."""
+        if not text:
+            return None
+        t = text.strip().lower()
+        
+        # Check for language selection (1/2/3)
+        if t in ('1', 'bahasa', 'indonesia', 'bahasa indonesia', 'indo', 'id'):
+            return 'id'
+        if t in ('2', 'english', 'eng', 'en', 'inggris'):
+            return 'en'
+        if t in ('3', 'chinese', 'mandarin', '中文', 'zh', 'cina'):
+            return 'zh'
+        
+        # Check for Chinese characters
+        for ch in t:
+            if '\u4e00' <= ch <= '\u9fff':
+                return 'zh'
+        
+        # Check for strong Indonesian indicators
+        indo_words = {'bagaimana', 'cara', 'tolong', 'bantu', 'apa', 'gimana', 'bisa', 'saya', 'mau',
+                      'tidak', 'sudah', 'belum', 'kenapa', 'mengapa', 'dimana', 'kapan', 'siapa',
+                      'terima', 'kasih', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'permisi',
+                      'mohon', 'silakan', 'kak', 'mas', 'mba', 'pak', 'bu', 'dengan', 'untuk', 'dari'}
+        en_words = {'how', 'what', 'where', 'when', 'why', 'who', 'which', 'please', 'help',
+                    'can', 'could', 'would', 'should', 'need', 'want', 'have', 'has', 'the',
+                    'is', 'are', 'was', 'were', 'do', 'does', 'did', 'thank', 'thanks', 'yes',
+                    'no', 'not', 'but', 'and', 'this', 'that', 'my', 'your', 'with', 'from'}
+        
+        words = set(t.split())
+        indo_score = len(words & indo_words)
+        en_score = len(words & en_words)
+        
+        if indo_score > en_score and indo_score >= 1:
+            return 'id'
+        if en_score > indo_score and en_score >= 1:
+            return 'en'
+        
+        # Ambiguous short messages like "hi", "hello", "halo" — return None to ask
+        return None
+
+    def _get_lang_str(self, lang: str, key: str, **kwargs) -> str:
+        """Get localized string with fallback to Indonesian."""
+        strings = self.LANG_STRINGS.get(lang, self.LANG_STRINGS['id'])
+        template = strings.get(key, self.LANG_STRINGS['id'].get(key, ''))
+        return template.format(**kwargs) if kwargs else template
+
     def _get_user_state(self, user_id: str) -> dict:
         """Get user profile and onboarding state from DB"""
         user = db_manager.get_user(user_id)
@@ -29,6 +111,8 @@ class ChatService:
 
         # Check DB state field first (most reliable)
         db_state = user.get('state', '')
+        if db_state == 'asking_language':
+            return {'state': 'asking_language', 'user': user}
         if db_state == 'asking_name':
             return {'state': 'asking_name', 'user': user}
         if db_state == 'asking_company':
@@ -44,44 +128,80 @@ class ChatService:
             return {'state': 'complete', 'user': user}
         elif is_real_name:
             return {'state': 'asking_company', 'user': user}
-        else:
+        elif user.get('language'):
             return {'state': 'asking_name', 'user': user}
+        else:
+            return {'state': 'asking_language', 'user': user}
 
     def _handle_onboarding(self, user_id: str, query: str, state_info: dict) -> Optional[str]:
-        """Handle customer onboarding flow. Returns response string or None to continue to RAG."""
+        """Handle customer onboarding flow with multi-language. Returns response string or None to continue to RAG."""
         state = state_info['state']
+        user = state_info.get('user')
+        lang = (user.get('language') if user else None) or 'id'
         
         if state == 'new':
-            # First time user - create record and ask for name
-            db_manager.create_or_update_user(user_id, name=None, state='asking_name')
-            return ("Halo! \ud83d\udc4b Selamat datang di Edgeworks Support.\n\n"
-                    "Sebelum mulai, boleh kenalan dulu?\n"
-                    "Siapa nama kamu?")
+            # Brand new user — detect language from their first message
+            detected_lang = self.detect_language(query)
+            if detected_lang:
+                # Language is clear from the message — set it and ask name directly
+                db_manager.create_or_update_user(user_id, name=None, state='asking_name', language=detected_lang)
+                greeting = self._get_lang_str(detected_lang, 'ask_name')
+                welcome = {
+                    'id': "Halo! 👋 Selamat datang di Edgeworks Support.\nSebelum mulai, boleh kenalan dulu?",
+                    'en': "Hello! 👋 Welcome to Edgeworks Support.\nBefore we start, let me get to know you.",
+                    'zh': "你好！👋 欢迎来到 Edgeworks 支持中心。\n在开始之前，让我先认识一下您。",
+                }
+                return f"{welcome.get(detected_lang, welcome['id'])}\n{greeting}"
+            else:
+                # Ambiguous (e.g. "hi") — ask for language preference
+                db_manager.create_or_update_user(user_id, name=None, state='asking_language')
+                return self._get_lang_str('id', 'ask_language')
+        
+        if state == 'asking_language':
+            # User is selecting language
+            detected_lang = self.detect_language(query)
+            if not detected_lang:
+                return "Silakan ketik 1 (Indonesia), 2 (English), atau 3 (中文)\nPlease type 1, 2, or 3:"
+            db_manager.create_or_update_user(user_id, state='asking_name', language=detected_lang)
+            welcome = {
+                'id': "Halo! 👋 Selamat datang di Edgeworks Support.\nSebelum mulai, boleh kenalan dulu?",
+                'en': "Hello! 👋 Welcome to Edgeworks Support.\nBefore we start, let me get to know you.",
+                'zh': "你好！👋 欢迎来到 Edgeworks 支持中心。\n在开始之前，让我先认识一下您。",
+            }
+            return f"{welcome.get(detected_lang, welcome['id'])}\n{self._get_lang_str(detected_lang, 'ask_name')}"
         
         if state == 'asking_name':
             # User is providing their name
             name = query.strip().title()
             if len(name) < 2 or len(name) > 100:
-                return "Hmm, boleh tulis nama lengkap kamu? \ud83d\ude0a"
-            db_manager.create_or_update_user(user_id, name=name, state='asking_company')
-            return f"Hai {name}! \ud83d\udc4b\nNama perusahaan atau outlet kamu apa ya?\n(contoh: PT ABC / Warung Makan XYZ)"
+                return self._get_lang_str(lang, 'invalid_name')
+            db_manager.create_or_update_user(user_id, name=name, state='asking_company', language=lang)
+            return self._get_lang_str(lang, 'ask_company', name=name)
 
         if state == 'asking_company':
             # User is providing company/outlet name
             company = query.strip()
             if len(company) < 2:
-                return "Boleh tulis nama perusahaan atau outlet kamu?"
-            user = state_info['user']
-            db_manager.create_or_update_user(user_id, name=user.get('name'), company=company, outlet_pos=company, state='complete')
-            name = user.get('name', 'Kak')
-            return (f"Terima kasih {name}! \u2705\n"
-                    f"Data kamu sudah kami simpan:\n"
-                    f"\u2022 Nama: {name}\n"
-                    f"\u2022 Outlet: {company}\n\n"
-                    f"Sekarang, ada yang bisa saya bantu hari ini? \ud83d\ude0a")
+                return self._get_lang_str(lang, 'invalid_company')
+            name = user.get('name', 'Kak') if user else 'Kak'
+            db_manager.create_or_update_user(user_id, name=name, company=company, outlet_pos=company, state='complete', language=lang)
+            return self._get_lang_str(lang, 'onboard_complete', name=name, company=company)
         
-        # state == 'complete' -> no onboarding needed
+        if state == 'complete':
+            # Existing customer — detect language from current message if not set
+            if not user.get('language'):
+                detected = self.detect_language(query)
+                if detected:
+                    db_manager.create_or_update_user(user_id, state='complete', language=detected)
+            # No onboarding needed
+            return None
+        
         return None
+
+    def get_user_language(self, user_id: str) -> str:
+        """Get user's preferred language. Default to 'id' (Indonesian)."""
+        user = db_manager.get_user(user_id)
+        return (user.get('language') if user else None) or 'id'
 
     def _check_recurring_issues(self, user_id: str, query: str) -> Optional[str]:
         """Check if customer has asked about similar issues before.
@@ -188,7 +308,8 @@ class ChatService:
 
             # 6. Get AI Answer via RAG Service
             rag_query = query + customer_context if customer_context else query
-            rag_res = await self.rag_service.query(rag_query)
+            user_lang = self.get_user_language(user_id)
+            rag_res = await self.rag_service.query(rag_query, language=user_lang)
             answer = _sanitize_text(rag_res.answer)
 
             # Prepend recurring issue notice if found

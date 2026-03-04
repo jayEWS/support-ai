@@ -113,6 +113,7 @@ class User(Base):
     outlet_pos = Column("OutletPOS", Unicode(100)) # NEW: Outlet name or ID
     outlet_address = Column("OutletAddress", Unicode(500), nullable=True)
     category = Column("Category", Unicode(50), nullable=True)  # Retail / FNB
+    language = Column("Language", Unicode(10), nullable=True)  # id, en, zh
     state = Column("CurrentState", Unicode(20), default="idle")
     created_at = Column("CreatedDate", DateTime, server_default=func.now())
 

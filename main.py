@@ -1236,24 +1236,38 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
         )
 
     customer = await app.state.customer_service.get_or_register_customer(message.sender)
-    classification = await app.state.intent_service.classify(message.text)
     
-    response_text = ""
-    ticket_id = None
-    if classification.intent == IntentType.CRITICAL:
-        response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message.text}", message.text, True)
-    elif classification.intent == IntentType.ESCALATION:
-        response_text = await app.state.escalation_service.escalate(customer.identifier, f"Escalation: {message.text}", message.text)
-    elif classification.intent == IntentType.DEEP_REASONING:
-        response_text = await app.state.llm_service.reason(message.text)
-    else: 
-        rag_res = await app.state.rag_service.query(message.text)
-        if rag_res.confidence < 0.5:
-            response_text = await app.state.escalation_service.escalate(customer.identifier, f"Low Confidence", message.text)
-        else: response_text = rag_res.answer
+    # Get user language for multi-language response
+    chat_svc = getattr(app.state, 'chat_service', None)
+    user_lang = chat_svc.get_user_language(message.sender) if chat_svc else 'id'
+    
+    # Check if customer needs onboarding first
+    state_info = chat_svc._get_user_state(message.sender) if chat_svc else {'state': 'complete'}
+    onboarding_response = None
+    if chat_svc and state_info['state'] != 'complete':
+        onboarding_response = chat_svc._handle_onboarding(message.sender, message.text, state_info)
+    
+    if onboarding_response:
+        response_text = onboarding_response
+    else:
+        classification = await app.state.intent_service.classify(message.text)
+        
+        response_text = ""
+        ticket_id = None
+        if classification.intent == IntentType.CRITICAL:
+            response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message.text}", message.text, True)
+        elif classification.intent == IntentType.ESCALATION:
+            response_text = await app.state.escalation_service.escalate(customer.identifier, f"Escalation: {message.text}", message.text)
+        elif classification.intent == IntentType.DEEP_REASONING:
+            response_text = await app.state.llm_service.reason(message.text)
+        else: 
+            rag_res = await app.state.rag_service.query(message.text, language=user_lang)
+            if rag_res.confidence < 0.5:
+                response_text = await app.state.escalation_service.escalate(customer.identifier, f"Low Confidence", message.text)
+            else: response_text = rag_res.answer
 
-    if customer.is_new:
-        response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
+        if customer.is_new and state_info['state'] == 'complete':
+            response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
 
     # Send the reply back to WhatsApp via Meta Cloud API
     send_success = False
@@ -1358,24 +1372,38 @@ async def simulate_whatsapp_inbound(data: dict, agent: Annotated[dict, Depends(g
     # Process through AI pipeline
     try:
         customer = await app.state.customer_service.get_or_register_customer(phone)
-        classification = await app.state.intent_service.classify(message_text)
         
-        response_text = ""
-        if classification.intent == IntentType.CRITICAL:
-            response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message_text}", message_text, True)
-        elif classification.intent == IntentType.ESCALATION:
-            response_text = await app.state.escalation_service.escalate(customer.identifier, f"Escalation: {message_text}", message_text)
-        elif classification.intent == IntentType.DEEP_REASONING:
-            response_text = await app.state.llm_service.reason(message_text)
+        # Get user language for multi-language response
+        chat_svc = getattr(app.state, 'chat_service', None)
+        user_lang = chat_svc.get_user_language(phone) if chat_svc else 'id'
+        
+        # Check if customer needs onboarding first
+        state_info = chat_svc._get_user_state(phone) if chat_svc else {'state': 'complete'}
+        onboarding_response = None
+        if chat_svc and state_info['state'] != 'complete':
+            onboarding_response = chat_svc._handle_onboarding(phone, message_text, state_info)
+        
+        if onboarding_response:
+            response_text = onboarding_response
         else:
-            rag_res = await app.state.rag_service.query(message_text)
-            if rag_res.confidence < 0.5:
-                response_text = await app.state.escalation_service.escalate(customer.identifier, f"Low Confidence", message_text)
+            classification = await app.state.intent_service.classify(message_text)
+            
+            response_text = ""
+            if classification.intent == IntentType.CRITICAL:
+                response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message_text}", message_text, True)
+            elif classification.intent == IntentType.ESCALATION:
+                response_text = await app.state.escalation_service.escalate(customer.identifier, f"Escalation: {message_text}", message_text)
+            elif classification.intent == IntentType.DEEP_REASONING:
+                response_text = await app.state.llm_service.reason(message_text)
             else:
-                response_text = rag_res.answer
-        
-        if customer.is_new:
-            response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
+                rag_res = await app.state.rag_service.query(message_text, language=user_lang)
+                if rag_res.confidence < 0.5:
+                    response_text = await app.state.escalation_service.escalate(customer.identifier, f"Low Confidence", message_text)
+                else:
+                    response_text = rag_res.answer
+            
+            if customer.is_new and state_info['state'] == 'complete':
+                response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
         
         # Save AI response
         db.save_whatsapp_message(

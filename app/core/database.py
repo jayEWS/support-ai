@@ -618,6 +618,7 @@ class DatabaseManager:
                 "outlet_pos": u.outlet_pos,
                 "outlet_address": u.outlet_address,
                 "category": u.category,
+                "language": u.language,
                 "state": u.state 
             } if u else None
         finally:
@@ -641,7 +642,7 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-    def create_or_update_user(self, identifier: str, name: str = None, company: str = None, position: str = None, outlet_pos: str = None, state: str = 'idle', email: str = None, mobile: str = None, outlet_address: str = None, category: str = None):
+    def create_or_update_user(self, identifier: str, name: str = None, company: str = None, position: str = None, outlet_pos: str = None, state: str = 'idle', email: str = None, mobile: str = None, outlet_address: str = None, category: str = None, language: str = None):
         session = self.get_session()
         try:
             user = session.query(User).get(identifier)
@@ -654,9 +655,10 @@ class DatabaseManager:
                 if mobile: user.mobile = mobile
                 if outlet_address: user.outlet_address = outlet_address
                 if category: user.category = category
+                if language: user.language = language
                 user.state = state
             else:
-                user = User(identifier=identifier, name=name, company=company, position=position, outlet_pos=outlet_pos, state=state, email=email, mobile=mobile, outlet_address=outlet_address, category=category)
+                user = User(identifier=identifier, name=name, company=company, position=position, outlet_pos=outlet_pos, state=state, email=email, mobile=mobile, outlet_address=outlet_address, category=category, language=language)
                 session.add(user)
             session.commit()
         except Exception as e:

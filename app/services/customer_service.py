@@ -18,7 +18,7 @@ class CustomerService:
         # New customer logic
         logger.info(f"New customer detected: {identifier}")
         display_name = name or f"User {identifier[-4:]}"
-        db_manager.create_or_update_user(identifier, name=display_name)
+        db_manager.create_or_update_user(identifier, name=display_name, state='asking_language')
         
         return CustomerInfo(
             identifier=identifier,
@@ -28,6 +28,24 @@ class CustomerService:
 
     @staticmethod
     def get_personalized_greeting(customer: CustomerInfo) -> str:
+        """Multi-language greeting based on customer's language preference."""
         if customer.is_new:
-            return f"Halo Kak! 👋 Selamat datang di Edgeworks Support.\nSebelum mulai, boleh kenalan dulu? Siapa nama kamu?"
-        return f"Hai {customer.name}! 👋 Senang ketemu lagi. Ada yang bisa saya bantu hari ini?"
+            # New customer — language not yet known, use multi-language prompt
+            return ("Halo! 👋 Selamat datang di Edgeworks Support.\n"
+                    "Silakan pilih bahasa / Please choose your language:\n\n"
+                    "1️⃣ Bahasa Indonesia\n"
+                    "2️⃣ English\n"
+                    "3️⃣ 中文 (Chinese)\n\n"
+                    "Ketik 1, 2, atau 3 / Type 1, 2, or 3:")
+        
+        # Existing customer — get their language
+        user = db_manager.get_user(customer.identifier)
+        lang = (user.get('language') if user else None) or 'id'
+        name = customer.name or ''
+        
+        greetings = {
+            'id': f"Hai {name}! 👋 Senang ketemu lagi.\nAda yang bisa saya bantu hari ini?",
+            'en': f"Hi {name}! 👋 Great to see you again.\nHow can I help you today?",
+            'zh': f"{name} 您好！👋 很高兴再次见到您。\n请问今天有什么可以帮助您的？",
+        }
+        return greetings.get(lang, greetings['id'])
