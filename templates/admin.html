@@ -1166,18 +1166,38 @@
             loadMacros();
             updateSidebarCounts();
 
-            // Restore last active tab (persist across refresh)
-            const savedTab = localStorage.getItem('support_portal_active_tab') || 'overview';
-            const savedSub = localStorage.getItem('support_portal_active_sub') || null;
+            // Determine active tab from URL path (e.g., /whatsapp, /team/admin)
+            const validTabs = ['overview','inbox','team','tickets','whatsapp','macros','knowledge','customers','settings','audit','usermst','groupperms','privsetup'];
+            const pathParts = window.location.pathname.replace(/^\/+/, '').split('/');
+            let startTab = 'overview', startSub = null;
+            if (pathParts[0] && validTabs.includes(pathParts[0])) {
+                startTab = pathParts[0];
+                startSub = pathParts[1] || null;
+            } else {
+                // Fallback to localStorage if URL is /admin or /
+                startTab = localStorage.getItem('support_portal_active_tab') || 'overview';
+                startSub = localStorage.getItem('support_portal_active_sub') || null;
+            }
             // Auto-expand parent submenu for nested tabs
             const submenuMap = {inbox:'chat', whatsapp:'chat', team:'team', tickets:'tickets', settings:'settings', macros:'settings', usermst:'settings', groupperms:'settings', privsetup:'settings', audit:'settings', knowledge:'settings'};
-            const parentMenu = submenuMap[savedTab];
+            const parentMenu = submenuMap[startTab];
             if (parentMenu) {
                 const sub = document.getElementById(`${parentMenu}-submenu`);
                 const chev = document.getElementById(`${parentMenu}-chevron`);
                 if (sub && !sub.classList.contains('open')) { sub.classList.add('open'); if (chev) chev.classList.add('rotate-180'); }
             }
-            switchTab(savedTab, savedSub);
+            switchTab(startTab, startSub, true); // skipPush=true to avoid pushing the initial URL again
+
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', (e) => {
+                if (e.state && e.state.tab) {
+                    switchTab(e.state.tab, e.state.sub, true);
+                } else {
+                    const pp = window.location.pathname.replace(/^\/+/, '').split('/');
+                    if (pp[0] && validTabs.includes(pp[0])) switchTab(pp[0], pp[1] || null, true);
+                    else switchTab('overview', null, true);
+                }
+            });
 
             setupMacroTriggers();
             initSortable();
@@ -1277,8 +1297,13 @@
             return '';
         }
 
-        function switchTab(tab, subOption = null) {
-            // Persist active tab so refresh returns here
+        function switchTab(tab, subOption = null, skipPush = false) {
+            // Update URL (SPA-style routing)
+            if (!skipPush) {
+                const path = subOption ? `/${tab}/${subOption}` : `/${tab}`;
+                history.pushState({ tab, sub: subOption }, '', path);
+            }
+            // Also persist to localStorage as fallback
             localStorage.setItem('support_portal_active_tab', tab);
             if (subOption) localStorage.setItem('support_portal_active_sub', subOption);
             else localStorage.removeItem('support_portal_active_sub');

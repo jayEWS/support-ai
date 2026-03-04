@@ -1829,6 +1829,19 @@ async def freshdesk_import_endpoint(request: Request, background_tasks: Backgrou
     
     return {"status": "import_started", "files": files, "message": "Run import_freshdesk.py script on server"}
 
+# ============ SPA Catch-all (MUST be last route) ============
+@app.get("/{tab:path}", response_class=HTMLResponse)
+async def admin_spa(request: Request, tab: str):
+    valid_tabs = {
+        "overview", "inbox", "team", "tickets", "whatsapp",
+        "macros", "knowledge", "customers", "settings",
+        "audit", "usermst", "groupperms", "privsetup"
+    }
+    root = tab.split("/")[0]
+    if root in valid_tabs:
+        return templates.TemplateResponse(request, "admin.html")
+    return HTMLResponse(status_code=404, content="Not Found")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
