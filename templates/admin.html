@@ -1249,7 +1249,7 @@
                 fetchWithAuth('/api/admin/roles').then(r => r.json()).then(roles => {
                     const groups = roles.map(r => r.name).filter(Boolean).sort();
                     window._teamGroups = groups;
-                    const sub = document.getElementById('sub-team');
+                    const sub = document.getElementById('team-submenu');
                     if (sub) sub.innerHTML = groups.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('') || '<span class="block px-4 py-2 text-[10px] text-gray-400">No groups found</span>';
                 }).catch(() => {});
                 return '<span class="block px-4 py-2 text-[10px] text-gray-400 animate-pulse">Loading...</span>';

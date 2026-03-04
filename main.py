@@ -710,6 +710,10 @@ async def get_analytics(request: Request, agent: Annotated[dict, Depends(get_cur
 async def get_agents(agent: Annotated[dict, Depends(get_current_agent)]):
     return _require_db().get_all_agents()
 
+@app.get("/api/admin/roles")
+async def get_roles(agent: Annotated[dict, Depends(get_current_agent)]):
+    return _require_db().get_all_roles()
+
 @app.get("/api/knowledge")
 async def get_knowledge(agent: Annotated[dict, Depends(get_current_agent)]):
     return _require_db().get_all_knowledge()
