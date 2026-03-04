@@ -11,6 +11,11 @@ from app.core.logging import logger
 WHATSAPP_API_BASE = "https://graph.facebook.com/v21.0"
 
 
+def is_meta_configured() -> bool:
+    """Check if Meta WhatsApp API credentials are configured."""
+    return bool(settings.WHATSAPP_PHONE_NUMBER_ID and settings.WHATSAPP_API_TOKEN)
+
+
 async def send_whatsapp_message(
     to: str,
     message: str,

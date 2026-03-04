@@ -1455,6 +1455,25 @@
 
         async function loadWhatsApp() {
             try {
+                // Check Meta API config status
+                try {
+                    const cfgRes = await fetchWithAuth('/api/whatsapp/config-status');
+                    const cfg = await cfgRes.json();
+                    const banner = document.getElementById('wa-config-banner');
+                    if (banner) banner.remove();
+                    if (!cfg.configured) {
+                        const waSection = document.getElementById('wa-stat-total')?.closest('section') || document.querySelector('[data-section]');
+                        const bannerEl = document.createElement('div');
+                        bannerEl.id = 'wa-config-banner';
+                        bannerEl.className = 'mx-4 mb-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3';
+                        bannerEl.innerHTML = `<i class="fas fa-exclamation-triangle text-amber-500 mt-0.5"></i>
+                            <div><p class="text-sm font-bold text-amber-800">WhatsApp Meta API Not Configured</p>
+                            <p class="text-xs text-amber-600 mt-1">Messages will be saved locally but NOT delivered to WhatsApp. Set <code class="bg-amber-100 px-1 rounded">WHATSAPP_API_TOKEN</code> and <code class="bg-amber-100 px-1 rounded">WHATSAPP_PHONE_NUMBER_ID</code> in .env to enable sending.</p></div>`;
+                        const statsRow = document.getElementById('wa-stat-total')?.closest('.grid');
+                        if (statsRow) statsRow.parentNode.insertBefore(bannerEl, statsRow);
+                    }
+                } catch(_) {}
+
                 const statsRes = await fetchWithAuth('/api/whatsapp/stats');
                 const stats = await statsRes.json();
                 document.getElementById('wa-stat-total').textContent = stats.total_messages || 0;
@@ -1577,14 +1596,15 @@
                     const isInbound = m.direction === 'inbound';
                     const time = m.created_at ? new Date(m.created_at).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) : '';
                     const ticketBadge = m.ticket_id ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-1">🎫 #${m.ticket_id}</span>` : '';
-                    const statusIcon = m.status === 'failed' ? ' ❌' : (m.direction === 'outbound' ? ' ✓✓' : '');
+                    const statusIcon = m.status === 'failed' ? ' ❌' : (m.status === 'pending' ? ' 🕐' : (m.direction === 'outbound' ? ' ✓✓' : ''));
                     if (isInbound) {
                         return `<div class="flex justify-start"><div class="max-w-[70%] bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
                             <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
                             <div class="flex items-center justify-end gap-1 mt-1"><span class="text-[10px] text-gray-400">${time}</span></div>
                         </div></div>`;
                     } else {
-                        return `<div class="flex justify-end"><div class="max-w-[70%] bg-[#dcf8c6] rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
+                        const pendingStyle = m.status === 'pending' ? 'bg-yellow-50 border border-yellow-200' : 'bg-[#dcf8c6]';
+                        return `<div class="flex justify-end"><div class="max-w-[70%] ${pendingStyle} rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
                             <p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>
                             <div class="flex items-center justify-end gap-1 mt-1">${ticketBadge}<span class="text-[10px] text-gray-400">${time}${statusIcon}</span></div>
                         </div></div>`;
@@ -1608,9 +1628,13 @@
                     body: JSON.stringify({ phone_number: waSelectedPhone, message: msg })
                 });
                 if (res.ok) {
+                    const result = await res.json();
                     box.value = ''; box.style.height = 'auto';
                     await refreshWaThread();
                     await loadWhatsAppConversations(document.getElementById('wa-search').value);
+                    if (result.status === 'pending') {
+                        showToast('Message saved locally (Meta WhatsApp API not configured yet)', 'warning');
+                    }
                 } else {
                     const err = await res.json();
                     alert('Failed to send: ' + (err.detail || 'Unknown error'));
@@ -1653,6 +1677,15 @@
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = { info: 'bg-blue-500', warning: 'bg-yellow-500', error: 'bg-red-500', success: 'bg-green-500' };
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-[9999] ${colors[type] || colors.info} text-white px-6 py-3 rounded-2xl shadow-xl text-sm font-semibold flex items-center gap-2 animate-slide-in`;
+            toast.innerHTML = `<i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : type === 'error' ? 'times-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000);
         }
 
         let waSearchTimeout;

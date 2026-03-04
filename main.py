@@ -1258,8 +1258,11 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     # Send the reply back to WhatsApp via Meta Cloud API
     send_success = False
     try:
-        from app.adapters.whatsapp_meta import send_whatsapp_message
-        send_success = await send_whatsapp_message(message.sender, response_text)
+        from app.adapters.whatsapp_meta import send_whatsapp_message, is_meta_configured
+        if is_meta_configured():
+            send_success = await send_whatsapp_message(message.sender, response_text)
+        else:
+            logger.warning("WhatsApp Meta API not configured — reply saved locally only")
     except Exception as e:
         logger.error(f"Failed to send WhatsApp message back: {e}")
 
@@ -1299,6 +1302,17 @@ async def get_whatsapp_stats(agent: Annotated[dict, Depends(get_current_agent)])
     """Get WhatsApp messaging statistics."""
     return _require_db().get_whatsapp_stats()
 
+@app.get("/api/whatsapp/config-status")
+async def get_whatsapp_config_status(agent: Annotated[dict, Depends(get_current_agent)]):
+    """Check if WhatsApp Meta API is configured."""
+    from app.adapters.whatsapp_meta import is_meta_configured
+    configured = is_meta_configured()
+    return {
+        "configured": configured,
+        "provider": "meta_cloud_api",
+        "note": "Set WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID in .env to enable sending." if not configured else "Meta WhatsApp Cloud API is active."
+    }
+
 @app.post("/api/whatsapp/send")
 async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
     """Agent sends a manual WhatsApp reply to a customer."""
@@ -1307,16 +1321,24 @@ async def send_whatsapp_reply(data: dict, agent: Annotated[dict, Depends(get_cur
     if not phone or not message:
         raise HTTPException(status_code=400, detail="phone_number and message are required")
 
-    from app.adapters.whatsapp_meta import send_whatsapp_message
-    send_success = await send_whatsapp_message(phone, message)
+    from app.adapters.whatsapp_meta import send_whatsapp_message, is_meta_configured
+    meta_ready = is_meta_configured()
+    send_success = False
+    if meta_ready:
+        send_success = await send_whatsapp_message(phone, message)
 
+    # Always save the message locally so it appears in the admin chat UI
     db = _require_db()
+    status = "sent" if send_success else ("pending" if not meta_ready else "failed")
     msg_id = db.save_whatsapp_message(
         phone_number=phone,
         direction="outbound",
         content=message,
-        status="sent" if send_success else "failed"
+        status=status
     )
+
+    if not meta_ready:
+        return {"status": "pending", "message_id": msg_id, "note": "Message saved locally. WhatsApp Meta API not configured yet — will deliver once credentials are set."}
     if not send_success:
         raise HTTPException(status_code=502, detail="Failed to send via Meta WhatsApp API")
     return {"status": "sent", "message_id": msg_id}
@@ -1351,17 +1373,17 @@ async def convert_whatsapp_to_ticket(data: dict, agent: Annotated[dict, Depends(
     # Link all messages to the new ticket
     db.link_whatsapp_messages_to_ticket(phone, ticket.id)
 
-    # Notify customer
+    # Notify customer via Meta WhatsApp API
     try:
-        from app.adapters.whatsapp_bird import send_whatsapp_message
-        await send_whatsapp_message(
-            phone,
-            f"Hi Kak! Percakapan ini sudah dibuatkan tiket support #{ticket.id}. Tim kami akan follow up segera. Terima kasih! 🙏"
-        )
+        from app.adapters.whatsapp_meta import send_whatsapp_message, is_meta_configured
+        notify_msg = f"Hi Kak! Percakapan ini sudah dibuatkan tiket support #{ticket.id}. Tim kami akan follow up segera. Terima kasih! 🙏"
+        notify_success = False
+        if is_meta_configured():
+            notify_success = await send_whatsapp_message(phone, notify_msg)
         db.save_whatsapp_message(
             phone_number=phone, direction="outbound",
             content=f"[System] Ticket #{ticket.id} created. Team will follow up.",
-            ticket_id=ticket.id, status="sent"
+            ticket_id=ticket.id, status="sent" if notify_success else "pending"
         )
     except Exception as e:
         logger.warning(f"Failed to notify customer about ticket: {e}")

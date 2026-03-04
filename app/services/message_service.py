@@ -47,8 +47,11 @@ async def process_incoming_message(data: dict):
     
     # Send response back via the same channel
     if channel == "whatsapp":
-        from app.adapters.whatsapp_meta import send_whatsapp_message
-        await send_whatsapp_message(user_id, response)
+        from app.adapters.whatsapp_meta import send_whatsapp_message, is_meta_configured
+        if is_meta_configured():
+            await send_whatsapp_message(user_id, response)
+        else:
+            logger.warning(f"WhatsApp Meta API not configured — reply to {user_id} saved locally only")
     elif channel == "email":
         from app.adapters.email_handler import send_email_response
         await send_email_response(user_id, response)
