@@ -382,23 +382,30 @@ class ChatService:
         session = self._sessions.get(user_id, {})
         messages = db_manager.get_messages(user_id)
         msg_count = len(messages) if messages else 0
+        lang = self.get_user_language(user_id)
+
+        close_msgs = {
+            'id': "Chat ditutup. Terima kasih sudah menghubungi Edgeworks Support! 🙏",
+            'en': "Chat closed. Thank you for contacting Edgeworks Support! 🙏",
+            'zh': "聊天已结束。感谢您联系 Edgeworks 支持！🙏",
+        }
 
         if option == 'close':
-            # AI resolved it - just close, no ticket
-            db_manager.save_message(user_id, "bot", "Chat ditutup. Terima kasih sudah menghubungi Edgeworks Support! \ud83d\ude4f")
-            # Clear session tracking
+            close_msg = close_msgs.get(lang, close_msgs['id'])
+            db_manager.save_message(user_id, "bot", close_msg)
             self._sessions.pop(user_id, None)
             return {
                 "status": "closed",
                 "ticket_created": False,
-                "message": "Chat ditutup. Terima kasih sudah menghubungi Edgeworks Support! \ud83d\ude4f",
+                "message": close_msg,
                 "message_count": msg_count
             }
 
         elif option in ('ticket', 'ticket_and_notify'):
             # Need ticket - escalation or unresolved issue
             if not messages:
-                return {"status": "error", "message": "Tidak ada percakapan untuk dibuatkan tiket."}
+                no_msg = {'id': 'Tidak ada percakapan untuk dibuatkan tiket.', 'en': 'No conversation found to create a ticket.', 'zh': '没有对话记录可以创建工单。'}
+                return {"status": "error", "message": no_msg.get(lang, no_msg['id'])}
 
             history_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
 
@@ -434,16 +441,19 @@ class ChatService:
                 name = user.get('name', 'Kak') if user else 'Kak'
 
                 if option == 'ticket_and_notify':
-                    notify_msg = (
-                        f"Tiket #{ticket_id} sudah dibuat \ud83d\udcdd\n"
-                        f"\u2022 Masalah: {ticket_data.get('summary', '-')}\n"
-                        f"\u2022 Prioritas: {ticket_data.get('priority', 'Medium')}\n"
-                        f"\u2022 Target selesai: {due_at.strftime('%d %b %Y %H:%M') if due_at else '-'}\n\n"
-                        f"Tim kami akan follow up ya {name}. Terima kasih! \ud83d\ude4f"
-                    )
+                    summary_text = ticket_data.get('summary', '-')
+                    priority_text = ticket_data.get('priority', 'Medium')
+                    due_text = due_at.strftime('%d %b %Y %H:%M') if due_at else '-'
+                    notify_templates = {
+                        'id': f"Tiket #{ticket_id} sudah dibuat 📝\n• Masalah: {summary_text}\n• Prioritas: {priority_text}\n• Target selesai: {due_text}\n\nTim kami akan follow up ya {name}. Terima kasih! 🙏",
+                        'en': f"Ticket #{ticket_id} has been created 📝\n• Issue: {summary_text}\n• Priority: {priority_text}\n• Target completion: {due_text}\n\nOur team will follow up with you, {name}. Thank you! 🙏",
+                        'zh': f"工单 #{ticket_id} 已创建 📝\n• 问题：{summary_text}\n• 优先级：{priority_text}\n• 目标完成时间：{due_text}\n\n我们的团队会跟进，{name}。谢谢！🙏",
+                    }
+                    notify_msg = notify_templates.get(lang, notify_templates['id'])
                     db_manager.save_message(user_id, "bot", notify_msg)
                 else:
-                    db_manager.save_message(user_id, "bot", f"Tiket #{ticket_id} dibuat. Chat ditutup.")
+                    simple_close = {'id': f'Tiket #{ticket_id} dibuat. Chat ditutup.', 'en': f'Ticket #{ticket_id} created. Chat closed.', 'zh': f'工单 #{ticket_id} 已创建。聊天已结束。'}
+                    db_manager.save_message(user_id, "bot", simple_close.get(lang, simple_close['id']))
 
                 self._sessions.pop(user_id, None)
                 return {
@@ -454,11 +464,12 @@ class ChatService:
                     "summary": ticket_data.get('summary', ''),
                     "category": ticket_data.get('category', ''),
                     "due_at": due_at.strftime('%Y-%m-%d %H:%M') if due_at else None,
-                    "message": f"Tiket #{ticket_id} berhasil dibuat.",
+                    "message": {'id': f'Tiket #{ticket_id} berhasil dibuat.', 'en': f'Ticket #{ticket_id} created successfully.', 'zh': f'工单 #{ticket_id} 创建成功。'}.get(lang, f'Ticket #{ticket_id} created.'),
                     "message_count": msg_count
                 }
             except Exception as e:
                 logger.error(f"Smart close error: {e}")
-                return {"status": "error", "message": f"Gagal membuat tiket: {str(e)}"}
+                err_msg = {'id': f'Gagal membuat tiket: {str(e)}', 'en': f'Failed to create ticket: {str(e)}', 'zh': f'创建工单失败：{str(e)}'}
+                return {"status": "error", "message": err_msg.get(lang, err_msg['id'])}
 
         return {"status": "error", "message": "Invalid option"}

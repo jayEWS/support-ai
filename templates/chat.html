@@ -45,8 +45,27 @@
                     </div>
                 </div>
             </div>
-            <button onclick="toggleWidget()" class="absolute top-6 right-6 text-white/60 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
+            <div class="absolute top-6 right-6 flex items-center gap-3">
+                <button id="end-chat-btn" onclick="showEndChatMenu()" class="text-white/60 hover:text-white transition hidden" title="End Chat"><i class="fas fa-power-off text-sm"></i></button>
+                <button onclick="toggleWidget()" class="text-white/60 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
+            </div>
         </header>
+
+        <!-- End Chat Dropdown Menu -->
+        <div id="end-chat-menu" class="hidden absolute top-20 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 w-72 fade-in">
+            <p class="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-widest">End Conversation</p>
+            <button onclick="endChat('close')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-green-50 transition flex items-center gap-3 group">
+                <span class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-check"></i></span>
+                <div><p class="text-sm font-bold text-gray-800">Resolved ✅</p><p class="text-[10px] text-gray-400">Issue solved, close chat</p></div>
+            </button>
+            <button onclick="endChat('ticket_and_notify')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-50 transition flex items-center gap-3 group">
+                <span class="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-ticket-alt"></i></span>
+                <div><p class="text-sm font-bold text-gray-800">Create Ticket 📝</p><p class="text-[10px] text-gray-400">Need follow-up from our team</p></div>
+            </button>
+            <div class="border-t border-gray-100 mt-1 pt-1">
+                <button onclick="hideEndChatMenu()" class="w-full text-center px-4 py-2 text-xs text-gray-400 hover:text-gray-600 font-bold uppercase tracking-widest">Cancel</button>
+            </div>
+        </div>
 
         <!-- Messages Area -->
         <div id="message-container" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
@@ -221,6 +240,7 @@
                 }
                 
                 addMessageUI('received', data.answer);
+                if (!chatStarted) showEndChatBtn();
             } catch (err) {
                 document.getElementById('typing-indicator').classList.add('hidden');
             }
@@ -239,6 +259,85 @@
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         };
+
+        // --- End Chat ---
+        let chatStarted = false;
+
+        function showEndChatBtn() {
+            chatStarted = true;
+            document.getElementById('end-chat-btn').classList.remove('hidden');
+        }
+
+        function showEndChatMenu() {
+            document.getElementById('end-chat-menu').classList.toggle('hidden');
+        }
+
+        function hideEndChatMenu() {
+            document.getElementById('end-chat-menu').classList.add('hidden');
+        }
+
+        async function endChat(option) {
+            hideEndChatMenu();
+            document.getElementById('typing-indicator').classList.remove('hidden');
+            try {
+                const res = await fetch(`${API_URL}/api/close-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, option: option })
+                });
+                const data = await res.json();
+                document.getElementById('typing-indicator').classList.add('hidden');
+
+                if (data.status === 'closed') {
+                    addMessageUI('received', data.message || 'Chat ended. Thank you! 🙏');
+                    if (data.ticket_created && data.ticket_id) {
+                        addMessageUI('received', `📝 Ticket #${data.ticket_id} has been created. Our team will follow up.`);
+                    }
+                    // Disable input
+                    document.getElementById('chat-input').disabled = true;
+                    document.getElementById('chat-input').placeholder = 'Chat ended';
+                    document.getElementById('send-btn').disabled = true;
+                    document.getElementById('send-btn').classList.add('opacity-40');
+                    document.getElementById('end-chat-btn').classList.add('hidden');
+                    chatStarted = false;
+
+                    // Show "Start New Chat" button after a moment
+                    setTimeout(() => {
+                        const container = document.getElementById('message-container');
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-center fade-in';
+                        div.innerHTML = `<button onclick="restartChat()" class="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 transition shadow-lg">💬 Start New Chat</button>`;
+                        container.appendChild(div);
+                        container.scrollTop = container.scrollHeight;
+                    }, 1000);
+                } else {
+                    addMessageUI('received', data.message || 'Something went wrong.');
+                }
+            } catch (err) {
+                document.getElementById('typing-indicator').classList.add('hidden');
+                addMessageUI('received', 'Failed to end chat. Please try again.');
+            }
+        }
+
+        function restartChat() {
+            // Clear chat and re-enable
+            document.getElementById('message-container').innerHTML = '';
+            document.getElementById('chat-input').disabled = false;
+            document.getElementById('chat-input').placeholder = (i18n[selectedLang] || i18n.en).placeholder;
+            document.getElementById('send-btn').disabled = false;
+            document.getElementById('send-btn').classList.remove('opacity-40');
+            addMessageUI('received', (i18n[selectedLang] || i18n.en).welcome);
+            showEndChatBtn();
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('end-chat-menu');
+            const btn = document.getElementById('end-chat-btn');
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
 
         if (selectedLang) {
             applyI18n();
