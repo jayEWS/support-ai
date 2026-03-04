@@ -201,6 +201,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"Failed to init ChatService: {e}")
         app.state.chat_service = None
     
+    # Initialize RAG Engine for document ingestion (URL fetch, file ingest)
+    try:
+        from app.services.rag_engine import init_rag_engine
+        app.state.rag_engine = init_rag_engine()
+    except Exception as e:
+        logger.error(f"Failed to init RAGEngine: {e}")
+        app.state.rag_engine = None
+    
     # Start background workers - TEMPORARILY DISABLED for stability
     # try:
     #     asyncio.create_task(sla_service.monitor_breaches())
@@ -817,11 +825,11 @@ async def ingest_knowledge_from_url(
         
         # Use RAG engine to ingest from URL
         try:
-            from app.services.rag_engine import rag_engine
-            if not rag_engine:
+            rag_eng = app.state.rag_engine
+            if not rag_eng:
                 return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
             
-            filename = await rag_engine.ingest_from_url(url, uploaded_by=agent["user_id"])
+            filename = await rag_eng.ingest_from_url(url, uploaded_by=agent["user_id"])
             return JSONResponse({"status": "success", "filename": filename, "message": f"Content from {url} ingested successfully"})
         except Exception as import_err:
             logger.error(f"RAG engine import error: {str(import_err)}")
@@ -838,11 +846,11 @@ async def delete_knowledge(
     agent: Annotated[dict, Depends(get_current_agent)]
 ):
     try:
-        from app.services.rag_engine import rag_engine
-        if not rag_engine:
+        rag_eng = app.state.rag_engine
+        if not rag_eng:
             return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
         
-        rag_engine.delete_knowledge_document(filename)
+        rag_eng.delete_knowledge_document(filename)
         return {"status": "success", "message": f"Deleted {filename}"}
     except Exception as e:
         logger.error(f"Error deleting knowledge: {str(e)}")
@@ -860,11 +868,11 @@ async def batch_delete_knowledge(
         if not filenames:
             return JSONResponse({"error": "No filenames provided"}, status_code=400)
             
-        from app.services.rag_engine import rag_engine
-        if not rag_engine:
+        rag_eng = app.state.rag_engine
+        if not rag_eng:
             return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
             
-        rag_engine.delete_knowledge_documents(filenames)
+        rag_eng.delete_knowledge_documents(filenames)
         return {"status": "success", "message": f"Deleted {len(filenames)} files"}
     except Exception as e:
         logger.error(f"Error batch deleting knowledge: {str(e)}")

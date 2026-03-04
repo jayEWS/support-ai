@@ -37,6 +37,9 @@ Answer (concise, clear, helpful):"""
 from app.core.database import db_manager
 from app.services.gcs_service import get_gcs_service
 
+# Set USER_AGENT to avoid warnings and website blocks
+os.environ.setdefault("USER_AGENT", "EdgeworksSupportAI/1.0 (Knowledge Crawler)")
+
 class RAGEngine:
     def __init__(self):
         self._indexing_lock = asyncio.Lock()
