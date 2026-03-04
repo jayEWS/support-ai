@@ -1165,7 +1165,20 @@
             renderSidebar();
             loadMacros();
             updateSidebarCounts();
-            switchTab('overview');
+
+            // Restore last active tab (persist across refresh)
+            const savedTab = localStorage.getItem('support_portal_active_tab') || 'overview';
+            const savedSub = localStorage.getItem('support_portal_active_sub') || null;
+            // Auto-expand parent submenu for nested tabs
+            const submenuMap = {inbox:'chat', whatsapp:'chat', team:'team', tickets:'tickets', settings:'settings', macros:'settings', usermst:'settings', groupperms:'settings', privsetup:'settings', audit:'settings', knowledge:'settings'};
+            const parentMenu = submenuMap[savedTab];
+            if (parentMenu) {
+                const sub = document.getElementById(`${parentMenu}-submenu`);
+                const chev = document.getElementById(`${parentMenu}-chevron`);
+                if (sub && !sub.classList.contains('open')) { sub.classList.add('open'); if (chev) chev.classList.add('rotate-180'); }
+            }
+            switchTab(savedTab, savedSub);
+
             setupMacroTriggers();
             initSortable();
         }
@@ -1265,6 +1278,11 @@
         }
 
         function switchTab(tab, subOption = null) {
+            // Persist active tab so refresh returns here
+            localStorage.setItem('support_portal_active_tab', tab);
+            if (subOption) localStorage.setItem('support_portal_active_sub', subOption);
+            else localStorage.removeItem('support_portal_active_sub');
+
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             if (document.getElementById(`tab-${tab}`)) document.getElementById(`tab-${tab}`).classList.add('active');
             // Stop WhatsApp polling when leaving that tab
