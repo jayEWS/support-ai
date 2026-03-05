@@ -254,7 +254,7 @@
             return t;
         }
 
-        function addMessageUI(type, text) {
+        function addMessageUI(type, text, chunkIds) {
             const container = document.getElementById('message-container');
             const div = document.createElement('div');
             div.className = `flex ${type === 'sent' ? 'justify-end' : ''} fade-in`;
@@ -269,11 +269,39 @@
                 msgEl.className = 'msg-text';
                 msgEl.innerHTML = formatMessage(text);  // formatted for AI
                 bubble.appendChild(msgEl);
+
+                // RFF feedback buttons (👍/👎) for AI responses
+                if (chunkIds && chunkIds.length > 0) {
+                    const fbRow = document.createElement('div');
+                    fbRow.className = 'flex gap-2 mt-2 pt-2 border-t border-gray-200';
+                    fbRow.innerHTML = `
+                        <button onclick="sendRFF(this, ${JSON.stringify(chunkIds).replace(/"/g, '&quot;')}, true)"
+                                class="rff-btn text-xs text-gray-400 hover:text-green-600 transition-colors" title="Helpful">👍</button>
+                        <button onclick="sendRFF(this, ${JSON.stringify(chunkIds).replace(/"/g, '&quot;')}, false)"
+                                class="rff-btn text-xs text-gray-400 hover:text-red-500 transition-colors" title="Not helpful">👎</button>
+                    `;
+                    bubble.appendChild(fbRow);
+                }
             }
 
             div.appendChild(bubble);
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
+        }
+
+        // RFF — send relevance feedback to backend
+        async function sendRFF(btn, chunkIds, isPositive) {
+            const row = btn.parentElement;
+            row.querySelectorAll('.rff-btn').forEach(b => b.disabled = true);
+            btn.classList.add(isPositive ? 'text-green-600' : 'text-red-500');
+            btn.classList.remove('text-gray-400');
+            try {
+                await fetch(`${API_URL}/api/rag/feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chunk_ids: chunkIds, is_positive: isPositive })
+                });
+            } catch (e) { /* silent */ }
         }
 
         function connectWebSocket(sessionId) {
@@ -327,7 +355,7 @@
                     // This logic would be triggered by rag_engine or session creation
                 }
                 
-                addMessageUI('received', data.answer);
+                addMessageUI('received', data.answer, data.chunk_ids || []);
                 if (!chatStarted) showEndChatBtn();
             } catch (err) {
                 document.getElementById('typing-indicator').classList.add('hidden');

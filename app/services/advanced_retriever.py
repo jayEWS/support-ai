@@ -5,28 +5,52 @@ Implements production-grade multi-stage retrieval pipeline inspired by
 Shopify's search architecture and Sidekick's RAG patterns.
 
 Pipeline:
-  Query → Multi-Vector Retrieval → Cross-Encoder Reranking → 
-  Context Compression → Citation Tracking → Response Generation
+  Query → Multi-Vector Retrieval → RRF Score Fusion →
+  Cross-Encoder Reranking → RFF Boost → Context Formatting
 
-Key techniques from Shopify + Advanced RAG research:
-1. Multi-query retrieval (original + expanded + HyDE)
-2. Reciprocal Rank Fusion with tunable weights
-3. Cross-encoder reranking (semantic similarity scoring)
-4. Context window optimization (dedup, compress, order)
-5. Source-level citation tracking
-6. Confidence calibration (not just word overlap)
-7. Adaptive chunk selection based on query intent
+Key techniques:
+1. Multi-query retrieval (original + expanded + HyDE + sub-queries)
+2. Reciprocal Rank Fusion (RRF) with tunable weights
+3. Real Cross-Encoder Reranking via sentence-transformers
+4. Relevance Feedback Fusion (RFF) — boost chunks users found helpful
+5. Context window optimization (dedup, compress, order)
+6. Source-level citation tracking
+7. Multi-signal confidence calibration
+8. Stopword-filtered BM25 tokenization
 """
 
 import asyncio
+import json
+import os
 import numpy as np
 import re
 import hashlib
+import time
 from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass, field
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from rank_bm25 import BM25Okapi
 from app.core.logging import logger
+
+
+# ── Stopwords for BM25 tokenization ────────────────────────────────
+_STOPWORDS = frozenset({
+    # English
+    "a", "an", "the", "is", "it", "in", "on", "at", "to", "of", "and",
+    "or", "for", "by", "be", "as", "do", "if", "my", "no", "so", "up",
+    "was", "are", "but", "not", "you", "all", "can", "had", "her", "his",
+    "how", "its", "may", "our", "out", "has", "did", "get", "him", "let",
+    "new", "now", "old", "see", "way", "who", "did", "got", "use", "say",
+    "she", "too", "than", "that", "this", "what", "with", "will", "from",
+    "have", "been", "they", "them", "then", "when", "your", "each", "make",
+    "like", "just", "over", "such", "take", "also", "into", "some", "could",
+    "very", "after", "about", "would", "these", "other", "which", "their",
+    "there", "where", "being", "those",
+    # Indonesian
+    "dan", "di", "ke", "dari", "yang", "ini", "itu", "untuk", "dengan",
+    "ada", "pada", "atau", "tidak", "sudah", "bisa", "akan", "oleh", "saya",
+    "kami", "kita", "mereka", "anda", "nya", "lah", "kah", "pun",
+})
 
 
 @dataclass
@@ -54,10 +78,184 @@ class RetrievalResult:
     source_citations: List[Dict[str, str]]  # [{file, date, relevance}]
 
 
+# ════════════════════════════════════════════════════════════════════
+#  RFF — Relevance Feedback Fusion Store
+# ════════════════════════════════════════════════════════════════════
+
+class RelevanceFeedbackStore:
+    """
+    Tracks user feedback (👍/👎) on answers and maps it back to the
+    chunks that produced those answers.  On future queries the retrieval
+    pipeline applies an RFF boost/penalty so that proven-helpful chunks
+    float higher and unhelpful ones drop.
+
+    Persistence: JSON file under data/ — survives container restarts.
+    """
+
+    def __init__(self, persist_path: str = "data/rff_feedback.json"):
+        self._persist_path = persist_path
+        # chunk_id → {"positive": int, "negative": int, "last_updated": float}
+        self._store: Dict[str, Dict] = {}
+        self._load()
+
+    # ── Persistence ─────────────────────────────────────────────────
+
+    def _load(self):
+        try:
+            if os.path.exists(self._persist_path):
+                with open(self._persist_path, "r") as f:
+                    self._store = json.load(f)
+                logger.info(f"[RFF] Loaded feedback for {len(self._store)} chunks")
+        except Exception as e:
+            logger.warning(f"[RFF] Load failed, starting fresh: {e}")
+            self._store = {}
+
+    def _save(self):
+        try:
+            os.makedirs(os.path.dirname(self._persist_path), exist_ok=True)
+            with open(self._persist_path, "w") as f:
+                json.dump(self._store, f)
+        except Exception as e:
+            logger.warning(f"[RFF] Save failed: {e}")
+
+    # ── Record Feedback ─────────────────────────────────────────────
+
+    def record(self, chunk_ids: List[str], is_positive: bool):
+        """Record feedback for a list of chunk_ids used in a response"""
+        field = "positive" if is_positive else "negative"
+        for cid in chunk_ids:
+            if cid not in self._store:
+                self._store[cid] = {"positive": 0, "negative": 0, "last_updated": 0}
+            self._store[cid][field] += 1
+            self._store[cid]["last_updated"] = time.time()
+        self._save()
+
+    # ── Compute Boost ───────────────────────────────────────────────
+
+    def get_boost(self, chunk_id: str) -> float:
+        """
+        Returns a multiplicative boost factor for the chunk.
+        - No feedback → 1.0 (neutral)
+        - Mostly positive → up to 1.3
+        - Mostly negative → down to 0.7
+        Uses Bayesian smoothing (prior of 1 positive, 1 negative) so
+        a single vote doesn't swing things too hard.
+        """
+        entry = self._store.get(chunk_id)
+        if not entry:
+            return 1.0
+        pos = entry["positive"] + 1   # Bayesian prior
+        neg = entry["negative"] + 1
+        ratio = pos / (pos + neg)     # 0.5 = neutral
+        # Map [0, 1] → [0.7, 1.3]
+        return 0.7 + 0.6 * ratio
+
+    def get_stats(self) -> Dict:
+        """Summary stats for monitoring"""
+        total = len(self._store)
+        if total == 0:
+            return {"total_chunks": 0}
+        pos_total = sum(e["positive"] for e in self._store.values())
+        neg_total = sum(e["negative"] for e in self._store.values())
+        return {
+            "total_chunks_with_feedback": total,
+            "total_positive": pos_total,
+            "total_negative": neg_total,
+        }
+
+
+# ── Module-level singleton ──────────────────────────────────────────
+_rff_store = RelevanceFeedbackStore()
+
+
+def get_rff_store() -> RelevanceFeedbackStore:
+    return _rff_store
+
+
+# ════════════════════════════════════════════════════════════════════
+#  Cross-Encoder Reranker (real sentence-transformers model)
+# ════════════════════════════════════════════════════════════════════
+
+class CrossEncoderReranker:
+    """
+    Lazy-loaded cross-encoder using sentence-transformers.
+    Model: ms-marco-MiniLM-L-6-v2 — fast, accurate, <80 MB.
+    Falls back to n-gram heuristic if model fails to load.
+    """
+
+    _instance = None          # Singleton
+    _model = None
+    _load_attempted = False
+
+    @classmethod
+    def get_instance(cls) -> "CrossEncoderReranker":
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def _ensure_model(self):
+        if self._load_attempted:
+            return
+        self._load_attempted = True
+        try:
+            from sentence_transformers import CrossEncoder
+            model_name = os.getenv(
+                "CROSS_ENCODER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"
+            )
+            self._model = CrossEncoder(model_name)
+            logger.info(f"[CrossEncoder] Loaded model: {model_name}")
+        except Exception as e:
+            logger.warning(f"[CrossEncoder] Model load failed, using heuristic fallback: {e}")
+            self._model = None
+
+    def score(self, query: str, passages: List[str]) -> List[float]:
+        """
+        Score query-passage pairs.  Returns list of relevance scores (higher = better).
+        Falls back to n-gram heuristic if model unavailable.
+        """
+        self._ensure_model()
+        if self._model is not None and passages:
+            try:
+                pairs = [[query, p] for p in passages]
+                scores = self._model.predict(pairs)
+                # Normalize to [0, 1] with sigmoid
+                scores = 1.0 / (1.0 + np.exp(-np.array(scores)))
+                return scores.tolist()
+            except Exception as e:
+                logger.warning(f"[CrossEncoder] Predict failed, falling back: {e}")
+        # Heuristic fallback (n-gram overlap)
+        return self._heuristic_scores(query, passages)
+
+    @staticmethod
+    def _heuristic_scores(query: str, passages: List[str]) -> List[float]:
+        """Lightweight n-gram scoring when cross-encoder model is unavailable"""
+        q_lower = query.lower()
+        q_words = set(re.split(r'\W+', q_lower))
+        q_bigrams = set()
+        wl = list(q_words)
+        for i in range(len(wl) - 1):
+            q_bigrams.add(f"{wl[i]} {wl[i+1]}")
+
+        scores = []
+        for passage in passages:
+            p_lower = passage.lower()
+            p_words = set(re.split(r'\W+', p_lower))
+            unigram = len(q_words & p_words) / max(len(q_words), 1)
+            p_bigrams = set()
+            pw = p_lower.split()
+            for i in range(len(pw) - 1):
+                p_bigrams.add(f"{pw[i]} {pw[i+1]}")
+            bigram = len(q_bigrams & p_bigrams) / max(len(q_bigrams), 1) if q_bigrams else 0
+            exact = 1.0 if q_lower in p_lower else 0.0
+            score = 0.40 * unigram + 0.35 * bigram + 0.25 * exact
+            scores.append(score)
+        return scores
+
+
 class AdvancedRetriever:
     """
     Multi-stage retrieval pipeline implementing Shopify-grade
-    search quality with BM25 + Vector + Reranking + RRF fusion.
+    search quality with BM25 + Vector + RRF + Cross-Encoder + RFF.
     """
 
     def __init__(self, vector_store=None, documents=None, embeddings=None):
@@ -68,6 +266,8 @@ class AdvancedRetriever:
         self.doc_content_index = {}  # content_hash -> doc for dedup
         self._result_cache = OrderedDict()
         self._cache_maxsize = 128
+        self._rff = _rff_store
+        self._cross_encoder = CrossEncoderReranker.get_instance()
 
         if self.all_documents:
             self._build_bm25_index()
@@ -84,7 +284,7 @@ class AdvancedRetriever:
         logger.info(f"[AdvancedRetriever] Updated with {len(self.all_documents)} documents")
 
     def _build_bm25_index(self):
-        """Build BM25 index with preprocessing"""
+        """Build BM25 index with stopword-filtered preprocessing"""
         if not self.all_documents:
             return
         
@@ -93,8 +293,8 @@ class AdvancedRetriever:
         
         for doc in self.all_documents:
             text = doc.page_content.lower()
-            # Better tokenization: split on non-alphanumeric, filter short tokens
-            tokens = [t for t in re.split(r'\W+', text) if len(t) > 1]
+            # Better tokenization: split on non-alphanumeric, filter short + stopwords
+            tokens = [t for t in re.split(r'\W+', text) if len(t) > 1 and t not in _STOPWORDS]
             tokenized_corpus.append(tokens)
             
             # Build content hash index for dedup
@@ -217,12 +417,12 @@ class AdvancedRetriever:
     # ── BM25 Search ─────────────────────────────────────────────────
 
     def _bm25_search(self, query: str, k: int = 8) -> List[RetrievedChunk]:
-        """BM25 keyword search with proper tokenization"""
+        """BM25 keyword search with stopword-filtered tokenization"""
         if not self.bm25 or not self.all_documents:
             return []
 
         try:
-            tokens = [t for t in re.split(r'\W+', query.lower()) if len(t) > 1]
+            tokens = [t for t in re.split(r'\W+', query.lower()) if len(t) > 1 and t not in _STOPWORDS]
             if not tokens:
                 return []
 
@@ -349,69 +549,32 @@ class AdvancedRetriever:
 
     async def _rerank(self, query: str, chunks: List[RetrievedChunk], k: int = 10) -> List[RetrievedChunk]:
         """
-        Cross-encoder style reranking using semantic scoring.
-        Uses a lightweight n-gram + TF-IDF approach since we don't have 
-        a cross-encoder model loaded. Still significantly better than
-        simple word overlap.
+        Real cross-encoder reranking using sentence-transformers
+        (ms-marco-MiniLM-L-6-v2) with RFF relevance feedback boost.
+        Falls back to n-gram heuristic if model is unavailable.
         """
         if not chunks:
             return []
 
-        query_lower = query.lower()
-        query_words = set(re.split(r'\W+', query_lower))
-        query_bigrams = set()
-        query_word_list = list(query_words)
-        for i in range(len(query_word_list) - 1):
-            query_bigrams.add(f"{query_word_list[i]} {query_word_list[i+1]}")
+        # ── Step 1: Cross-encoder scoring ───────────────────────────
+        passages = [c.content for c in chunks]
+        ce_scores = await asyncio.to_thread(
+            self._cross_encoder.score, query, passages
+        )
 
-        for chunk in chunks:
-            content_lower = chunk.content.lower()
-            content_words = set(re.split(r'\W+', content_lower))
+        for chunk, ce_score in zip(chunks, ce_scores):
+            chunk.rerank_score = float(ce_score)
 
-            # Feature 1: Unigram overlap (Jaccard)
-            unigram_overlap = len(query_words & content_words) / max(len(query_words), 1)
+            # ── Step 2: RFF relevance feedback boost ────────────────
+            rff_boost = self._rff.get_boost(chunk.chunk_id)
 
-            # Feature 2: Bigram overlap
-            content_bigrams = set()
-            content_word_list = content_lower.split()
-            for i in range(len(content_word_list) - 1):
-                content_bigrams.add(f"{content_word_list[i]} {content_word_list[i+1]}")
-            bigram_overlap = len(query_bigrams & content_bigrams) / max(len(query_bigrams), 1) if query_bigrams else 0
-
-            # Feature 3: Exact phrase match bonus
-            exact_match = 1.0 if query_lower in content_lower else 0.0
-
-            # Feature 4: Query term density (how concentrated query terms are in the chunk)
-            term_positions = []
-            for word in query_words:
-                pos = content_lower.find(word)
-                if pos >= 0:
-                    term_positions.append(pos)
-            
-            density = 0.0
-            if len(term_positions) > 1:
-                term_positions.sort()
-                span = term_positions[-1] - term_positions[0] + 1
-                density = len(term_positions) / max(span, 1) * 100  # Normalize
-
-            # Feature 5: Position bonus (terms appearing early in chunk are more relevant)
-            position_score = 0.0
-            first_match = content_lower.find(query_lower.split()[0] if query_lower.split() else "")
-            if first_match >= 0:
-                position_score = 1.0 / (1.0 + first_match / 100)
-
-            # Weighted combination
-            rerank_score = (
-                0.30 * unigram_overlap +
-                0.25 * bigram_overlap +
-                0.20 * exact_match +
-                0.15 * min(density, 1.0) +
-                0.10 * position_score
-            )
-
-            chunk.rerank_score = rerank_score
-            # Blend RRF score with rerank score
-            chunk.final_score = 0.5 * chunk.final_score + 0.5 * rerank_score
+            # Blend: 40% original RRF + 45% cross-encoder + 15% position-bonus (via RRF)
+            # then multiply by RFF boost
+            chunk.final_score = (
+                0.40 * chunk.final_score +
+                0.45 * chunk.rerank_score +
+                0.15 * max(chunk.scores.get("vector", 0), chunk.scores.get("bm25", 0))
+            ) * rff_boost
 
         # Sort by final blended score
         chunks.sort(key=lambda c: c.final_score, reverse=True)
@@ -421,43 +584,47 @@ class AdvancedRetriever:
 
     def _calibrate_confidence(self, query: str, chunks: List[RetrievedChunk]) -> float:
         """
-        Multi-signal confidence calibration (beyond simple word overlap).
-        Inspired by Shopify's multi-factor evaluation approach.
+        Multi-signal confidence calibration leveraging cross-encoder scores.
         """
         if not chunks:
             return 0.0
 
-        query_words = set(re.split(r'\W+', query.lower()))
+        query_words = set(re.split(r'\W+', query.lower())) - _STOPWORDS
         if not query_words:
             return 0.0
 
-        # Signal 1: Best chunk relevance score
-        top_score = chunks[0].final_score if chunks else 0.0
-        
-        # Signal 2: Score gap between top and 2nd result (higher gap = more confident)
+        # Signal 1: Best cross-encoder rerank score (0-1, most reliable)
+        best_rerank = chunks[0].rerank_score if chunks else 0.0
+
+        # Signal 2: Mean of top-3 rerank scores (consistency check)
+        top3_rerank = np.mean([c.rerank_score for c in chunks[:3]]) if len(chunks) >= 3 else best_rerank
+
+        # Signal 3: Score gap between #1 and #2 (higher = more certain)
         score_gap = 0.0
         if len(chunks) >= 2:
             score_gap = chunks[0].final_score - chunks[1].final_score
 
-        # Signal 3: Coverage — how many query terms appear in top 3 chunks
+        # Signal 4: Coverage — how many query terms appear in top 3 chunks
         top_3_text = " ".join([c.content.lower() for c in chunks[:3]])
-        top_3_words = set(re.split(r'\W+', top_3_text))
-        coverage = len(query_words & top_3_words) / len(query_words)
+        top_3_words = set(re.split(r'\W+', top_3_text)) - _STOPWORDS
+        coverage = len(query_words & top_3_words) / len(query_words) if query_words else 0
 
-        # Signal 4: Source agreement — do multiple sources agree?
+        # Signal 5: Source agreement — do multiple sources agree?
         unique_sources = len(set(c.source_file for c in chunks[:5]))
-        source_diversity = min(unique_sources / 3.0, 1.0)  # Normalize to 0-1
+        source_diversity = min(unique_sources / 3.0, 1.0)
 
-        # Signal 5: Rerank score of best chunk
-        best_rerank = chunks[0].rerank_score if chunks else 0.0
+        # Signal 6: RFF feedback quality for top chunk
+        rff_boost = self._rff.get_boost(chunks[0].chunk_id) if chunks else 1.0
+        rff_signal = min(max((rff_boost - 0.7) / 0.6, 0.0), 1.0)  # Normalize 0.7-1.3 → 0-1
 
-        # Weighted confidence
+        # Weighted confidence (cross-encoder signals dominate)
         confidence = (
-            0.25 * min(top_score * 20, 1.0) +    # Normalize RRF scores
-            0.10 * min(score_gap * 50, 1.0) +     # Score gap signal
-            0.30 * coverage +                       # Query term coverage
-            0.10 * source_diversity +               # Source agreement
-            0.25 * best_rerank                      # Rerank quality
+            0.30 * best_rerank +            # Cross-encoder #1 score
+            0.15 * top3_rerank +             # Top-3 consistency
+            0.10 * min(score_gap * 30, 1.0) + # Score gap signal
+            0.20 * coverage +                # Query term coverage
+            0.10 * source_diversity +        # Source agreement
+            0.15 * rff_signal                # Historical feedback
         )
 
         return round(min(max(confidence, 0.0), 1.0), 4)

@@ -76,6 +76,7 @@ from app.services.customer_service import CustomerService
 from app.services.intent_service import IntentService
 from app.services.rag_service import RAGService
 from app.services.rag_service_v2 import RAGServiceV2
+from app.services.advanced_retriever import get_rff_store
 from app.services.llm_service import LLMService
 from app.services.ticket_service import TicketService
 from app.services.escalation_service import EscalationService
@@ -1464,16 +1465,55 @@ async def kb_internal_query(request: Request):
             else:
                 result = await rag_svc.query(text=query, threshold=0.3, use_hybrid=True, language=language)
         
+        # Include chunk_ids for RFF feedback (V2 only)
+        chunk_ids = result.chunk_ids if hasattr(result, 'chunk_ids') else []
+        
         return {
             "answer": result.answer,
             "confidence": result.confidence,
             "sources": result.source_documents if result.source_documents else [],
             "retrieval_method": result.retrieval_method if hasattr(result, 'retrieval_method') else "unknown",
-            "query": query
+            "query": query,
+            "chunk_ids": chunk_ids,
         }
     except Exception as e:
         logger.error(f"KB internal query error: {e}")
         return JSONResponse({"error": f"Failed to query knowledge base: {str(e)}"}, status_code=500)
+
+# ============ RFF — Relevance Feedback Fusion ============
+
+@app.post("/api/rag/feedback")
+async def rag_feedback(request: Request):
+    """
+    Record user feedback (👍/👎) on AI answers to improve future retrieval.
+    Implements Relevance Feedback Fusion (RFF) — chunks that produce helpful
+    answers get boosted in future queries.
+
+    Body: {"chunk_ids": ["abc123", ...], "is_positive": true/false}
+    """
+    set_trace_id()
+    try:
+        data = await request.json()
+        chunk_ids = data.get("chunk_ids", [])
+        is_positive = data.get("is_positive", True)
+
+        if not chunk_ids:
+            return JSONResponse({"error": "chunk_ids required"}, status_code=400)
+
+        rff = get_rff_store()
+        rff.record(chunk_ids, is_positive)
+        logger.info(f"[RFF] Recorded {'👍' if is_positive else '👎'} for {len(chunk_ids)} chunks")
+
+        return {"status": "ok", "recorded": len(chunk_ids), "is_positive": is_positive}
+    except Exception as e:
+        logger.error(f"RFF feedback error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/rag/feedback/stats")
+async def rag_feedback_stats():
+    """Get RFF feedback statistics"""
+    rff = get_rff_store()
+    return rff.get_stats()
 
 @app.post("/api/chat")
 @limiter.limit("5/minute")

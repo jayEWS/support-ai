@@ -389,7 +389,8 @@ class ChatService:
                 "answer": answer,
                 "attachment": attachment_meta,
                 "confidence": rag_res.confidence,
-                "customer_name": customer_name
+                "customer_name": customer_name,
+                "chunk_ids": rag_res.chunk_ids if hasattr(rag_res, 'chunk_ids') else [],
             }
 
             if escalate:

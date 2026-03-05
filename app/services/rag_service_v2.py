@@ -372,6 +372,7 @@ class RAGServiceV2:
             source_documents=source_docs,
             retrieval_method="shopify_advanced_rag",
             num_retrieved=retrieval_result.after_rerank,
+            chunk_ids=[c.chunk_id for c in retrieval_result.chunks[:5]],
         )
 
         # Cache successful responses (confidence > 0.3) for 5 minutes

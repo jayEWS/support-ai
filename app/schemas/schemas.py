@@ -40,6 +40,7 @@ class RAGResponse(BaseModel):
     source_documents: List[str] = []
     retrieval_method: Optional[str] = None
     num_retrieved: Optional[int] = None
+    chunk_ids: List[str] = []   # For RFF feedback loop
 
 class TicketCreate(BaseModel):
     user_id: str
