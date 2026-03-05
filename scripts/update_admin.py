@@ -20,7 +20,6 @@ def update_admin_email():
         agent = session.query(Agent).filter_by(email=new_email).first()
 
         if agent:
-            agent.role = "admin"
             agent.hashed_password = hashed_pw
             print(f"Updated account to {new_email} with Admin role.")
         else:
@@ -29,7 +28,6 @@ def update_admin_email():
                 user_id="admin_main",
                 name="System Administrator",
                 email=new_email,
-                role="admin",
                 hashed_password=hashed_pw,
                 department="Management"
             )

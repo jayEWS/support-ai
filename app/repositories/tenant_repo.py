@@ -48,6 +48,7 @@ class TenantRepository(BaseRepository):
                 trial_ends_at=datetime.utcnow() + timedelta(days=trial_days) if trial_days > 0 else None,
             )
             session.add(tenant)
+            session.flush()  # Ensure tenant row exists before FK-dependent inserts
 
             # Link owner
             if owner_agent_id:

@@ -40,8 +40,7 @@ def seed_rbac():
     db_manager.create_role(
         "Support", 
         "Customer support access", 
-        permissions=["ticket.view", "ticket.edit", "analytics.view"],
-        is_default=True
+        permissions=["ticket.view", "ticket.edit", "analytics.view"]
     )
     
     # 3. Assign System Admin to your account
