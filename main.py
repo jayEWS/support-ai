@@ -1483,7 +1483,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
             phone_number=message.sender,
             direction="inbound",
             content=message.text,
-            bird_message_id=message.message_id
+            external_message_id=message.message_id
         )
 
     customer = await app.state.customer_service.get_or_register_customer(message.sender)
@@ -1764,7 +1764,7 @@ async def simulate_whatsapp_inbound(data: dict, agent: Annotated[dict, Depends(g
         phone_number=phone,
         direction="inbound",
         content=message_text,
-        bird_message_id=f"test_{int(__import__('time').time()*1000)}"
+        external_message_id=f"test_{int(__import__('time').time()*1000)}"
     )
     
     # Process through AI pipeline

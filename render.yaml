@@ -16,8 +16,6 @@ services:
         value: local
       - key: EMBEDDINGS_MODEL_NAME
         value: all-MiniLM-L6-v2
-      - key: BIRD_API_KEY
-        sync: false
       - key: WHATSAPP_CHANNEL_ID
         sync: false
       - key: API_SECRET_KEY

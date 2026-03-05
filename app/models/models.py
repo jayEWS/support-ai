@@ -144,7 +144,6 @@ class Ticket(Base):
     priority = Column("Priority", Unicode(20), default="Medium")
     category = Column("TicketType", Unicode(50), default="Support") # NEW: Category/Issue Type
     assigned_to = Column("AssignedToAgent", Unicode(100), ForeignKey("app.Agents.Username" if USE_APP_SCHEMA else "Agents.Username"))
-    asana_task_id = Column("AsanaTaskID", Unicode(100))
     due_at = Column("DueAt", DateTime)
     created_at = Column("CreatedDate", DateTime, server_default=func.now())
     modified_at = Column("ModifiedDate", DateTime, server_default=func.now(), onupdate=func.now())
@@ -245,7 +244,7 @@ class WhatsAppMessage(Base):
     __tablename__ = "WhatsAppMessages"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
     id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
-    bird_message_id = Column("BirdMessageID", Unicode(255), unique=True, nullable=True)
+    external_message_id = Column("ExternalMessageID", Unicode(255), unique=True, nullable=True)  # Meta/WhatsApp message ID
     phone_number = Column("PhoneNumber", Unicode(20), index=True)  # e.g. +6281229009543
     direction = Column("Direction", Unicode(10))  # 'inbound' or 'outbound'
     content = Column("Content", UnicodeText)

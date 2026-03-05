@@ -551,7 +551,6 @@ class DatabaseManager:
                     "status": t.status,
                     "priority": t.priority,
                     "assigned_to": t.assigned_to,
-                    "asana_task_id": t.asana_task_id,
                     "due_at": t.due_at.isoformat() if t.due_at else None,
                     "created_at": t.created_at.isoformat() if t.created_at else None,
                     "name": uname,
@@ -1069,19 +1068,6 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-    def update_ticket_asana_id(self, ticket_id: int, asana_task_id: str):
-        session = self.get_session()
-        try:
-            ticket = session.query(Ticket).get(ticket_id)
-            if ticket:
-                ticket.asana_task_id = asana_task_id
-                session.commit()
-        except Exception as e:
-            session.rollback()
-            logger.error(f"Error updating Asana ID: {e}")
-        finally:
-            self.Session.remove()
-
     def log_action(self, agent_id: str, action: str, target_type: str, target_id: str, details: str = None):
         session = self.get_session()
         try:
@@ -1521,13 +1507,13 @@ class DatabaseManager:
     # ============ WhatsApp Messages ============
 
     def save_whatsapp_message(self, phone_number: str, direction: str, content: str,
-                              message_type: str = "text", bird_message_id: str = None,
+                              message_type: str = "text", external_message_id: str = None,
                               ticket_id: int = None, status: str = None):
         """Save a WhatsApp message (inbound or outbound) to the database."""
         session = self.get_session()
         try:
             msg = WhatsAppMessage(
-                bird_message_id=bird_message_id,
+                external_message_id=external_message_id,
                 phone_number=phone_number,
                 direction=direction,
                 content=content,
@@ -1603,7 +1589,7 @@ class DatabaseManager:
                 'total': total,
                 'messages': [{
                     'id': m.id,
-                    'bird_message_id': m.bird_message_id,
+                    'external_message_id': m.external_message_id,
                     'direction': m.direction,
                     'content': m.content,
                     'message_type': m.message_type,

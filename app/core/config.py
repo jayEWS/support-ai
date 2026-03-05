@@ -47,11 +47,6 @@ class Settings(BaseSettings):
     EMAIL_FROM_ADDRESS: str = ""  # Sender email address
     EMAIL_PROVIDER: str = "gmail"  # Options: gmail, sendgrid, mock
     
-    # Asana Integration
-    ASANA_ACCESS_TOKEN: str = ""  # Set via environment variable
-    ASANA_PROJECT_GID: str = ""  # Set via environment variable
-    ASANA_ENABLED: bool = False
-    
     # Security
     API_SECRET_KEY: str = ""  # Set via environment variable - MUST be changed in production
     AUTH_SECRET_KEY: str = ""  # Set via environment variable - MUST be changed in production
