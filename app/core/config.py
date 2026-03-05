@@ -78,8 +78,11 @@ class Settings(BaseSettings):
     MAGIC_LINK_EXPIRE_MINUTES: int = 15
     BASE_URL: str = "http://localhost:8000"
     
-    # Database Config (SQL Server 2025)
+    # Database Config (PostgreSQL / SQL Server / SQLite)
     DATABASE_URL: str = ""  # Set via environment variable - MUST be configured for production
+    # PostgreSQL (Neon): postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+    # SQL Server:        mssql+pyodbc://user:pass@host:1433/db?driver=ODBC+Driver+18+for+SQL+Server
+    # SQLite:            sqlite:///data/db_storage/app.db
     
     # Paths
     KNOWLEDGE_DIR: str = "data/knowledge"

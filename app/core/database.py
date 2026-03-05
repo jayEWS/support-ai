@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, func, or_, desc, literal_column
 from sqlalchemy.orm import sessionmaker, scoped_session
-from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, FreshdeskContact, FreshdeskTicket, WhatsAppMessage, SystemSetting
+from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, FreshdeskContact, FreshdeskTicket, WhatsAppMessage, SystemSetting, IS_MSSQL, IS_POSTGRES, IS_SQLITE
 from app.core.config import settings
 from app.core.logging import logger
 import json
@@ -9,25 +9,35 @@ from typing import List, Optional
 
 class DatabaseManager:
     def __init__(self):
-        # SQL Server Engine
-        # pool_pre_ping disabled at startup to avoid blocking when DB is unreachable
-        # The app will still boot and retry connections on each request
-        self.engine = create_engine(
-            settings.DATABASE_URL,
-            pool_pre_ping=False,
-            pool_size=5,
-            max_overflow=10,
-            connect_args={"connect_timeout": 10}  # 10s timeout instead of default 2 min
-        )
+        # Build engine kwargs based on DB type
+        engine_kwargs = {
+            "pool_pre_ping": False,
+            "pool_size": 5,
+            "max_overflow": 10,
+        }
+
+        if IS_MSSQL:
+            engine_kwargs["connect_args"] = {"connect_timeout": 10}
+        elif IS_POSTGRES:
+            engine_kwargs["connect_args"] = {"connect_timeout": 10, "options": "-c timezone=utc"}
+        elif IS_SQLITE:
+            # SQLite doesn't support pool_size / max_overflow
+            engine_kwargs = {}
+
+        db_label = "PostgreSQL" if IS_POSTGRES else "SQL Server" if IS_MSSQL else "SQLite"
+        logger.info(f"Initializing {db_label} database engine...")
+
+        self.engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
         self.session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(self.session_factory)
         self._init_db()
 
     def _init_db(self):
-        """Create all tables in SQL Server if they don't exist."""
+        """Create all tables if they don't exist."""
         try:
             Base.metadata.create_all(self.engine)
-            logger.info("SQL Server database tables verified/created.")
+            db_label = "PostgreSQL" if IS_POSTGRES else "SQL Server" if IS_MSSQL else "SQLite"
+            logger.info(f"{db_label} database tables verified/created.")
         except Exception as e:
             logger.error(f"Error initializing SQL Server: {e}")
 

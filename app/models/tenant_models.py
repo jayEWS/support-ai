@@ -7,7 +7,7 @@ Every operational table references tenant_id for complete data isolation.
 
 from sqlalchemy import Column, Integer, Unicode, UnicodeText, DateTime, ForeignKey, Float, Boolean, func, Text, JSON
 from sqlalchemy.orm import relationship
-from app.models.models import Base, IS_SQLITE
+from app.models.models import Base, IS_SQLITE, USE_APP_SCHEMA
 from datetime import datetime
 
 
@@ -16,13 +16,13 @@ from datetime import datetime
 class Tenant(Base):
     """Core tenant (organization) record."""
     __tablename__ = "Tenants"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("TenantID", Unicode(36), primary_key=True)  # UUID
     name = Column("Name", Unicode(255), nullable=False)
     slug = Column("Slug", Unicode(100), unique=True, nullable=False, index=True)  # URL-safe identifier
     industry = Column("Industry", Unicode(100), nullable=True)  # Retail, F&B, ERP, etc.
-    plan_id = Column("PlanID", Integer, ForeignKey("Plans.PlanID" if IS_SQLITE else "app.Plans.PlanID"), nullable=True)
+    plan_id = Column("PlanID", Integer, ForeignKey("app.Plans.PlanID" if USE_APP_SCHEMA else "Plans.PlanID"), nullable=True)
     status = Column("Status", Unicode(20), default="active")  # active, suspended, trial, cancelled
     trial_ends_at = Column("TrialEndsAt", DateTime, nullable=True)
     settings_json = Column("SettingsJSON", UnicodeText, nullable=True)  # Tenant-specific config overrides
@@ -39,7 +39,7 @@ class Tenant(Base):
 class Plan(Base):
     """Subscription plan definitions."""
     __tablename__ = "Plans"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("PlanID", Integer, primary_key=True, autoincrement=True)
     name = Column("Name", Unicode(100), unique=True, nullable=False)  # Starter, Growth, Enterprise
@@ -58,11 +58,11 @@ class Plan(Base):
 class TenantUser(Base):
     """Maps agents/users to tenants with tenant-scoped roles."""
     __tablename__ = "TenantUsers"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("TenantUserID", Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column("TenantID", Unicode(36), ForeignKey("Tenants.TenantID" if IS_SQLITE else "app.Tenants.TenantID"), nullable=False, index=True)
-    agent_id = Column("AgentID", Integer, ForeignKey("Agents.AgentID" if IS_SQLITE else "app.Agents.AgentID"), nullable=False)
+    tenant_id = Column("TenantID", Unicode(36), ForeignKey("app.Tenants.TenantID" if USE_APP_SCHEMA else "Tenants.TenantID"), nullable=False, index=True)
+    agent_id = Column("AgentID", Integer, ForeignKey("app.Agents.AgentID" if USE_APP_SCHEMA else "Agents.AgentID"), nullable=False)
     role = Column("Role", Unicode(50), default="agent")  # owner, admin, agent, viewer
     status = Column("Status", Unicode(20), default="active")  # active, invited, disabled
     invited_at = Column("InvitedAt", DateTime, nullable=True)
@@ -75,10 +75,10 @@ class TenantUser(Base):
 class AIInteractionLog(Base):
     """Tracks every AI interaction for quality monitoring, billing, and observability."""
     __tablename__ = "AIInteractionLogs"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("InteractionID", Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column("TenantID", Unicode(36), ForeignKey("Tenants.TenantID" if IS_SQLITE else "app.Tenants.TenantID"), nullable=False, index=True)
+    tenant_id = Column("TenantID", Unicode(36), ForeignKey("app.Tenants.TenantID" if USE_APP_SCHEMA else "Tenants.TenantID"), nullable=False, index=True)
     user_id = Column("UserID", Unicode(100), nullable=True)  # Portal customer
     ticket_id = Column("TicketID", Integer, nullable=True)
     query = Column("Query", UnicodeText, nullable=True)
@@ -102,10 +102,10 @@ class AIInteractionLog(Base):
 class UsageTracking(Base):
     """Aggregated usage metrics per tenant per period for billing enforcement."""
     __tablename__ = "UsageTracking"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("UsageID", Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column("TenantID", Unicode(36), ForeignKey("Tenants.TenantID" if IS_SQLITE else "app.Tenants.TenantID"), nullable=False, index=True)
+    tenant_id = Column("TenantID", Unicode(36), ForeignKey("app.Tenants.TenantID" if USE_APP_SCHEMA else "Tenants.TenantID"), nullable=False, index=True)
     period = Column("Period", Unicode(7), nullable=False)  # YYYY-MM format
     ai_messages_used = Column("AIMessagesUsed", Integer, default=0)
     tickets_created = Column("TicketsCreated", Integer, default=0)
@@ -123,11 +123,11 @@ class UsageTracking(Base):
 class Subscription(Base):
     """Active subscription for a tenant."""
     __tablename__ = "Subscriptions"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("SubscriptionID", Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column("TenantID", Unicode(36), ForeignKey("Tenants.TenantID" if IS_SQLITE else "app.Tenants.TenantID"), nullable=False, unique=True, index=True)
-    plan_id = Column("PlanID", Integer, ForeignKey("Plans.PlanID" if IS_SQLITE else "app.Plans.PlanID"), nullable=False)
+    tenant_id = Column("TenantID", Unicode(36), ForeignKey("app.Tenants.TenantID" if USE_APP_SCHEMA else "Tenants.TenantID"), nullable=False, unique=True, index=True)
+    plan_id = Column("PlanID", Integer, ForeignKey("app.Plans.PlanID" if USE_APP_SCHEMA else "Plans.PlanID"), nullable=False)
     status = Column("Status", Unicode(20), default="active")  # active, past_due, cancelled, trialing
     billing_cycle = Column("BillingCycle", Unicode(10), default="monthly")  # monthly, yearly
     current_period_start = Column("CurrentPeriodStart", DateTime, nullable=True)
@@ -143,11 +143,11 @@ class Subscription(Base):
 class Invoice(Base):
     """Invoice records (placeholder for Stripe integration)."""
     __tablename__ = "Invoices"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("InvoiceID", Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column("TenantID", Unicode(36), ForeignKey("Tenants.TenantID" if IS_SQLITE else "app.Tenants.TenantID"), nullable=False, index=True)
-    subscription_id = Column("SubscriptionID", Integer, ForeignKey("Subscriptions.SubscriptionID" if IS_SQLITE else "app.Subscriptions.SubscriptionID"), nullable=True)
+    tenant_id = Column("TenantID", Unicode(36), ForeignKey("app.Tenants.TenantID" if USE_APP_SCHEMA else "Tenants.TenantID"), nullable=False, index=True)
+    subscription_id = Column("SubscriptionID", Integer, ForeignKey("app.Subscriptions.SubscriptionID" if USE_APP_SCHEMA else "Subscriptions.SubscriptionID"), nullable=True)
     amount = Column("Amount", Float, nullable=False)
     currency = Column("Currency", Unicode(3), default="USD")
     status = Column("Status", Unicode(20), default="draft")  # draft, sent, paid, overdue, void
@@ -163,10 +163,10 @@ class Invoice(Base):
 class FeatureFlag(Base):
     """Per-tenant feature toggle system."""
     __tablename__ = "FeatureFlags"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("FlagID", Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column("TenantID", Unicode(36), ForeignKey("Tenants.TenantID" if IS_SQLITE else "app.Tenants.TenantID"), nullable=True, index=True)  # NULL = global default
+    tenant_id = Column("TenantID", Unicode(36), ForeignKey("app.Tenants.TenantID" if USE_APP_SCHEMA else "Tenants.TenantID"), nullable=True, index=True)  # NULL = global default
     feature_key = Column("FeatureKey", Unicode(100), nullable=False, index=True)  # e.g., "sla_engine", "whatsapp", "ai_dashboard"
     enabled = Column("Enabled", Boolean, default=False)
     config_json = Column("ConfigJSON", UnicodeText, nullable=True)  # Per-feature configuration
@@ -179,10 +179,10 @@ class FeatureFlag(Base):
 class KnowledgeCollection(Base):
     """Tenant-isolated knowledge base collections."""
     __tablename__ = "KnowledgeCollections"
-    __table_args__ = {"schema": "app"} if not IS_SQLITE else {}
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
 
     id = Column("CollectionID", Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column("TenantID", Unicode(36), ForeignKey("Tenants.TenantID" if IS_SQLITE else "app.Tenants.TenantID"), nullable=False, index=True)
+    tenant_id = Column("TenantID", Unicode(36), ForeignKey("app.Tenants.TenantID" if USE_APP_SCHEMA else "Tenants.TenantID"), nullable=False, index=True)
     name = Column("Name", Unicode(255), nullable=False)
     description = Column("Description", UnicodeText, nullable=True)
     vector_index_path = Column("VectorIndexPath", Unicode(512), nullable=True)  # Path to tenant's FAISS index
