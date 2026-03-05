@@ -225,7 +225,7 @@ class QueryEngine:
 
         # Stage 5: HyDE (Hypothetical Document Embedding)
         hyde_passage = None
-        if self.llm and intent in (QueryIntent.HOW_TO, QueryIntent.TROUBLESHOOTING, QueryIntent.CONFIGURATION):
+        if self.llm and intent in (QueryIntent.HOW_TO, QueryIntent.TROUBLESHOOTING, QueryIntent.CONFIGURATION, QueryIntent.SIMPLE_FAQ, QueryIntent.BILLING_TAX, QueryIntent.INTEGRATION):
             try:
                 hyde_passage = await self._generate_hyde(query, language)
             except Exception as e:

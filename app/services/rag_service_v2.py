@@ -70,12 +70,21 @@ _query_cache = _QueryCache()
 
 SYSTEM_PROMPT_CORE = """You are a friendly and knowledgeable Edgeworks POS technical support assistant.
 
-RULES:
-1. Answer ONLY from the provided document context
-2. If information is not found, clearly say so and offer to connect with a specialist
-3. Use the document with the LATEST DATE when there's conflicting information
-4. Cite the source file name at the end of your answer
-5. Be concise but thorough — use numbered steps for instructions"""
+STRICT GROUNDING RULES:
+1. Answer ONLY using facts explicitly stated in the DOCUMENT CONTEXT below.
+2. NEVER invent menu paths, button names, settings, or steps that do not appear in the context.
+3. If the context does not contain enough information, clearly say:
+   "I don't have specific information about that in the knowledge base. Let me connect you with a specialist."
+4. When documents conflict, prefer the one with the LATEST DATE.
+5. Cite the source file name(s) at the end of your answer.
+6. For step-by-step instructions, use numbered steps and include exact menu paths from the documents.
+
+ANSWER PROCESS (follow internally — do not show this to the user):
+- Step A: Identify which SOURCE blocks contain relevant information.
+- Step B: Extract only the facts from those blocks.
+- Step C: Compose your answer using ONLY those extracted facts.
+- Step D: Self-check — re-read your answer and verify every claim appears in the context.
+  If any claim is not in the context, remove it."""
 
 
 class RAGServiceV2:
@@ -299,13 +308,21 @@ class RAGServiceV2:
 
         # ── Stage 2: Multi-Stage Retrieval ──────────────────────────
         t0 = time.time()
+
+        # Adaptive final-k: complex intents need more context for the LLM
+        _k_final_map = {
+            "how_to": 12, "troubleshooting": 12, "configuration": 12,
+            "complex_multi": 15, "comparison": 12,
+        }
+        k_final = _k_final_map.get(processed.intent.value, 8)
+
         retrieval_result = await self.retriever.retrieve(
             original_query=text,
             expanded_query=processed.expanded_query,
             hyde_passage=processed.hyde_passage,
             sub_queries=processed.sub_queries,
             k_per_method=8,
-            k_final=10,
+            k_final=k_final,
             intent=processed.intent.value,
         )
         timings["retrieval_ms"] = round((time.time() - t0) * 1000, 1)
@@ -398,6 +415,11 @@ class RAGServiceV2:
         Instead of one massive system prompt (Shopify's "Death by a Thousand Instructions" problem),
         we inject only the instructions relevant to the detected intent.
         """
+        grounding_check = """FINAL CHECK: Before answering, verify:
+- Every menu path, button name, and setting you mention appears verbatim in the DOCUMENT CONTEXT.
+- Every step you list comes directly from the documents.
+- If you are not 100% certain a fact is in the context, do NOT include it."""
+
         if confidence >= threshold:
             # High confidence — grounded answer
             prompt = f"""{SYSTEM_PROMPT_CORE}
@@ -411,7 +433,9 @@ DOCUMENT CONTEXT:
 
 QUESTION: {query}
 
-Answer (based on the documents above):"""
+{grounding_check}
+
+Answer (based strictly on the documents above):"""
         else:
             # Low confidence — cautious answer with disclaimer
             prompt = f"""{SYSTEM_PROMPT_CORE}
@@ -420,12 +444,16 @@ Answer (based on the documents above):"""
 
 {lang_instruction}
 
-IMPORTANT: The retrieved context may not fully match the question. If the context is not relevant, clearly state that the information is not available in the knowledge base and offer to connect with a specialist.
+IMPORTANT: The retrieved context has LOW relevance to this question. If the context does not directly answer the question, say:
+"I don't have specific information about that in the knowledge base. Let me connect you with a specialist who can help."
+Do NOT guess or make up an answer.
 
 DOCUMENT CONTEXT (partial match):
 {context}
 
 QUESTION: {query}
+
+{grounding_check}
 
 Answer:"""
 

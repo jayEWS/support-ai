@@ -206,8 +206,37 @@ class RAGEngine:
                 self.hybrid_retriever = None
                 return
 
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            # Larger chunks + more overlap = less mid-instruction splits
+            # Custom separators prioritize section headers and numbered steps
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1500,
+                chunk_overlap=300,
+                separators=[
+                    "\n#### ",     # H4 headers (common in KB docs)
+                    "\n### ",      # H3 headers
+                    "\n## ",       # H2 headers
+                    "\n# ",        # H1 headers
+                    "\n---\n",     # Horizontal rules
+                    "\n\n",        # Double newline (paragraph)
+                    "\n",          # Single newline
+                    ". ",          # Sentence boundary
+                    " ",           # Word boundary
+                ],
+                length_function=len,
+            )
             self.all_documents = text_splitter.split_documents(raw_docs)
+
+            # Add chunk_index metadata for parent-doc context retrieval
+            doc_chunks = {}  # filename -> list of chunk indices
+            for i, doc in enumerate(self.all_documents):
+                fname = doc.metadata.get('filename', 'unknown')
+                if fname not in doc_chunks:
+                    doc_chunks[fname] = []
+                doc.metadata['chunk_index'] = len(doc_chunks[fname])
+                doc_chunks[fname].append(i)
+            for fname, indices in doc_chunks.items():
+                for idx_pos, doc_idx in enumerate(indices):
+                    self.all_documents[doc_idx].metadata['total_chunks_in_file'] = len(indices)
             
             if self.embeddings:
                 self.vector_store = FAISS.from_documents(self.all_documents, self.embeddings)

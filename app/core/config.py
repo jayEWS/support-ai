@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     MODEL_NAME: str = "gpt-4o-mini"
     AI_BASE_URL: Optional[str] = None
-    TEMPERATURE: float = 0.3
+    TEMPERATURE: float = 0.1
     
     # Google Gemini Config
     GOOGLE_GEMINI_API_KEY: str = ""  # from https://aistudio.google.com/

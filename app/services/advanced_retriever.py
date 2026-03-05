@@ -268,6 +268,7 @@ class AdvancedRetriever:
         self._cache_maxsize = 128
         self._rff = _rff_store
         self._cross_encoder = CrossEncoderReranker.get_instance()
+        self._file_chunk_map = {}   # Built lazily for parent-doc enrichment
 
         if self.all_documents:
             self._build_bm25_index()
@@ -279,6 +280,7 @@ class AdvancedRetriever:
         self.vector_store = vector_store
         self.all_documents = documents or []
         self._result_cache.clear()
+        self._file_chunk_map = {}   # Reset parent-doc index
         if self.all_documents:
             self._build_bm25_index()
         logger.info(f"[AdvancedRetriever] Updated with {len(self.all_documents)} documents")
@@ -329,30 +331,44 @@ class AdvancedRetriever:
         all_candidates: Dict[str, RetrievedChunk] = {}  # content_hash -> chunk
         methods_used = []
 
+        # Adaptive k: intents that need more context get more candidates
+        _intent_k_boost = {
+            "how_to": 2, "troubleshooting": 2, "configuration": 2,
+            "complex_multi": 3, "comparison": 2,
+        }
+        k_boost = _intent_k_boost.get(intent, 0)
+        k_eff = k_per_method + k_boost
+
         # ── Stage 1: Multi-Query Retrieval ──────────────────────────
 
         # 1a. BM25 on original query (keyword precision)
-        bm25_results = self._bm25_search(original_query, k=k_per_method)
+        bm25_results = self._bm25_search(original_query, k=k_eff)
         self._merge_candidates(all_candidates, bm25_results, "bm25_original", weight=0.35)
         if bm25_results:
             methods_used.append("bm25_original")
 
         # 1b. Vector search on original query (semantic understanding)
-        vector_results = await self._vector_search(original_query, k=k_per_method)
+        vector_results = await self._vector_search(original_query, k=k_eff)
         self._merge_candidates(all_candidates, vector_results, "vector_original", weight=0.40)
         if vector_results:
             methods_used.append("vector_original")
 
         # 1c. Vector search on expanded query (recall boost)
         if expanded_query and expanded_query != original_query:
-            expanded_results = await self._vector_search(expanded_query, k=k_per_method // 2)
+            expanded_results = await self._vector_search(expanded_query, k=k_eff // 2)
             self._merge_candidates(all_candidates, expanded_results, "vector_expanded", weight=0.15)
             if expanded_results:
                 methods_used.append("vector_expanded")
 
+            # 1c-ii. BM25 on expanded query too (was missing — keyword recall gap)
+            bm25_exp = self._bm25_search(expanded_query, k=k_eff // 2)
+            self._merge_candidates(all_candidates, bm25_exp, "bm25_expanded", weight=0.10)
+            if bm25_exp:
+                methods_used.append("bm25_expanded")
+
         # 1d. HyDE retrieval (hypothetical document embedding)
         if hyde_passage:
-            hyde_results = await self._vector_search(hyde_passage, k=k_per_method // 2)
+            hyde_results = await self._vector_search(hyde_passage, k=k_eff // 2)
             self._merge_candidates(all_candidates, hyde_results, "hyde", weight=0.25)
             if hyde_results:
                 methods_used.append("hyde")
@@ -388,16 +404,21 @@ class AdvancedRetriever:
         reranked = await self._rerank(original_query, deduped, k=k_final)
         after_rerank = len(reranked)
 
-        # ── Stage 5: Confidence Calibration ─────────────────────────
+        # ── Stage 5: Parent-Doc Context Window ──────────────────
+        # Pull adjacent chunks from same source file to give LLM
+        # fuller context (prevents mid-instruction splits)
+        enriched = self._enrich_with_adjacent(reranked)
 
-        confidence = self._calibrate_confidence(original_query, reranked)
+        # ── Stage 6: Confidence Calibration ─────────────────────────
 
-        # ── Stage 6: Context Formatting with Citations ──────────────
+        confidence = self._calibrate_confidence(original_query, enriched)
 
-        context_text, citations = self._format_context(reranked, intent)
+        # ── Stage 7: Context Formatting with Citations ──────────────
+
+        context_text, citations = self._format_context(enriched, intent)
 
         result = RetrievalResult(
-            chunks=reranked,
+            chunks=enriched,
             retrieval_methods_used=methods_used,
             total_candidates=total_candidates,
             after_dedup=after_dedup,
@@ -413,6 +434,84 @@ class AdvancedRetriever:
             self._result_cache.popitem(last=False)
 
         return result
+
+    # ── Parent-Doc Context Enrichment ───────────────────────────────
+
+    def _enrich_with_adjacent(self, chunks: List[RetrievedChunk], window: int = 1) -> List[RetrievedChunk]:
+        """
+        For each retrieved chunk, find adjacent chunks (±window) from the
+        same source file and merge their content.  This gives the LLM the
+        surrounding context that may have been split off during chunking.
+
+        Only merges if the adjacent chunk is NOT already in the result set
+        (avoids duplication).
+        """
+        if not self.all_documents or not chunks:
+            return chunks
+
+        # Build file→ordered-chunks index on first call
+        if not hasattr(self, '_file_chunk_map') or not self._file_chunk_map:
+            self._file_chunk_map: Dict[str, List] = defaultdict(list)
+            for doc in self.all_documents:
+                fname = doc.metadata.get('filename', 'unknown')
+                cidx = doc.metadata.get('chunk_index', -1)
+                self._file_chunk_map[fname].append({
+                    'index': cidx,
+                    'content': doc.page_content,
+                    'metadata': doc.metadata,
+                })
+            # Sort each file's chunks by index
+            for fname in self._file_chunk_map:
+                self._file_chunk_map[fname].sort(key=lambda x: x['index'])
+
+        existing_ids = {c.chunk_id for c in chunks}
+        enriched = []
+
+        for chunk in chunks:
+            fname = chunk.source_file
+            file_chunks = self._file_chunk_map.get(fname, [])
+            if not file_chunks:
+                enriched.append(chunk)
+                continue
+
+            # Find this chunk's position in its file
+            match_pos = None
+            for pos, fc in enumerate(file_chunks):
+                fc_id = hashlib.md5(fc['content'][:100].encode()).hexdigest()[:12]
+                if fc_id == chunk.chunk_id:
+                    match_pos = pos
+                    break
+
+            if match_pos is None:
+                enriched.append(chunk)
+                continue
+
+            # Collect adjacent content (before and after)
+            parts = []
+            for offset in range(-window, window + 1):
+                adj_pos = match_pos + offset
+                if 0 <= adj_pos < len(file_chunks):
+                    adj = file_chunks[adj_pos]
+                    adj_id = hashlib.md5(adj['content'][:100].encode()).hexdigest()[:12]
+                    if offset == 0:
+                        parts.append(adj['content'])
+                    elif adj_id not in existing_ids:
+                        parts.append(adj['content'])
+
+            # Merge into single enriched chunk
+            merged_content = "\n\n".join(parts)
+            enriched_chunk = RetrievedChunk(
+                content=merged_content,
+                source_file=chunk.source_file,
+                upload_date=chunk.upload_date,
+                chunk_id=chunk.chunk_id,
+                scores=chunk.scores,
+                final_score=chunk.final_score,
+                rerank_score=chunk.rerank_score,
+            )
+            enriched.append(enriched_chunk)
+
+        return enriched
 
     # ── BM25 Search ─────────────────────────────────────────────────
 
