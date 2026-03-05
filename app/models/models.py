@@ -253,8 +253,6 @@ class WhatsAppMessage(Base):
     ticket_id = Column("TicketID", Integer, nullable=True)  # Link to ticket if created
     created_at = Column("CreatedAt", DateTime, server_default=func.now())
 
-# ============ Freshdesk Historical Data ============
-
 class SystemSetting(Base):
     """Key-value store for system settings (e.g. ticket notification email)."""
     __tablename__ = "SystemSettings"
@@ -263,59 +261,5 @@ class SystemSetting(Base):
     value = Column("SettingValue", UnicodeText, nullable=True)
     updated_at = Column("UpdatedAt", DateTime, server_default=func.now(), onupdate=func.now())
 
-class FreshdeskContact(Base):
-    """Imported customer contacts from Freshdesk ticket exports."""
-    __tablename__ = "FreshdeskContacts"
-    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    id = Column("ContactID", Integer, primary_key=True, autoincrement=True)
-    freshdesk_id = Column("FreshdeskContactID", Unicode(255), unique=True, index=True)  # Contact ID from export
-    full_name = Column("FullName", Unicode(255))
-    email = Column("Email", Unicode(255))
-    work_phone = Column("WorkPhone", Unicode(50))
-    mobile_phone = Column("MobilePhone", Unicode(50))
-    company_name = Column("CompanyName", Unicode(255))
-    industry = Column("Industry", Unicode(100))
-    timezone = Column("Timezone", Unicode(50))
-    language = Column("Language", Unicode(10))
-    account_tier = Column("AccountTier", Unicode(50))
-    health_score = Column("HealthScore", Unicode(50))
-    total_tickets = Column("TotalTickets", Integer, default=0)
-    # Link to internal User table (if mapped)
-    internal_user_id = Column("InternalUserID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"), nullable=True)
-    created_at = Column("CreatedDate", DateTime, server_default=func.now())
 
-class FreshdeskTicket(Base):
-    """Imported historical tickets from Freshdesk exports."""
-    __tablename__ = "FreshdeskTickets"
-    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    id = Column("RecordID", Integer, primary_key=True, autoincrement=True)
-    ticket_id = Column("FreshdeskTicketID", Integer, unique=True, index=True)
-    subject = Column("Subject", UnicodeText)
-    status = Column("Status", Unicode(30))
-    priority = Column("Priority", Unicode(20))
-    source = Column("Source", Unicode(30))
-    ticket_type = Column("TicketType", Unicode(100))
-    agent = Column("Agent", Unicode(100))
-    group_name = Column("GroupName", Unicode(100))
-    tags = Column("Tags", UnicodeText)
-    summary = Column("Summary", UnicodeText)
-    product = Column("Product", Unicode(100))
-    # Contact reference
-    contact_id = Column("ContactRef", Unicode(255), ForeignKey("app.FreshdeskContacts.FreshdeskContactID" if USE_APP_SCHEMA else "FreshdeskContacts.FreshdeskContactID"), nullable=True)
-    # Timestamps
-    created_time = Column("CreatedTime", DateTime)
-    due_by_time = Column("DueByTime", DateTime)
-    resolved_time = Column("ResolvedTime", DateTime)
-    closed_time = Column("ClosedTime", DateTime)
-    last_update_time = Column("LastUpdateTime", DateTime)
-    initial_response_time = Column("InitialResponseTime", DateTime)
-    # Metrics
-    first_response_hrs = Column("FirstResponseHrs", Unicode(30))
-    resolution_hrs = Column("ResolutionHrs", Unicode(30))
-    agent_interactions = Column("AgentInteractions", Integer, default=0)
-    customer_interactions = Column("CustomerInteractions", Integer, default=0)
-    resolution_status = Column("ResolutionStatus", Unicode(30))  # Within SLA / SLA Violated
-    first_response_status = Column("FirstResponseStatus", Unicode(30))
-    survey_results = Column("SurveyResults", Unicode(50))
-    csat_score = Column("CSATScore", Unicode(50))
     imported_at = Column("ImportedAt", DateTime, server_default=func.now())
