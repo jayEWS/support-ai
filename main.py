@@ -1394,6 +1394,42 @@ async def upload_screen_recording(
         "size": metadata["size"]
     }
 
+# ============ Knowledge Base Internal Self-Service ============
+
+@app.post("/api/kb/query")
+@limiter.limit("10/minute")
+async def kb_internal_query(request: Request):
+    """Internal staff knowledge base query - searches KB and returns AI answer without creating tickets or chat sessions"""
+    set_trace_id()
+    try:
+        data = await request.json()
+        query = data.get("query", "").strip()
+        language = data.get("language", "en")
+        
+        if not query:
+            return JSONResponse({"error": "Query is required"}, status_code=400)
+        
+        if len(query) > 1000:
+            return JSONResponse({"error": "Query too long (max 1000 characters)"}, status_code=400)
+        
+        # Use RAG service for hybrid search + LLM answer
+        rag_svc = app.state.rag_service
+        if not rag_svc:
+            return JSONResponse({"error": "Knowledge base not initialized"}, status_code=503)
+        
+        result = await rag_svc.query(text=query, threshold=0.3, use_hybrid=True, language=language)
+        
+        return {
+            "answer": result.answer,
+            "confidence": result.confidence,
+            "sources": result.source_documents if result.source_documents else [],
+            "retrieval_method": result.retrieval_method if hasattr(result, 'retrieval_method') else "unknown",
+            "query": query
+        }
+    except Exception as e:
+        logger.error(f"KB internal query error: {e}")
+        return JSONResponse({"error": f"Failed to query knowledge base: {str(e)}"}, status_code=500)
+
 @app.post("/api/chat")
 @limiter.limit("5/minute")
 async def chat_directly(
@@ -2031,7 +2067,7 @@ async def admin_spa(request: Request, tab: str):
         "audit", "usermst", "groupperms", "privsetup", "livechat"
     }
     user_tabs = {
-        "conversation", "history", "historydetail"
+        "conversation", "history", "historydetail", "kb"
     }
     root = tab.split("/")[0]
     if root in admin_tabs:

@@ -674,6 +674,15 @@
                 </svg>
                 History
             </a>
+
+            <a href="/kb" onclick="event.preventDefault(); showKnowledgeBase()" id="nav-kb"
+                class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-semibold border border-transparent">
+                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Knowledge Base
+            </a>
         </nav>
 
         <!-- Theme Switcher + Footer -->
@@ -877,6 +886,91 @@
 
         <div id="history-list" class="flex-1 overflow-y-auto p-6 space-y-3">
             <!-- History items injected here -->
+        </div>
+    </main>
+
+    <!-- ═══════ KNOWLEDGE BASE VIEW ═══════ -->
+    <main id="kb-view" class="flex-1 flex flex-col relative overflow-hidden hidden z-10">
+        <header class="h-16 flex items-center justify-between px-6" style="background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color)">
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.08); color: #10b981">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="font-bold text-[15px]" style="color: var(--text-primary)">Knowledge Base</h2>
+                    <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">Internal Self-Service • Ask anything about POS</p>
+                </div>
+            </div>
+            <button onclick="showChat()"
+                class="px-4 py-2 rounded-xl font-semibold text-xs transition"
+                style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)">
+                ← Back to Chat
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- Search Section -->
+            <div class="max-w-3xl mx-auto">
+                <!-- Welcome Card -->
+                <div class="text-center mb-8 animate-fade-in-up">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(16,185,129,0.08)">
+                        <svg class="w-8 h-8" style="color: #10b981" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2" style="color: var(--text-primary)">Internal Knowledge Base</h3>
+                    <p class="text-sm" style="color: var(--text-tertiary)">Search our POS documentation, troubleshooting guides, and product manuals. Powered by AI.</p>
+                </div>
+
+                <!-- Search Box -->
+                <div class="mb-6">
+                    <form id="kb-search-form" class="relative">
+                        <div class="input-box flex items-center rounded-2xl p-1.5 pl-5" style="border: 2px solid var(--border-color)">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0" style="color: var(--text-tertiary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input type="text" id="kb-search-input" placeholder="Ask anything... e.g. How to close counter? NETS error troubleshooting"
+                                class="input-field flex-1 text-[15px] py-3" />
+                            <select id="kb-language" class="mr-2 px-3 py-2 rounded-xl text-xs font-semibold" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)">
+                                <option value="en">English</option>
+                                <option value="id">Bahasa</option>
+                                <option value="zh">中文</option>
+                            </select>
+                            <button type="submit" class="btn-primary px-5 py-2.5 rounded-xl font-bold text-sm tracking-wide flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Ask AI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Quick Topics -->
+                <div id="kb-quick-topics" class="flex flex-wrap gap-2 mb-6 justify-center">
+                    <button onclick="kbQuickAsk('How to close counter at end of day?')" class="quick-chip cursor-pointer hover:scale-105 transition">🔒 Closing Counter</button>
+                    <button onclick="kbQuickAsk('How to process NETS payment?')" class="quick-chip cursor-pointer hover:scale-105 transition">💳 NETS Payment</button>
+                    <button onclick="kbQuickAsk('How to add a new product in EquipWeb?')" class="quick-chip cursor-pointer hover:scale-105 transition">📦 Add Product</button>
+                    <button onclick="kbQuickAsk('How to process a refund?')" class="quick-chip cursor-pointer hover:scale-105 transition">💰 Refund</button>
+                    <button onclick="kbQuickAsk('How to set up KDS kitchen display?')" class="quick-chip cursor-pointer hover:scale-105 transition">🍽️ KDS Setup</button>
+                    <button onclick="kbQuickAsk('NETS terminal troubleshooting')" class="quick-chip cursor-pointer hover:scale-105 transition">🔧 NETS Troubleshoot</button>
+                    <button onclick="kbQuickAsk('How to configure FomoPay integration?')" class="quick-chip cursor-pointer hover:scale-105 transition">📱 FomoPay</button>
+                    <button onclick="kbQuickAsk('How to sync Xero accounting?')" class="quick-chip cursor-pointer hover:scale-105 transition">📊 Xero Sync</button>
+                    <button onclick="kbQuickAsk('How to manage foodpanda orders?')" class="quick-chip cursor-pointer hover:scale-105 transition">🛵 foodpanda</button>
+                    <button onclick="kbQuickAsk('How to generate GST report?')" class="quick-chip cursor-pointer hover:scale-105 transition">📋 GST Report</button>
+                    <button onclick="kbQuickAsk('How to set up user roles and privileges?')" class="quick-chip cursor-pointer hover:scale-105 transition">👤 User Roles</button>
+                    <button onclick="kbQuickAsk('Stock take and inventory management')" class="quick-chip cursor-pointer hover:scale-105 transition">📦 Inventory</button>
+                </div>
+
+                <!-- Results Area -->
+                <div id="kb-results" class="space-y-4">
+                    <!-- Results will be injected here -->
+                </div>
+            </div>
         </div>
     </main>
 
@@ -1197,8 +1291,10 @@
         function showChat() {
             document.getElementById('chat-workspace').classList.remove('hidden');
             document.getElementById('history-view').classList.add('hidden');
+            document.getElementById('kb-view').classList.add('hidden');
             document.getElementById('nav-chat').classList.add('active');
             document.getElementById('nav-history').classList.remove('active');
+            document.getElementById('nav-kb').classList.remove('active');
             userInput.disabled = false;
             userInput.placeholder = "Type your message...";
             document.querySelector('#chat-form button[type="submit"]').disabled = false;
@@ -1208,10 +1304,12 @@
 
         async function showHistory() {
             document.getElementById('chat-workspace').classList.add('hidden');
+            document.getElementById('kb-view').classList.add('hidden');
             const historyView = document.getElementById('history-view');
             historyView.classList.remove('hidden');
             document.getElementById('nav-chat').classList.remove('active');
             document.getElementById('nav-history').classList.add('active');
+            document.getElementById('nav-kb').classList.remove('active');
             history.pushState({ view: 'history' }, '', '/history');
 
             const list = document.getElementById('history-list');
@@ -1648,13 +1746,17 @@
             const state = e.state;
             if (state && state.view === 'history') {
                 showHistory();
+            } else if (state && state.view === 'kb') {
+                showKnowledgeBase();
             } else if (state && state.view === 'historydetail' && state.ticketId) {
                 loadSession(`ticket_${state.ticketId}`, state.ticketId, state.summary || 'Support');
             } else {
                 document.getElementById('chat-workspace').classList.remove('hidden');
                 document.getElementById('history-view').classList.add('hidden');
+                document.getElementById('kb-view').classList.add('hidden');
                 document.getElementById('nav-chat').classList.add('active');
                 document.getElementById('nav-history').classList.remove('active');
+                document.getElementById('nav-kb').classList.remove('active');
                 userInput.disabled = false;
                 userInput.placeholder = "Type your message...";
                 document.querySelector('#chat-form button[type="submit"]').disabled = false;
@@ -1801,6 +1903,178 @@
             `;
             chatbox.appendChild(wrapper);
             chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        /* ══════════ KNOWLEDGE BASE (Internal Self-Service) ══════════ */
+        function showKnowledgeBase() {
+            document.getElementById('chat-workspace').classList.add('hidden');
+            document.getElementById('history-view').classList.add('hidden');
+            document.getElementById('kb-view').classList.remove('hidden');
+            document.getElementById('nav-chat').classList.remove('active');
+            document.getElementById('nav-history').classList.remove('active');
+            document.getElementById('nav-kb').classList.add('active');
+            history.pushState({ view: 'kb' }, '', '/kb');
+            document.getElementById('kb-search-input').focus();
+        }
+
+        // KB Search Form
+        document.getElementById('kb-search-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = document.getElementById('kb-search-input').value.trim();
+            if (!query) return;
+            await kbSearch(query);
+        });
+
+        function kbQuickAsk(query) {
+            document.getElementById('kb-search-input').value = query;
+            kbSearch(query);
+        }
+
+        let kbSearchHistory = [];
+
+        async function kbSearch(query) {
+            const results = document.getElementById('kb-results');
+            const lang = document.getElementById('kb-language').value;
+            
+            // Show loading
+            results.innerHTML = `
+                <div class="p-8 rounded-2xl animate-fade-in-up" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
+                    <div class="flex items-center gap-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 flex-shrink-0"></div>
+                        <div>
+                            <p class="font-bold text-sm" style="color: var(--text-primary)">Searching knowledge base...</p>
+                            <p class="text-xs mt-1" style="color: var(--text-tertiary)">"${query}"</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch('/api/kb/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, language: lang })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    results.innerHTML = `
+                        <div class="p-6 rounded-2xl text-center" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2)">
+                            <p class="font-bold text-red-500">Error: ${data.error || 'Failed to query knowledge base'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Save to history
+                kbSearchHistory.unshift({ query, answer: data.answer, timestamp: new Date(), confidence: data.confidence });
+                if (kbSearchHistory.length > 20) kbSearchHistory.pop();
+
+                // Confidence color
+                const conf = data.confidence || 0;
+                let confColor = '#ef4444'; let confLabel = 'Low';
+                if (conf >= 0.7) { confColor = '#10b981'; confLabel = 'High'; }
+                else if (conf >= 0.4) { confColor = '#f59e0b'; confLabel = 'Medium'; }
+
+                // Format answer with markdown-like rendering
+                const formattedAnswer = formatKbAnswer(data.answer);
+                const sources = data.sources && data.sources.length > 0
+                    ? data.sources.map(s => `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold" style="background: var(--bg-tertiary); color: var(--text-secondary)">📄 ${s}</span>`).join(' ')
+                    : '<span class="text-[10px]" style="color: var(--text-tertiary)">No specific source</span>';
+
+                // Build result card
+                const resultHtml = `
+                    <div class="animate-fade-in-up">
+                        <!-- Query Badge -->
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background: var(--bubble-user-bg)">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="pt-1">
+                                <p class="font-bold text-sm" style="color: var(--text-primary)">${query}</p>
+                            </div>
+                        </div>
+
+                        <!-- Answer Card -->
+                        <div class="ml-11 p-5 rounded-2xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1)">
+                                    <svg class="w-3.5 h-3.5" style="color: #10b981" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                    </svg>
+                                </div>
+                                <span class="text-[11px] font-bold uppercase tracking-wider" style="color: #10b981">AI Answer</span>
+                                <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold" style="background: ${confColor}15; color: ${confColor}; border: 1px solid ${confColor}30">
+                                    ${confLabel} Confidence (${Math.round(conf * 100)}%)
+                                </span>
+                            </div>
+                            <div class="kb-answer text-sm leading-relaxed" style="color: var(--text-primary)">${formattedAnswer}</div>
+                            
+                            <!-- Sources -->
+                            <div class="mt-4 pt-3 flex flex-wrap items-center gap-2" style="border-top: 1px solid var(--border-light)">
+                                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-tertiary)">Sources:</span>
+                                ${sources}
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="mt-3 flex items-center gap-2">
+                                <button onclick="copyKbAnswer(this)" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Copy answer">
+                                    📋 Copy
+                                </button>
+                                <button onclick="kbQuickAsk('Tell me more about: ${query.replace(/'/g, "\\\\'")}')" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Ask follow-up">
+                                    🔄 Ask More
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Prepend new result, keep previous results
+                const prevResults = results.innerHTML.includes('Searching knowledge base') ? '' : results.innerHTML;
+                results.innerHTML = resultHtml + (prevResults ? '<div class="my-4" style="border-bottom: 1px dashed var(--border-color)"></div>' + prevResults : '');
+
+            } catch (err) {
+                results.innerHTML = `
+                    <div class="p-6 rounded-2xl text-center" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2)">
+                        <p class="font-bold text-red-500">⚠️ Network error. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function formatKbAnswer(text) {
+            if (!text) return '';
+            // Basic markdown-like formatting
+            let html = text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                // Bold
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // Numbered lists
+                .replace(/^(\d+)\.\s+(.+)/gm, '<li class="ml-4 mb-1"><span class="font-semibold text-brand-600 mr-1">$1.</span> $2</li>')
+                // Bullet points
+                .replace(/^[-•]\s+(.+)/gm, '<li class="ml-4 mb-1">• $1</li>')
+                // Line breaks
+                .replace(/\n\n/g, '</p><p class="mb-2">')
+                .replace(/\n/g, '<br>');
+            return '<p class="mb-2">' + html + '</p>';
+        }
+
+        function copyKbAnswer(btn) {
+            const answerDiv = btn.closest('.rounded-2xl').querySelector('.kb-answer');
+            if (answerDiv) {
+                navigator.clipboard.writeText(answerDiv.innerText).then(() => {
+                    const orig = btn.innerHTML;
+                    btn.innerHTML = '✅ Copied!';
+                    setTimeout(() => btn.innerHTML = orig, 2000);
+                });
+            }
+        }
+
+        // Auto-show KB if URL is /kb
+        if (window.location.pathname === '/kb') {
+            showKnowledgeBase();
         }
     </script>
 </body>
