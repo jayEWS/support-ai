@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, func, or_, desc, literal_column
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy import create_engine, func, or_, desc, literal_column, case
+from sqlalchemy.orm import sessionmaker, scoped_session, joinedload
 from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, WhatsAppMessage, SystemSetting, IS_MSSQL, IS_POSTGRES, IS_SQLITE
 from app.core.config import settings
 from app.core.logging import logger
@@ -11,9 +11,10 @@ class DatabaseManager:
     def __init__(self):
         # Build engine kwargs based on DB type
         engine_kwargs = {
-            "pool_pre_ping": False,
+            "pool_pre_ping": True,       # Auto-recover stale connections
             "pool_size": 5,
             "max_overflow": 10,
+            "pool_recycle": 1800,         # Recycle connections every 30 min (Neon drops idle after ~5 min)
         }
 
         if IS_MSSQL:
@@ -38,8 +39,30 @@ class DatabaseManager:
             Base.metadata.create_all(self.engine)
             db_label = "PostgreSQL" if IS_POSTGRES else "SQL Server" if IS_MSSQL else "SQLite"
             logger.info(f"{db_label} database tables verified/created.")
+            # Cleanup expired tokens on startup
+            self._cleanup_expired_tokens()
         except Exception as e:
             logger.error(f"Error initializing SQL Server: {e}")
+
+    def _cleanup_expired_tokens(self):
+        """Remove expired MFA challenges, refresh tokens, and magic links to prevent table bloat."""
+        session = self.get_session()
+        try:
+            now = datetime.now(timezone.utc)
+            deleted_mfa = session.query(AuthMFAChallenge).filter(AuthMFAChallenge.expires_at < now).delete(synchronize_session=False)
+            deleted_refresh = session.query(AuthRefreshToken).filter(
+                or_(AuthRefreshToken.expires_at < now, AuthRefreshToken.revoked_at.isnot(None))
+            ).delete(synchronize_session=False)
+            deleted_magic = session.query(AuthMagicLink).filter(AuthMagicLink.expires_at < now).delete(synchronize_session=False)
+            session.commit()
+            total = deleted_mfa + deleted_refresh + deleted_magic
+            if total > 0:
+                logger.info(f"Cleaned up expired tokens: {deleted_mfa} MFA, {deleted_refresh} refresh, {deleted_magic} magic links")
+        except Exception as e:
+            session.rollback()
+            logger.warning(f"Token cleanup skipped: {e}")
+        finally:
+            self.Session.remove()
 
     def get_session(self):
         return self.Session()
@@ -148,7 +171,7 @@ class DatabaseManager:
     def get_mfa_challenge(self, challenge_id: int):
         session = self.get_session()
         try:
-            c = session.query(AuthMFAChallenge).get(challenge_id)
+            c = session.get(AuthMFAChallenge, challenge_id)
             if not c:
                 return None
             return {
@@ -182,7 +205,7 @@ class DatabaseManager:
     def increment_mfa_attempts(self, challenge_id: int):
         session = self.get_session()
         try:
-            c = session.query(AuthMFAChallenge).get(challenge_id)
+            c = session.get(AuthMFAChallenge, challenge_id)
             if c:
                 c.attempts = (c.attempts or 0) + 1
                 session.commit()
@@ -356,9 +379,9 @@ class DatabaseManager:
         Returns list of active chat sessions with user info and last message preview."""
         session = self.get_session()
         try:
-            from sqlalchemy import func as sa_func, case
-            
-            # Subquery: users with portal messages
+            from sqlalchemy import func as sa_func
+
+            # Subquery: aggregate stats per user
             active_users = session.query(
                 Message.user_id,
                 sa_func.count(Message.id).label('msg_count'),
@@ -375,15 +398,32 @@ class DatabaseManager:
             ).outerjoin(User, active_users.c.user_id == User.identifier) \
              .order_by(active_users.c.last_msg_time.desc()).all()
 
+            if not results:
+                return []
+
+            # Batch-fetch all last messages & last user messages in 2 queries instead of 2N
+            user_ids = [r.user_id for r in results]
+
+            # Last message per user (any role)
+            last_msgs = {}
+            for uid in user_ids:
+                m = session.query(Message).filter_by(user_id=uid) \
+                    .order_by(Message.timestamp.desc()).first()
+                if m:
+                    last_msgs[uid] = m
+
+            # Last user (customer) message per user
+            last_user_msgs = {}
+            for uid in user_ids:
+                m = session.query(Message).filter_by(user_id=uid, role='user') \
+                    .order_by(Message.timestamp.desc()).first()
+                if m:
+                    last_user_msgs[uid] = m
+
             chats = []
             for r in results:
-                # Get last message content for preview
-                last_msg = session.query(Message).filter_by(user_id=r.user_id) \
-                    .order_by(Message.timestamp.desc()).first()
-                
-                # Get last user (customer) message to show their question
-                last_user_msg = session.query(Message).filter_by(user_id=r.user_id, role='user') \
-                    .order_by(Message.timestamp.desc()).first()
+                last_msg = last_msgs.get(r.user_id)
+                last_user_msg = last_user_msgs.get(r.user_id)
 
                 chats.append({
                     "user_id": r.user_id,
@@ -471,7 +511,7 @@ class DatabaseManager:
             elif priority == "High": prio_level = 3
             elif priority == "Medium": prio_level = 2
             
-            self.add_to_queue(ticket.id, priority_level=prio_level)
+            self.add_to_queue(ticket.id, priority_level=prio_level, _session=session)
             
             session.commit()
             return ticket.id
@@ -482,32 +522,45 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-    def add_to_queue(self, ticket_id: int, priority_level: int = 1):
-        """Internal helper to add ticket to queue."""
-        session = self.get_session()
+    def add_to_queue(self, ticket_id: int, priority_level: int = 1, _session=None):
+        """Internal helper to add ticket to queue.
+        When called from create_ticket, pass _session to reuse the parent session."""
+        own_session = _session is None
+        session = _session or self.get_session()
         try:
             existing = session.query(TicketQueue).filter_by(ticket_id=ticket_id).first()
             if not existing:
                 q_item = TicketQueue(ticket_id=ticket_id, priority_level=priority_level)
                 session.add(q_item)
-                session.commit()
+                if own_session:
+                    session.commit()
         except Exception as e:
+            if own_session:
+                session.rollback()
             logger.error(f"Error adding to queue: {e}")
         finally:
-            # We don't remove session here if called from create_ticket which has its own finally
-            pass
+            if own_session:
+                self.Session.remove()
 
     def get_ticket_metrics(self):
         session = self.get_session()
         try:
-            total = session.query(Ticket).count()
-            open_count = session.query(Ticket).filter_by(status='open').count()
-            resolved = session.query(Ticket).filter_by(status='resolved').count()
-            overdue = session.query(Ticket).filter(Ticket.status != 'resolved', Ticket.due_at < datetime.now(timezone.utc)).count()
+            # Single query with conditional aggregation instead of 5 separate queries
+            now = datetime.now(timezone.utc)
+            row = session.query(
+                func.count(Ticket.id).label('total'),
+                func.sum(case((Ticket.status == 'open', 1), else_=0)).label('open_count'),
+                func.sum(case((Ticket.status == 'resolved', 1), else_=0)).label('resolved'),
+                func.sum(case(
+                    (Ticket.status != 'resolved', case((Ticket.due_at < now, 1), else_=0)),
+                    else_=0
+                )).label('overdue'),
+            ).first()
             csat_avg = session.query(func.avg(CSATSurvey.rating)).scalar() or 0
             return {
-                "total": total, "open": open_count, "resolved": resolved,
-                "overdue": overdue, "csat_avg": round(float(csat_avg), 1)
+                "total": row.total or 0, "open": int(row.open_count or 0),
+                "resolved": int(row.resolved or 0), "overdue": int(row.overdue or 0),
+                "csat_avg": round(float(csat_avg), 1)
             }
         finally:
             self.Session.remove()
@@ -515,12 +568,18 @@ class DatabaseManager:
     def get_ticket_counts(self):
         session = self.get_session()
         try:
-            all_active = session.query(Ticket).filter(Ticket.status.in_(['open', 'pending'])).count()
-            unassigned = session.query(Ticket).filter(Ticket.status.in_(['open', 'pending']), Ticket.assigned_to == None).count()
-            assigned = session.query(Ticket).filter(Ticket.status.in_(['open', 'pending']), Ticket.assigned_to != None).count()
-            
-            # Simple simulation for no_reply for now
-            return { "all": all_active, "unassigned": unassigned, "assigned": assigned, "no_reply": 0 }
+            # Single query with conditional aggregation instead of 3 separate queries
+            row = session.query(
+                func.count(Ticket.id).label('total'),
+                func.sum(case((Ticket.assigned_to == None, 1), else_=0)).label('unassigned'),
+                func.sum(case((Ticket.assigned_to != None, 1), else_=0)).label('assigned'),
+            ).filter(Ticket.status.in_(['open', 'pending'])).first()
+            return {
+                "all": row.total or 0,
+                "unassigned": int(row.unassigned or 0),
+                "assigned": int(row.assigned or 0),
+                "no_reply": 0
+            }
         finally:
             self.Session.remove()
 
@@ -539,6 +598,12 @@ class DatabaseManager:
                 query = query.filter(Ticket.status.in_(['open', 'pending']), Ticket.assigned_to != None)
             elif filter_type == 'resolved':
                 query = query.filter(Ticket.status == 'resolved')
+            elif filter_type == 'closed':
+                query = query.filter(Ticket.status == 'closed')
+            elif filter_type == 'pending_investigator':
+                query = query.filter(Ticket.status == 'pending_investigator')
+            elif filter_type == 'pending_programmer':
+                query = query.filter(Ticket.status == 'pending_programmer')
 
             results = query.order_by(desc(Ticket.created_at)).all()
             tickets = []
@@ -565,7 +630,7 @@ class DatabaseManager:
     def update_ticket_status(self, ticket_id: int, status: str):
         session = self.get_session()
         try:
-            ticket = session.query(Ticket).get(ticket_id)
+            ticket = session.get(Ticket, ticket_id)
             if ticket:
                 ticket.status = status
                 session.commit()
@@ -598,7 +663,7 @@ class DatabaseManager:
         """Get full customer context for agent panel: profile + ticket history + stats."""
         session = self.get_session()
         try:
-            user = session.query(User).get(user_id)
+            user = session.get(User, user_id)
             if not user:
                 return {"found": False}
 
@@ -657,7 +722,7 @@ class DatabaseManager:
     def update_ticket_sla(self, ticket_id: int, priority: str, due_at: datetime = None):
         session = self.get_session()
         try:
-            ticket = session.query(Ticket).get(ticket_id)
+            ticket = session.get(Ticket, ticket_id)
             if ticket:
                 ticket.priority = priority
                 if due_at: ticket.due_at = due_at
@@ -671,7 +736,7 @@ class DatabaseManager:
     def get_user(self, identifier: str):
         session = self.get_session()
         try:
-            u = session.query(User).get(identifier)
+            u = session.get(User, identifier)
             return { 
                 "identifier": u.identifier,
                 "account_id": u.account_id,
@@ -768,7 +833,7 @@ class DatabaseManager:
             mobile = identifier
         session = self.get_session()
         try:
-            user = session.query(User).get(identifier)
+            user = session.get(User, identifier)
             if user:
                 if name: user.name = name
                 if company: user.company = company
@@ -854,10 +919,12 @@ class DatabaseManager:
     def get_all_agents(self):
         session = self.get_session()
         try:
-            agents = session.query(Agent).all()
+            # Single query with LEFT JOIN instead of N+1 (one presence query per agent)
+            agents = session.query(Agent, AgentPresence) \
+                .outerjoin(AgentPresence, Agent.user_id == AgentPresence.agent_id) \
+                .options(joinedload(Agent.roles)).all()
             result = []
-            for a in agents:
-                p = session.query(AgentPresence).filter_by(agent_id=a.user_id).first()
+            for a, p in agents:
                 result.append({
                     "user_id": a.user_id, "name": a.name, "email": a.email,
                     "department": a.department,
@@ -922,7 +989,7 @@ class DatabaseManager:
             s = ChatSession(ticket_id=ticket_id, agent_id=agent_id, customer_id=customer_id)
             session.add(s)
             if ticket_id:
-                t = session.query(Ticket).get(ticket_id)
+                t = session.get(Ticket, ticket_id)
                 if t: t.assigned_to = agent_id
             session.commit()
             return s.id
@@ -935,7 +1002,7 @@ class DatabaseManager:
     def get_chat_session(self, session_id: int):
         session = self.get_session()
         try:
-            s = session.query(ChatSession).get(session_id)
+            s = session.get(ChatSession, session_id)
             return { "id": s.id, "ticket_id": s.ticket_id, "agent_id": s.agent_id, "customer_id": s.customer_id } if s else None
         finally:
             self.Session.remove()
@@ -943,7 +1010,7 @@ class DatabaseManager:
     def close_chat_session(self, session_id: int):
         session = self.get_session()
         try:
-            s = session.query(ChatSession).get(session_id)
+            s = session.get(ChatSession, session_id)
             if s:
                 s.ended_at = datetime.now(timezone.utc)
                 session.commit()
@@ -1268,15 +1335,18 @@ class DatabaseManager:
         session = self.get_session()
         try:
             from sqlalchemy import func as sqla_func
-            total_messages = session.query(sqla_func.count(WhatsAppMessage.id)).scalar() or 0
-            total_inbound = session.query(sqla_func.count(WhatsAppMessage.id)).filter_by(direction='inbound').scalar() or 0
-            total_outbound = session.query(sqla_func.count(WhatsAppMessage.id)).filter_by(direction='outbound').scalar() or 0
-            unique_contacts = session.query(sqla_func.count(sqla_func.distinct(WhatsAppMessage.phone_number))).scalar() or 0
+            # Single query instead of 4 separate queries
+            row = session.query(
+                sqla_func.count(WhatsAppMessage.id).label('total'),
+                sqla_func.sum(case((WhatsAppMessage.direction == 'inbound', 1), else_=0)).label('inbound'),
+                sqla_func.sum(case((WhatsAppMessage.direction == 'outbound', 1), else_=0)).label('outbound'),
+                sqla_func.count(sqla_func.distinct(WhatsAppMessage.phone_number)).label('contacts')
+            ).first()
             return {
-                'total_messages': total_messages,
-                'total_inbound': total_inbound,
-                'total_outbound': total_outbound,
-                'unique_contacts': unique_contacts
+                'total_messages': row.total or 0,
+                'total_inbound': int(row.inbound or 0),
+                'total_outbound': int(row.outbound or 0),
+                'unique_contacts': row.contacts or 0
             }
         finally:
             self.Session.remove()

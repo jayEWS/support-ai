@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Unicode, UnicodeText, DateTime, ForeignKey, Text, Float, func, Boolean, Table
+from sqlalchemy import Column, Integer, Unicode, UnicodeText, DateTime, ForeignKey, Text, Float, func, Boolean, Table, Index
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 import os
@@ -86,7 +86,10 @@ class AuthMFAChallenge(Base):
 
 class AuthRefreshToken(Base):
     __tablename__ = "AuthRefreshTokens"
-    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
+    __table_args__ = (
+        Index("ix_refreshtoken_user_active", "Username", "RevokedAt"),  # Fast active-token lookup
+        {"schema": "app"} if USE_APP_SCHEMA else {},
+    )
     id = Column("TokenID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("Username", Unicode(100), index=True)
     token_hash = Column("TokenHash", Unicode(128), unique=True, index=True)
@@ -125,9 +128,13 @@ class User(Base):
 
 class Message(Base):
     __tablename__ = "PortalMessages"
-    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
+    __table_args__ = (
+        Index("ix_msg_user_time", "UserID", "Timestamp"),      # Fast chat history
+        Index("ix_msg_user_role", "UserID", "Role"),            # Fast role-filtered queries
+        {"schema": "app"} if USE_APP_SCHEMA else {},
+    )
     id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
-    user_id = Column("UserID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"))
+    user_id = Column("UserID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"), index=True)
     role = Column("Role", Unicode(20))
     content = Column("Content", UnicodeText)
     attachments = Column("Attachments", UnicodeText)
@@ -135,14 +142,20 @@ class Message(Base):
 
 class Ticket(Base):
     __tablename__ = "Tickets"
-    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
+    __table_args__ = (
+        Index("ix_ticket_status_created", "Status", "CreatedDate"),      # Inbox filtering
+        Index("ix_ticket_status_assigned", "Status", "AssignedToAgent"),  # Unassigned queries
+        Index("ix_ticket_customer", "CustomerID", "CreatedDate"),         # Customer ticket history
+        Index("ix_ticket_due_status", "DueAt", "Status"),                 # SLA/overdue checks
+        {"schema": "app"} if USE_APP_SCHEMA else {},
+    )
     id = Column("TicketID", Integer, primary_key=True, autoincrement=True)
-    user_id = Column("CustomerID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"))
+    user_id = Column("CustomerID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"), index=True)
     summary = Column("Summary", UnicodeText)
     full_history = Column("FullHistory", UnicodeText)
-    status = Column("Status", Unicode(20), default="open")
+    status = Column("Status", Unicode(20), default="open", index=True)
     priority = Column("Priority", Unicode(20), default="Medium")
-    category = Column("TicketType", Unicode(50), default="Support") # NEW: Category/Issue Type
+    category = Column("TicketType", Unicode(50), default="Support")
     assigned_to = Column("AssignedToAgent", Unicode(100), ForeignKey("app.Agents.Username" if USE_APP_SCHEMA else "Agents.Username"))
     due_at = Column("DueAt", DateTime)
     created_at = Column("CreatedDate", DateTime, server_default=func.now())
@@ -150,7 +163,11 @@ class Ticket(Base):
 
 class AuditLog(Base):
     __tablename__ = "AuditLogs"
-    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
+    __table_args__ = (
+        Index("ix_audit_time", "LogDate"),         # Fast recent-first queries
+        Index("ix_audit_agent", "AgentID"),         # Per-agent audit trail
+        {"schema": "app"} if USE_APP_SCHEMA else {},
+    )
     id = Column("LogID", Integer, primary_key=True, autoincrement=True)
     agent_id = Column("AgentID", Unicode(100))
     action = Column("Action", Unicode(100))
@@ -242,15 +259,20 @@ class TicketQueue(Base):
 class WhatsAppMessage(Base):
     """Stores all WhatsApp messages (inbound + outbound) for visibility in admin dashboard."""
     __tablename__ = "WhatsAppMessages"
-    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
+    __table_args__ = (
+        Index("ix_wa_phone_created", "PhoneNumber", "CreatedAt"),   # Conversation thread
+        Index("ix_wa_phone_direction", "PhoneNumber", "Direction"),  # Inbound/outbound filter
+        Index("ix_wa_ticket", "TicketID"),                           # Linked ticket lookup
+        {"schema": "app"} if USE_APP_SCHEMA else {},
+    )
     id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
-    external_message_id = Column("ExternalMessageID", Unicode(255), unique=True, nullable=True)  # Meta/WhatsApp message ID
-    phone_number = Column("PhoneNumber", Unicode(20), index=True)  # e.g. +6281229009543
-    direction = Column("Direction", Unicode(10))  # 'inbound' or 'outbound'
+    external_message_id = Column("ExternalMessageID", Unicode(255), unique=True, nullable=True)
+    phone_number = Column("PhoneNumber", Unicode(20), index=True, nullable=False)
+    direction = Column("Direction", Unicode(10), nullable=False)  # 'inbound' or 'outbound'
     content = Column("Content", UnicodeText)
-    message_type = Column("MessageType", Unicode(20), default="text")  # text, image, audio, etc.
-    status = Column("Status", Unicode(20), default="received")  # received, sent, failed
-    ticket_id = Column("TicketID", Integer, nullable=True)  # Link to ticket if created
+    message_type = Column("MessageType", Unicode(20), default="text")
+    status = Column("Status", Unicode(20), default="received")
+    ticket_id = Column("TicketID", Integer, ForeignKey("app.Tickets.TicketID" if USE_APP_SCHEMA else "Tickets.TicketID"), nullable=True)
     created_at = Column("CreatedAt", DateTime, server_default=func.now())
 
 class SystemSetting(Base):
@@ -260,6 +282,3 @@ class SystemSetting(Base):
     key = Column("SettingKey", Unicode(100), primary_key=True)
     value = Column("SettingValue", UnicodeText, nullable=True)
     updated_at = Column("UpdatedAt", DateTime, server_default=func.now(), onupdate=func.now())
-
-
-    imported_at = Column("ImportedAt", DateTime, server_default=func.now())
