@@ -85,6 +85,23 @@ class Settings(BaseSettings):
     KNOWLEDGE_DIR: str = "data/knowledge"
     DB_DIR: str = "data/db_storage"
     
+    # ── SaaS Multi-Tenant Config ──
+    MULTI_TENANT_ENABLED: bool = False  # Set True to enforce tenant isolation
+    DEFAULT_TENANT_ID: str = "default"  # Fallback tenant during migration
+    TENANT_RESOLUTION: str = "header"  # header | subdomain | jwt
+    
+    # ── Plan Enforcement ──
+    PLAN_ENFORCEMENT_ENABLED: bool = False  # Set True to enforce plan limits
+    
+    # ── AI Observability ──
+    AI_OBSERVABILITY_ENABLED: bool = True  # Track AI interactions
+    AI_COST_TRACKING_ENABLED: bool = True  # Estimate and track AI costs
+    
+    # ── Billing (Stripe) ──
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()

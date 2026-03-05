@@ -82,6 +82,16 @@ from app.webhook.whatsapp import WhatsAppWebhookService
 from app.services.sla_service import sla_service
 from app.services.routing_service import routing_service
 
+# SaaS Infrastructure
+from app.repositories.tenant_repo import TenantRepository
+from app.repositories.usage_repo import UsageRepository
+from app.repositories.ai_log_repo import AILogRepository
+from app.services.ai_observability import AIObservabilityService
+from app.middleware.tenant import TenantMiddleware
+from app.middleware.usage import UsageTrackingMiddleware
+from app.middleware.plan_enforcement import PlanEnforcementMiddleware
+from app.routes.tenant_routes import router as tenant_router, plans_router
+
 # Schemas
 from app.schemas.schemas import IntentType
 from app.utils.auth_utils import (
@@ -209,6 +219,37 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"Failed to init RAGEngine: {e}")
         app.state.rag_engine = None
     
+    # ── SaaS Repository Layer ──
+    try:
+        if db_manager:
+            app.state.tenant_repo = TenantRepository(db_manager.Session)
+            app.state.usage_repo = UsageRepository(db_manager.Session)
+            app.state.ai_log_repo = AILogRepository(db_manager.Session)
+            app.state.ai_observability = AIObservabilityService(
+                ai_log_repo=app.state.ai_log_repo,
+                usage_repo=app.state.usage_repo,
+            )
+            logger.info("SaaS repositories initialized (tenant, usage, AI observability).")
+            
+            # Create SaaS tables if they don't exist
+            try:
+                from app.models.tenant_models import Base as TenantBase
+                TenantBase.metadata.create_all(db_manager.engine)
+                logger.info("SaaS tables verified/created.")
+            except Exception as e:
+                logger.warning(f"SaaS table creation skipped: {e}")
+        else:
+            app.state.tenant_repo = None
+            app.state.usage_repo = None
+            app.state.ai_log_repo = None
+            app.state.ai_observability = None
+    except Exception as e:
+        logger.warning(f"SaaS layer init error (non-fatal): {e}")
+        app.state.tenant_repo = None
+        app.state.usage_repo = None
+        app.state.ai_log_repo = None
+        app.state.ai_observability = None
+
     # Start background workers - TEMPORARILY DISABLED for stability
     # try:
     #     asyncio.create_task(sla_service.monitor_breaches())
@@ -230,6 +271,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── SaaS Middleware ──
+# Order matters: Tenant → Plan Enforcement → Usage Tracking
+if getattr(settings, 'MULTI_TENANT_ENABLED', False):
+    app.add_middleware(UsageTrackingMiddleware)
+    app.add_middleware(PlanEnforcementMiddleware)
+    app.add_middleware(TenantMiddleware)
+    logger.info("Multi-tenant middleware enabled.")
+
+# ── SaaS API Routes ──
+app.include_router(tenant_router)
+app.include_router(plans_router)
 
 # Add rate limiter to app
 app.state.limiter = limiter
@@ -1954,6 +2007,18 @@ async def health():
         health_data["gcs"] = {"enabled": gcs.enabled, "bucket": settings.GCS_BUCKET_NAME if gcs.enabled else None}
     except Exception:
         health_data["gcs"] = {"enabled": False}
+    
+    # SaaS status
+    health_data["saas"] = {
+        "multi_tenant": getattr(settings, "MULTI_TENANT_ENABLED", False),
+        "plan_enforcement": getattr(settings, "PLAN_ENFORCEMENT_ENABLED", False),
+        "ai_observability": getattr(settings, "AI_OBSERVABILITY_ENABLED", True),
+        "repositories": {
+            "tenant": app.state.tenant_repo is not None if hasattr(app.state, "tenant_repo") else False,
+            "usage": app.state.usage_repo is not None if hasattr(app.state, "usage_repo") else False,
+            "ai_log": app.state.ai_log_repo is not None if hasattr(app.state, "ai_log_repo") else False,
+        }
+    }
     
     return health_data
 
