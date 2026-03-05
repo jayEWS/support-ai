@@ -24,12 +24,13 @@ COPY . .
 # Pre-create data directories
 RUN mkdir -p data/knowledge data/db_storage data/uploads/chat
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# Health check (start-period allows time for AI models to load)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 # Expose port
 EXPOSE 8000
 
-# Use 1 worker for free tier (512MB RAM), timeout 120s for AI responses
-CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--timeout", "120"]
+# 2 workers for concurrent client handling, 120s timeout for AI responses
+# --preload shares FAISS index across workers (saves ~200MB RAM)
+CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--timeout", "120", "--preload", "--graceful-timeout", "30"]

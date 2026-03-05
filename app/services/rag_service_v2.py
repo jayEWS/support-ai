@@ -20,12 +20,48 @@ Shopify-grade retrieval pipeline while maintaining backward compatibility.
 import asyncio
 import os
 import time
+import hashlib
 from typing import List, Optional
+from collections import OrderedDict
 from app.core.config import settings
 from app.core.logging import logger, LogLatency
 from app.schemas.schemas import RAGResponse
 from app.services.query_engine import QueryEngine, QueryIntent, ProcessedQuery
 from app.services.advanced_retriever import AdvancedRetriever, RetrievalResult
+
+
+# ── In-Memory TTL Cache for repeated queries ────────────────────────
+class _QueryCache:
+    """Simple TTL cache (max 200 entries, 5-min TTL) to avoid re-running
+    the full RAG pipeline for identical questions from different users."""
+    def __init__(self, max_size: int = 200, ttl_seconds: int = 300):
+        self._cache: OrderedDict = OrderedDict()
+        self._max_size = max_size
+        self._ttl = ttl_seconds
+
+    def _key(self, text: str, language: str) -> str:
+        return hashlib.md5(f"{text.strip().lower()}|{language}".encode()).hexdigest()
+
+    def get(self, text: str, language: str) -> Optional[RAGResponse]:
+        k = self._key(text, language)
+        if k not in self._cache:
+            return None
+        entry = self._cache[k]
+        if time.time() - entry["ts"] > self._ttl:
+            del self._cache[k]
+            return None
+        # Move to end (LRU)
+        self._cache.move_to_end(k)
+        return entry["result"]
+
+    def put(self, text: str, language: str, result: RAGResponse):
+        k = self._key(text, language)
+        self._cache[k] = {"result": result, "ts": time.time()}
+        self._cache.move_to_end(k)
+        while len(self._cache) > self._max_size:
+            self._cache.popitem(last=False)
+
+_query_cache = _QueryCache()
 
 
 # ── Shopify-Style JIT System Prompt ─────────────────────────────────
@@ -242,6 +278,12 @@ class RAGServiceV2:
         timings = {}
         pipeline_start = time.time()
 
+        # ── Cache Hit Check (skip entire pipeline for repeated queries) ──
+        cached = _query_cache.get(text, language)
+        if cached:
+            logger.info(f"[RAGv2] Cache HIT for: {text[:60]}")
+            return cached
+
         # ── Stage 1: Query Understanding ────────────────────────────
         t0 = time.time()
         processed = await self.query_engine.process(text, language)
@@ -324,13 +366,19 @@ class RAGServiceV2:
         if self.langfuse_enabled:
             self._log_to_langfuse(text, retrieval_result, answer, processed, timings)
 
-        return RAGResponse(
+        result = RAGResponse(
             answer=answer,
             confidence=retrieval_result.confidence,
             source_documents=source_docs,
             retrieval_method="shopify_advanced_rag",
             num_retrieved=retrieval_result.after_rerank,
         )
+
+        # Cache successful responses (confidence > 0.3) for 5 minutes
+        if retrieval_result.confidence > 0.3:
+            _query_cache.put(text, language, result)
+
+        return result
 
     # ── JIT Prompt Builder (Core Shopify Pattern) ───────────────────
 
@@ -476,4 +524,5 @@ Answer as best you can. If unsure, say you'll connect them with a specialist."""
         self.retriever.update_stores(self.vector_store, self.all_documents)
         self._llm = None  # Force LLM re-init
         self.query_engine = QueryEngine()  # Reset cache
+        _query_cache._cache.clear()  # Invalidate query cache after reindex
         logger.info("[RAGServiceV2] Stores refreshed after reindex")

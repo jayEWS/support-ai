@@ -12,8 +12,8 @@ class DatabaseManager:
         # Build engine kwargs based on DB type
         engine_kwargs = {
             "pool_pre_ping": True,       # Auto-recover stale connections
-            "pool_size": 5,
-            "max_overflow": 10,
+            "pool_size": 10,             # 5 per worker × 2 workers
+            "max_overflow": 20,          # Burst capacity for concurrent requests
             "pool_recycle": 1800,         # Recycle connections every 30 min (Neon drops idle after ~5 min)
         }
 

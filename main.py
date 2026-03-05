@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from slowapi import Limiter  # NEW: Rate limiting
 from slowapi.util import get_remote_address
 from contextlib import asynccontextmanager
@@ -18,6 +19,9 @@ from datetime import datetime, timezone, timedelta
 from app.core.config import settings
 from app.core.logging import logger, set_trace_id, LogLatency
 from app.core.database import db_manager
+
+# Concurrency gate: max 10 simultaneous AI calls to avoid Vertex AI quota exhaustion
+AI_SEMAPHORE = asyncio.Semaphore(10)
 
 def _require_db():
     """Guard: raises 503 if DB is unavailable so app still boots and serves non-DB routes."""
@@ -282,6 +286,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# GZip compression for all responses > 500 bytes (saves ~70% bandwidth for HTML/JSON)
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # ── SaaS Middleware ──
 # Order matters: Tenant → Plan Enforcement → Usage Tracking
@@ -1263,7 +1270,7 @@ async def delete_customer(identifier: str, agent: Annotated[dict, Depends(get_cu
     try:
         session = db.get_session()
         from app.models.models import User
-        u = session.query(User).get(identifier)
+        u = session.get(User, identifier)
         if u:
             session.delete(u)
             session.commit()
@@ -1451,10 +1458,11 @@ async def kb_internal_query(request: Request):
             return JSONResponse({"error": "Knowledge base not initialized"}, status_code=503)
         
         # Prefer V2 (advanced pipeline), fallback to V1
-        if rag_v2:
-            result = await rag_v2.query(text=query, threshold=0.3, use_hybrid=True, language=language)
-        else:
-            result = await rag_svc.query(text=query, threshold=0.3, use_hybrid=True, language=language)
+        async with AI_SEMAPHORE:
+            if rag_v2:
+                result = await rag_v2.query(text=query, threshold=0.3, use_hybrid=True, language=language)
+            else:
+                result = await rag_svc.query(text=query, threshold=0.3, use_hybrid=True, language=language)
         
         return {
             "answer": result.answer,
@@ -1484,9 +1492,11 @@ async def chat_directly(
             message, user_id, language = data.get("message"), data.get("user_id", "web_portal_user"), data.get("language")
         except: return JSONResponse({"error": "Invalid JSON"}, status_code=400)
     
-    response_data, status_code = await app.state.chat_service.process_portal_message(
-        query=message, user_id=user_id or "web_portal_user", file=file, language=language
-    )
+    # Limit concurrent AI calls to prevent Vertex AI quota exhaustion under load
+    async with AI_SEMAPHORE:
+        response_data, status_code = await app.state.chat_service.process_portal_message(
+            query=message, user_id=user_id or "web_portal_user", file=file, language=language
+        )
     # Sanitize response to remove surrogate characters that break UTF-8 encoding
     import json
     safe_json = json.dumps(response_data, ensure_ascii=False, default=str).encode('utf-8', errors='replace').decode('utf-8')
@@ -2004,11 +2014,27 @@ async def websocket_chat_endpoint(websocket: WebSocket, session_id: int, user_id
 async def portal_websocket(websocket: WebSocket, user_id: str):
     """WebSocket for portal users — receives real-time agent replies."""
     from app.services.websocket_manager import portal_manager
+    heartbeat_task = None
     try:
         await portal_manager.connect_user(user_id, websocket)
+
+        # Background heartbeat to detect stale connections
+        async def _heartbeat():
+            try:
+                while True:
+                    await asyncio.sleep(30)
+                    await websocket.send_json({"event": "ping"})
+            except Exception:
+                pass  # Connection closed, heartbeat stops naturally
+
+        heartbeat_task = asyncio.create_task(_heartbeat())
+
         while True:
             data = await websocket.receive_text()
             msg = json.loads(data)
+            # Ignore pong responses from client
+            if msg.get("event") == "pong":
+                continue
             # Customer sends a message via WebSocket — save and broadcast to admin watchers
             if msg.get("event") == "message":
                 content = msg.get("content", "").strip()
@@ -2028,6 +2054,8 @@ async def portal_websocket(websocket: WebSocket, user_id: str):
                     "user_id": user_id
                 })
     except Exception:
+        if heartbeat_task:
+            heartbeat_task.cancel()
         portal_manager.disconnect_user(user_id, websocket)
 
 # Portal WebSocket: admin watches a customer's chat
@@ -2072,6 +2100,23 @@ async def portal_admin_websocket(websocket: WebSocket, user_id: str):
 @app.get("/health")
 async def health():
     health_data = {"status": "ok"}
+    
+    # Database connection check
+    try:
+        if db_manager:
+            from sqlalchemy import text as sa_text
+            session = db_manager.get_session()
+            session.execute(sa_text("SELECT 1"))
+            db_manager.Session.remove()
+            health_data["database"] = "connected"
+        else:
+            health_data["database"] = "unavailable"
+    except Exception as e:
+        health_data["database"] = f"error: {str(e)[:50]}"
+    
+    # Active connections
+    from app.services.websocket_manager import portal_manager
+    health_data["active_ws_users"] = len(portal_manager.connections)
     
     # Phase 2: Include GCS status
     try:
