@@ -31,6 +31,7 @@ Response Guidelines:
 6. SOURCE: Mention the source file name at the end of your answer.
 7. UNKNOWN: If the info is not found, say: "I'm sorry, this information is not yet available in our guides. Could you share your Name and Outlet? We'll connect you with a team member who can help directly."
 8. FORMAT: Use bullet points or numbered steps for instructions. Make it easy to follow.
+9. IDENTITY CORRECTION: If the user questions their name or identity (e.g., "Why Roby?", "Who is that?", "That's not my name"), DO NOT search the documents for the name. Instead, apologize and ask for their correct name and outlet (e.g., "I apologize, it seems I have the wrong name. May I know your correct name and outlet?").
 
 Answer (concise, clear, helpful):"""
 
