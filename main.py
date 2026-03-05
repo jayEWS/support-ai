@@ -71,6 +71,7 @@ validate_production_config()
 from app.services.customer_service import CustomerService
 from app.services.intent_service import IntentService
 from app.services.rag_service import RAGService
+from app.services.rag_service_v2 import RAGServiceV2
 from app.services.llm_service import LLMService
 from app.services.ticket_service import TicketService
 from app.services.escalation_service import EscalationService
@@ -173,6 +174,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"Failed to init RAGService: {e}")
         app.state.rag_service = None
     
+    # Initialize Shopify-inspired Advanced RAG Service (V2)
+    try:
+        app.state.rag_service_v2 = RAGServiceV2()
+        logger.info("[OK] RAGServiceV2 (Shopify-grade) initialized")
+    except Exception as e:
+        logger.error(f"Failed to init RAGServiceV2: {e}")
+        app.state.rag_service_v2 = None
+    
     try:
         app.state.llm_service = LLMService()
     except Exception as e:
@@ -206,7 +215,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.state.gcs_service = None
     
     try:
-        app.state.chat_service = ChatService(app.state.rag_service if app.state.rag_service else None)
+        # Prefer RAGServiceV2 (Shopify-grade) for ChatService, fallback to V1
+        chat_rag = app.state.rag_service_v2 if getattr(app.state, 'rag_service_v2', None) else app.state.rag_service
+        app.state.chat_service = ChatService(chat_rag if chat_rag else None)
     except Exception as e:
         logger.error(f"Failed to init ChatService: {e}")
         app.state.chat_service = None
@@ -883,6 +894,12 @@ async def _reindex_knowledge():
                 rag_svc._initialize_hybrid_search()
                 logger.info(f"[OK] RAGService vector store reloaded: {len(rag_svc.all_documents)} chunks")
             
+            # Also refresh RAGServiceV2 (Shopify-grade)
+            rag_v2 = getattr(app.state, 'rag_service_v2', None)
+            if rag_v2:
+                rag_v2.refresh_stores()
+                logger.info(f"[OK] RAGServiceV2 stores refreshed: {len(rag_v2.all_documents)} chunks")
+            
             # Update all knowledge statuses to 'Indexed'
             all_kb = _require_db().get_all_knowledge()
             for kb in all_kb:
@@ -905,17 +922,29 @@ async def knowledge_stats(agent: Annotated[dict, Depends(get_current_agent)]):
     try:
         all_kb = _require_db().get_all_knowledge()
         rag_svc = app.state.rag_service
+        rag_v2 = getattr(app.state, 'rag_service_v2', None)
         total_files = len(all_kb)
         indexed_count = sum(1 for k in all_kb if k.get('status') == 'Indexed')
         total_chunks = len(rag_svc.all_documents) if rag_svc and rag_svc.all_documents else 0
         has_vector_store = bool(rag_svc and rag_svc.vector_store)
         last_upload = all_kb[0]['upload_date'] if all_kb and all_kb[0].get('upload_date') else None
+        
+        # V2 stats
+        v2_chunks = len(rag_v2.all_documents) if rag_v2 and rag_v2.all_documents else 0
+        v2_ready = bool(rag_v2 and rag_v2.vector_store)
+        
         return {
             "total_files": total_files,
             "indexed_files": indexed_count,
             "total_chunks": total_chunks,
             "vector_store_ready": has_vector_store,
-            "last_upload": last_upload
+            "last_upload": last_upload,
+            "rag_v2": {
+                "active": v2_ready,
+                "total_chunks": v2_chunks,
+                "engine": "shopify_advanced_rag",
+                "features": ["query_understanding", "jit_instructions", "hyde", "multi_query", "cross_encoder_rerank", "rrf_fusion", "confidence_calibration"]
+            }
         }
     except Exception as e:
         logger.error(f"Knowledge stats error: {e}")
@@ -1412,12 +1441,18 @@ async def kb_internal_query(request: Request):
         if len(query) > 1000:
             return JSONResponse({"error": "Query too long (max 1000 characters)"}, status_code=400)
         
-        # Use RAG service for hybrid search + LLM answer
+        # Use Shopify-grade RAGServiceV2 with fallback to V1
+        rag_v2 = getattr(app.state, 'rag_service_v2', None)
         rag_svc = app.state.rag_service
-        if not rag_svc:
+        
+        if not rag_v2 and not rag_svc:
             return JSONResponse({"error": "Knowledge base not initialized"}, status_code=503)
         
-        result = await rag_svc.query(text=query, threshold=0.3, use_hybrid=True, language=language)
+        # Prefer V2 (advanced pipeline), fallback to V1
+        if rag_v2:
+            result = await rag_v2.query(text=query, threshold=0.3, use_hybrid=True, language=language)
+        else:
+            result = await rag_svc.query(text=query, threshold=0.3, use_hybrid=True, language=language)
         
         return {
             "answer": result.answer,
