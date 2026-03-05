@@ -364,6 +364,8 @@ async def login(request: Request):
         })
         _set_auth_cookies(response, access_token, refresh_token)
         return response
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Login error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
