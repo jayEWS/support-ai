@@ -1156,7 +1156,7 @@
                 startSub = localStorage.getItem('support_portal_active_sub') || null;
             }
             // Auto-expand parent submenu for nested tabs
-            const submenuMap = {inbox:'chat', whatsapp:'chat', livechat:'chat', team:'team', tickets:'tickets', settings:'settings', macros:'settings', usermst:'settings', groupperms:'settings', privsetup:'settings', audit:'settings', knowledge:'settings'};
+            const submenuMap = {inbox:'chat', whatsapp:'chat', livechat:'chat', team:'team', tickets:'tickets', settings:'settings', macros:'settings', usermst:'settings', groupperms:'settings', privsetup:'settings', audit:'settings', knowledge:'settings', admin:'settings', support:'settings', system_admin:'settings'};
             const parentMenu = submenuMap[startTab];
             if (parentMenu) {
                 const sub = document.getElementById(`${parentMenu}-submenu`);
@@ -1240,17 +1240,19 @@
                 <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp text-green-300'></i> WA Group</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
             `;
             if (id === 'team') {
-                // Load groups/roles from API as team departments
-                if (window._teamGroups && window._teamGroups.length) {
-                    return window._teamGroups.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('');
-                }
-                fetchWithAuth('/api/admin/roles').then(r => r.json()).then(roles => {
-                    const groups = roles.map(r => r.name).filter(Boolean).sort();
-                    window._teamGroups = groups;
-                    const sub = document.getElementById('team-submenu');
-                    if (sub) sub.innerHTML = groups.map(d => `<a href="#" onclick="switchTab('team', '${d}')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest">${d}</a>`).join('') || '<span class="block px-4 py-2 text-[10px] text-gray-400">No groups found</span>';
-                }).catch(() => {});
-                return '<span class="block px-4 py-2 text-[10px] text-gray-400 animate-pulse">Loading...</span>';
+                return `
+                <a href="#" onclick="switchTab('team', 'product_specialist')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-star text-yellow-400'></i> Product Specialist</span></a>
+                <a href="#" onclick="switchTab('team', 'product_manager')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-tie text-blue-400'></i> Product Manager</span></a>
+                <a href="#" onclick="switchTab('team', 'support')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-headset text-green-400'></i> Support</span></a>
+                <a href="#" onclick="switchTab('team', 'developer')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-code text-indigo-400'></i> Developer</span></a>
+                <a href="#" onclick="switchTab('team', 'integration')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-plug text-purple-400'></i> Integration</span></a>
+                <a href="#" onclick="switchTab('team', 'qa')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-check-circle text-teal-400'></i> QA</span></a>
+                <a href="#" onclick="switchTab('team', 'deployment')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-rocket text-orange-400'></i> Deployment</span></a>
+                <a href="#" onclick="switchTab('team', 'sales')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-chart-line text-green-400'></i> Sales</span></a>
+                <a href="#" onclick="switchTab('team', 'hr')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-users text-pink-400'></i> HR</span></a>
+                <a href="#" onclick="switchTab('team', 'intern')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-graduation-cap text-cyan-400'></i> Intern</span></a>
+                <a href="#" onclick="switchTab('team', 'managerial')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-crown text-gold-400'></i> Managerial</span></a>
+                `;
             }
             if (id === 'tickets') return `
                 <a href="#" onclick="switchTab('tickets', 'all')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-list text-blue-400'></i> All Tickets</span></a>
@@ -1264,6 +1266,9 @@
                 const isAdmin = currentUser?.role === 'admin';
                 return `
                 <a href="#" onclick="switchTab('settings')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-sliders-h text-gray-400'></i> General</span></a>
+                <a href="#" onclick="switchTab('settings', 'admin')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-shield text-red-400'></i> Admin</span></a>
+                <a href="#" onclick="switchTab('settings', 'support')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-headset text-green-400'></i> Support</span></a>
+                <a href="#" onclick="switchTab('settings', 'system_admin')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-server text-blue-400'></i> System Admin</span></a>
                 ${isAdmin ? `<a href="#" onclick="switchTab('usermst')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-shield text-blue-400'></i> User Master</span></a>
                 <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-users-cog text-blue-400'></i> Group Privileges</span></a>
                 <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-key text-blue-400'></i> Privilege Setup</span></a>` : ''}
