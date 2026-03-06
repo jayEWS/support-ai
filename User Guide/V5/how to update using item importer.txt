@@ -1,0 +1,168 @@
+# 📥 How to Upload Items to EQulpWeb (Step-by-Step)
+
+> ✅ *This guide assumes you have a properly formatted Excel file with item data.*
+
+## 🧰 STEP 1: Prepare Your Excel File
+
+Make sure your spreadsheet includes these **mandatory columns**:
+
+| Column Name           | Example Value        |
+
+|------------------------|----------------------|
+
+| Department Code        | `APL`                |
+
+| Department Name        | `Appliances & Electronics` |
+
+| Category Code          | `MGL`                |
+
+| Category Name          | `Audio & Headphones` |
+
+| Item No                | `MGL1`               |
+
+| Item Name              | `JBL Wireless Earbuds` |
+
+| Barcode                | `8806093572041`      |
+
+| Retail Price           | `350000`             |
+
+| Cost Price             | `250000`             |
+
+| UOM                    | `Pcs`                |
+
+| GST Rule               | `Non GST`            |
+
+| Is Non Discountable    | `No`                 |
+
+| Point Redeemable       | `Yes`                |
+
+📌 **File Format**: Save as **Excel Workbook (.xlsx)**  
+
+🚫 Avoid merged cells, hidden sheets, or formulas unless specified.
+
+## 💾 STEP 2: Save the File Locally
+
+1. Open your Excel file.
+
+2. Click **File → Save As**.
+
+3. Choose location: e.g., **Desktop**.
+
+4. Rename file clearly:  
+
+   → `20250924new_masterproduct.xlsx`
+
+5. Confirm format: **Excel Workbook (*.xlsx)**.
+
+6. Click **Save**.
+
+> ⚠️ Tip: Use simple names without spaces or special characters.
+
+## 🌐 STEP 3: Go to Product Importer in EQulpWeb
+
+1. Log in to **EQulpWeb**.
+
+2. Navigate to:  
+
+   **Product Setup → Product Importer**
+
+3. You’ll see:
+
+   - Green **[Import]** button
+
+   - Blue **[Export]** button (optional — for template)
+
+## 📤 STEP 4: Start the Import
+
+1. Click the green **[Import]** button.
+
+2. A pop-up appears titled **“Import”**.
+
+3. Ensure **Applicable To** = **Product Master**.
+
+4. Click **“Click to select file”** or drag & drop your `.xlsx` file.
+
+## 🖱️ STEP 5: Select Your File
+
+1. Windows Explorer opens.
+
+2. Navigate to your saved file (e.g., Desktop).
+
+3. Select: `20250924new_masterproduct.xlsx`
+
+4. Click **Open**.
+
+## ⏳ STEP 6: Complete the Upload
+
+1. Back in the pop-up, click the green **[Import]** button.
+
+2. Wait for processing — you’ll see a loading bar.
+
+3. When done, a green banner will appear:  
+
+   > ✅ **“Data successfully imported!”**
+
+## 📄 STEP 7: Review Results
+
+Check the import history table below:
+
+| Column         | What It Shows                                  |
+
+|----------------|------------------------------------------------|
+
+| Status         | `COMPLETED` or `ERROR`                         |
+
+| Remark         | Details like “Barcode already exists”          |
+
+| Imported File  | Download original uploaded file                |
+
+| File Result    | Download result log (errors/successes)         |
+
+🔁 **If errors occur**:  
+
+→ Open **File Result**, fix issues in Excel, re-upload corrected rows.
+
+## 🔁 OPTIONAL: Use Template (First-Time Users)
+
+If unsure about formatting:
+
+1. On Product Importer page → Click **[Export]**.
+
+2. Fill the downloaded template with your data.
+
+3. Save as `.xlsx`.
+
+4. Follow Steps 4–7 above.
+
+## ❗ Common Errors & Fixes
+
+| Error Message             | Why It Happens                          | How to Fix                                |
+
+|---------------------------|------------------------------------------|--------------------------------------------|
+
+| “Barcode already exists”  | Duplicate barcode used                   | Change barcode or update existing item     |
+
+| “Supplier not found”      | Supplier code/name missing/invalid       | Add supplier first in **Supplier Setup**   |
+
+| “Invalid UOM”             | Unit not recognized by system            | Use valid UOM from system list             |
+
+| “Missing required field”  | Blank mandatory column                   | Fill all required fields before uploading  |
+
+| “No data Import        ”  | Blank mandatory column                   | wrong tenplate  |
+
+## 🎯 Pro Tips
+
+✔️ Always **backup** your original file before editing.  
+
+✔️ Test with **5–10 items** first to catch formatting issues.  
+
+✔️ Check **import history** weekly to track success rates.  
+
+✔️ Keep files clean — no merged cells, filters, or macros unless approved.
+
+## 🔄 Quick Workflow Summary
+
+Prepare Excel → Save as .xlsx → Log into EQulpWeb → Product Importer → [Import] → Select File → [Import] → Check Status → Download Results
+
+✅ **You’re now ready to upload items confidently!**
+

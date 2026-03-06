@@ -1,0 +1,21 @@
+Here is the step-by-step process to mass update a specific category:
+1. Export the Specific Category Data
+You must first download the current data for that category to ensure you have the correct Item Numbers (which act as the unique identifiers for updates).
+1. Navigate to Data Importer > Product Importer,.
+2. Locate the section Export With Template for items.
+3. Filter by Category:
+    ◦ Select the Department associated with the items.
+    ◦ Select the specific Category you wish to update from the dropdown menu.
+4. Click the Export button. This will download an Excel spreadsheet containing only the items from that specific category.
+2. Edit the Data in Excel
+Open the downloaded Excel file. You can now mass edit columns such as Retail Price, Cost Price, Name, or Description.
+• Crucial Rule: Do not change the "Item No" column. The system uses the Item No to match the rows in your Excel file to the existing products in the system. If you change the Item No, the system will create a new item instead of updating the existing one.
+• Do not change the headers of the columns, as this will break the mapping.
+3. Import the Updated File
+Once you have finished editing and saved the Excel file:
+1. Return to the Product Importer page in EquipWeb.
+2. Click the Import button (usually green) located next to the export options.
+3. Drag and drop your edited file or click to select it.
+4. The system will validate the file. Review any errors or warnings in the preview.
+5. Confirm the import to apply the changes to your POS system.
+Recommendation: It is highly advised to export a backup of your current product list or test the update with a small batch (1-2 items) before performing a full mass update to ensure the results are what you expect.

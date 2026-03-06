@@ -1,0 +1,155 @@
+## **Step-by-Step Tutorial: Adding a New Item (NEA)**
+
+
+
+### **Step 1: Log in to the Backend**
+
+1. Open your browser and navigate to the backend URL:
+
+   ```
+
+   for example https://t1.equipweb.biz/opstest/Setup/new/ >> you may open your backend accordingly 
+
+   ```
+
+2. Log in with your credentials.
+
+
+
+### **Step 2: Navigate to Product Setup**
+
+1. Once logged in, hover over **Product Setup** in the menu.
+
+2. From the dropdown list, click on **Product Setup** to open the product management page.
+
+
+
+---
+
+
+
+### **Step 3: Click 'Add New'**
+
+1. On the Product Setup page, locate and click the **Add New** button.
+
+2. This will redirect you to the form for adding a new product.
+
+
+
+---
+
+
+
+### **Step 4: Fill in Basic Product Information**
+
+On the Add New Product page, fill out the following fields:
+
+1. **SKU ID**: Enter the unique SKU number for the item (e.g., `544905-01`).
+
+2. **Item No**: Enter the same SKU ID here.
+
+3. **Name**: Provide the product name/description (e.g., "Dyson Pure Cool TP11 (White/White)").
+
+4. **Category**: Select the appropriate category from the dropdown menu (e.g., Fan).
+
+5. **Barcode**: Leave this field blank unless specified.
+
+6. **Product Description**: Add any relevant details about the product.
+
+7. **Product Type**: Choose "Product - Track Inventory" unless otherwise instructed.
+
+8. **UOM (Unit of Measure)**: Select the unit of measure (e.g., Each).
+
+9. **Selling Price**: Enter the retail price of the product.
+
+10. **Cost Price**: Leave this as `0` if not applicable.
+
+11. **Minimum Selling Price**: Usually matches the selling price unless specified otherwise.
+
+
+
+> **Note:** If the product is discontinued, check the box next to **Product is discontinued (cannot be purchased)**. >> its use for purchase ordering inventory web.
+
+
+
+---
+
+
+
+### **Step 5: Manage Attributes**
+
+1. Scroll down to the **Attributes** section.
+
+2. Click on **Show More** to view additional options.
+
+3. Locate the **Redeem SG Applicable** field:
+
+   - Select **Yes**, if the NEA has already been approved for this SKU.
+
+   - Leave it blank if the SKU is still pending NEA approval.
+
+
+
+---
+
+
+
+### **Step 6: Image Upload (Optional)**
+
+1. If required, upload an image of the product under the **Image** section.
+
+2. Click on **Manage Images** to browse and select the image file from your computer.
+
+
+
+---
+
+
+
+### **Step 7: Save the Product**
+
+1. After filling all the necessary details, scroll to the bottom of the page.
+
+2. Click the **Save** button.
+
+3. A confirmation message should appear stating that the product was successfully created.
+
+
+
+---
+
+
+
+### **Step 8: Sync Across POS Systems**
+
+- The newly added item will automatically sync across all outlet POS systems within **10–30 seconds**.
+
+- Verify the item’s availability at the POS or in the product list.
+
+
+
+---
+
+
+
+### **Additional Notes**
+
+- Ensure all fields are filled accurately to avoid errors during synchronization.
+
+- For bulk additions, consider using the import function if available.
+
+- Always double-check Redeem SG Applicability settings before saving.
+
+
+
+PUT YES IF ELIGIBLE TO REDEEM
+
+PUT NO OR BLANK IF NOT ELIGIBLE TO REDEEM 
+
+
+
+---
+
+
+
+This tutorial provides a streamlined guide to adding a new item in the EquipWeb system based on the steps outlined in the provided PDF. Let me know if you need further assistance!

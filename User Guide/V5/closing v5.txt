@@ -1,0 +1,106 @@
+### Detailed Explanation of the Closing Process in a POS System Based on the Provided Video
+
+The video demonstrates the process of closing out a cash register or POS (Point of Sale) system. This is typically done at the end of a shift to ensure accurate financial records and to reconcile the day's transactions. Below is a step-by-step breakdown of the process as seen in the video:
+
+---
+
+#### **1. Accessing the Checkout Screen**
+- **Step**: Navigate to the "Checkout" screen.
+  - In the video, the user clicks on the "CHECK OUT" option from the main menu.
+  - The checkout screen appears, displaying various payment methods and summary details.
+
+#### **2. Reviewing Transaction Totals**
+- **Step**: Review the transaction totals for different payment methods.
+  - The screen shows categories such as:
+    - **NETS QR**
+    - **UOB**
+    - **MASTERCARD**
+    - **NETS ATM Card**
+    - **NETS FlashPay**
+    - **NETS CashCard**
+    - **KPay**
+    - **Credit Voucher**
+    - **AMEX Test**
+  - Each category lists amounts collected via different payment types.
+
+#### **3. Entering Cash Collected**
+- **Step**: Enter the actual cash collected during the shift.
+  - The user inputs the amount of cash collected into the appropriate field.
+  - In the video, the user enters `200` under the "Actual" section for cash collected.
+
+#### **4. Calculating Total Collected**
+- **Step**: Calculate the total amount collected.
+  - The system automatically calculates the total collected based on the entered values.
+  - Ensure that the total matches the physical cash count and other recorded payments.
+
+#### **5. Reconciling Differences**
+- **Step**: Address any discrepancies between the expected and actual amounts.
+  - If there are differences, investigate and resolve them before proceeding.
+  - In the video, the user ensures that all amounts are correctly entered and reconciled.
+
+#### **6. Confirming the Checkout**
+- **Step**: Confirm the checkout process.
+  - Click the "ACCEPT" button to confirm the entered data.
+  - The system processes the information and prepares for the next step.
+
+#### **7. Closing the Counter**
+- **Step**: Proceed to close the counter.
+  - Click on the "Close counter" option.
+  - A confirmation dialog box appears asking, "Are you sure you want to close the counter?"
+  - Confirm by clicking "YES."
+
+#### **8. Handling Pending Orders**
+- **Step**: Address any pending orders.
+  - Another dialog box may appear stating, "There’s 1 pending hold order. Do you want to clear them?"
+  - Decide whether to clear the pending orders by selecting "YES" or "NO."
+
+#### **9. Final Confirmation**
+- **Step**: Receive confirmation of successful closure.
+  - A message appears stating, "Counter Closed Successfully."
+  - Click "OK" to acknowledge the message.
+
+#### **10. Printing Reports (if necessary)**
+- **Step**: Generate reports for settlement and reconciliation.
+  - Although the video indicates an issue with printing the settlement report ("Unable to print settlement. Please try again at Closing Report section"), this step is crucial for record-keeping.
+  - Navigate to the "CLOSING REPORT" section to generate and print the necessary reports.
+
+#### **11. Logging Out**
+- **Step**: Log out of the system.
+  - After completing the closing process, log out to secure the system and prepare it for the next user.
+
+---
+
+### Key Screens and Actions Observed in the Video:
+1. **Main Menu**:
+   - Navigation to the "CHECK OUT" option.
+2. **Checkout Screen**:
+   - Inputting cash collected (`200`).
+   - Reviewing and confirming transaction totals.
+3. **Confirmation Dialogs**:
+   - Closing the counter.
+   - Clearing pending orders.
+4. **Final Messages**:
+   - "Counter Closed Successfully."
+   - Issue with printing the settlement report.
+
+---
+
+### Purpose of Each Step:
+- **Reviewing Transactions**: Ensures accuracy and identifies any discrepancies.
+- **Entering Cash Collected**: Matches physical cash with recorded transactions.
+- **Reconciliation**: Balances the books and resolves any differences.
+- **Closing the Counter**: Finalizes the shift and locks down the system.
+- **Printing Reports**: Provides documentation for auditing and financial records.
+- **Logging Out**: Secures the system and prepares it for the next user.
+
+---
+
+### Notes:
+- The video highlights the importance of careful data entry and reconciliation to maintain accurate financial records.
+- Any issues, such as the inability to print the settlement report, should be addressed promptly to ensure complete documentation.
+
+By following these steps, the POS system is properly closed, ensuring transparency and accuracy in financial management. 
+
+**Final Answer**: The process involves navigating to the checkout screen, entering cash collected, reconciling totals, confirming the checkout, closing the counter, handling pending orders, generating reports, and logging out. Each step ensures the integrity and accuracy of the financial records. 
+
+**\boxed{Completed}**

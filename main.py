@@ -1537,8 +1537,15 @@ async def kb_internal_query(request: Request):
         chunk_ids = result.chunk_ids if hasattr(result, 'chunk_ids') else []
         
         # Only expose sources & chunk_ids to authenticated agents
+        answer = result.answer
+        if not is_agent:
+            # Remove 'Internal' and 'Source' references for customers
+            import re
+            answer = re.sub(r"Internal[\s:]*", "", answer, flags=re.IGNORECASE)
+            answer = re.sub(r"Source\s*\d+", "", answer, flags=re.IGNORECASE)
+            answer = re.sub(r"Source\s*:\s*[^\n\r]*", "", answer, flags=re.IGNORECASE)
         response_data = {
-            "answer": result.answer,
+            "answer": answer,
             "confidence": result.confidence,
             "retrieval_method": result.retrieval_method if hasattr(result, 'retrieval_method') else "unknown",
             "query": query,
