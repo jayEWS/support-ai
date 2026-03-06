@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import uuid
 import asyncio
@@ -887,6 +888,62 @@ async def upload_knowledge(
     # Trigger re-indexing
     background_tasks.add_task(_reindex_knowledge)
     return {"status": "success"}
+
+@app.post("/api/knowledge/paste")
+async def paste_knowledge(
+    request: Request,
+    agent: Annotated[dict, Depends(get_current_agent)],
+    background_tasks: BackgroundTasks
+):
+    """Create a KB document from pasted text. Returns 409 if filename already exists."""
+    try:
+        data = await request.json()
+        title = data.get("title", "").strip()
+        content = data.get("content", "").strip()
+        overwrite = data.get("overwrite", False)
+
+        if not title or not content:
+            return JSONResponse({"error": "Title and content are required"}, status_code=400)
+
+        # Sanitize filename
+        safe_title = re.sub(r'[^\w\s.-]', '', title).strip().replace(' ', '_')
+        if not safe_title:
+            safe_title = f"pasted_{int(datetime.now().timestamp())}"
+        filename = f"{safe_title}.txt"
+        file_path = os.path.join(settings.KNOWLEDGE_DIR, filename)
+
+        # Check if file already exists
+        existing = _require_db().get_knowledge_metadata(filename)
+        if existing and not overwrite:
+            return JSONResponse(
+                {"error": "exists", "filename": filename, "message": f"Knowledge base document '{filename}' already exists. Overwrite?"},
+                status_code=409
+            )
+
+        # Write content to file
+        os.makedirs(settings.KNOWLEDGE_DIR, exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        _require_db().save_knowledge_metadata(
+            filename=filename, file_path=file_path,
+            uploaded_by=agent["user_id"], status="Processing"
+        )
+
+        # Upload to GCS
+        try:
+            from app.services.gcs_service import get_gcs_service
+            gcs = get_gcs_service()
+            if gcs.enabled:
+                gcs.upload_file(file_path, filename)
+        except Exception as gcs_err:
+            logger.warning(f"[GCS] Upload sync failed for {filename}: {gcs_err}")
+
+        background_tasks.add_task(_reindex_knowledge)
+        return {"status": "success", "filename": filename, "size": len(content)}
+    except Exception as e:
+        logger.error(f"Paste knowledge error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 async def _reindex_knowledge():
     """Re-index knowledge base: rebuild FAISS index and reinitialize hybrid search."""
