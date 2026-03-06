@@ -894,6 +894,77 @@
             font-weight: 500;
             color: var(--text-tertiary);
         }
+
+        /* ═══════════ KB ANSWER FORMATTING ═══════════ */
+        .kb-answer {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .kb-answer .kb-header {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0.75rem 0 0.25rem 0;
+            padding: 0;
+        }
+
+        .kb-answer .kb-header:first-child {
+            margin-top: 0;
+        }
+
+        .kb-answer .kb-para {
+            margin: 0.2rem 0;
+            line-height: 1.6;
+        }
+
+        .kb-answer .kb-numbered {
+            margin: 0.15rem 0;
+            padding-left: 0.25rem;
+        }
+
+        .kb-answer .kb-num {
+            font-weight: 600;
+            color: #2e6bff;
+            margin-right: 0.25rem;
+        }
+
+        html.dark .kb-answer .kb-num {
+            color: #5694ff;
+        }
+
+        .kb-answer .kb-bullets {
+            list-style: none;
+            padding-left: 1.25rem;
+            margin: 0.15rem 0;
+        }
+
+        .kb-answer .kb-bullets li {
+            position: relative;
+            margin: 0.1rem 0;
+            padding-left: 0.75rem;
+        }
+
+        .kb-answer .kb-bullets li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #2e6bff;
+            font-weight: 700;
+        }
+
+        html.dark .kb-answer .kb-bullets li::before {
+            color: #5694ff;
+        }
+
+        .kb-answer .h-2 {
+            height: 0.35rem;
+        }
+
+        .kb-answer strong {
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -2361,23 +2432,76 @@
             if (!text) return '';
             // Remove all 'Source #' and 'Source: ...' references for customers
             let cleaned = text.replace(/Source\s*\d+/gi, '').replace(/Source\s*:\s*[^\n\r]*/gi, '');
-            // Basic markdown-like formatting
-            let html = cleaned
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                // Headers (e.g. ### Header or **Header:**) -> make them look like headers
-                .replace(/^(###|##|#)\s+(.+)/gm, '<h3 class="font-bold text-lg mt-4 mb-2 text-brand-500">$2</h3>')
-                // Bold 
-                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>')
-                // Remove stray asterisks used as pseudo-bullets at the start of lines
-                .replace(/^\s*\*\s+(?!\*)/gm, '• ')
-                // Numbered lists (1. Item)
-                .replace(/^(\d+)\.\s+(.+)/gm, '<div class="flex items-start mt-1 mb-1"><span class="font-semibold text-brand-600 mr-2 min-w-[1.2rem]">$1.</span> <span class="flex-1">$2</span></div>')
-                // Bullet points (- Item or • Item)
-                .replace(/^[-•]\s+(.+)/gm, '<div class="flex items-start mt-1 mb-1"><span class="text-brand-500 mr-2 font-bold">•</span> <span class="flex-1">$1</span></div>')
-                // Line breaks (only wrap normal text in paragraphs, skip divs we just made)
-                .replace(/\n\n/g, '</p><p class="mb-2 mt-2">')
-                .replace(/\n/g, '<br>');
-            return '<div class="space-y-1"><p>' + html + '</p></div>';
+            // Remove "Sources:" lines completely
+            cleaned = cleaned.replace(/^\s*\*?\*?Sources?:?\*?\*?\s*.*$/gim, '');
+            // Remove filenames like file.txt, doc.pdf
+            cleaned = cleaned.replace(/[\w_-]+\.(txt|pdf|docx|md|csv)/gi, '');
+            // Remove stray empty parens/brackets
+            cleaned = cleaned.replace(/\(\s*\)/g, '').replace(/\[\s*\]/g, '');
+            // Remove trailing commas left from source removal
+            cleaned = cleaned.replace(/,\s*,/g, ',').replace(/,\s*$/gm, '');
+
+            // Split into lines for processing
+            const lines = cleaned.split('\n');
+            let html = '';
+            let inList = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+
+                // Skip empty lines — just add a small break
+                if (!line.trim()) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<div class="h-2"></div>';
+                    continue;
+                }
+
+                // Escape HTML
+                line = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                // Bold **text**
+                line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                // Check if this line looks like a header/section title
+                // Pattern: "Header:" or "### Header" at start of line with no other content after colon
+                let headerMatch = line.match(/^(#{1,3})\s+(.+)/);
+                if (headerMatch) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<h4 class="kb-header">' + headerMatch[2] + '</h4>';
+                    continue;
+                }
+
+                // Detect bold-only lines that end with colon as headers (e.g. "**Prerequisites:**")
+                let boldHeaderMatch = line.match(/^\s*<strong>(.+?):?<\/strong>:?\s*$/);
+                if (boldHeaderMatch) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<h4 class="kb-header">' + boldHeaderMatch[1] + '</h4>';
+                    continue;
+                }
+
+                // Numbered list item: "1. Something" or "  1. Something"
+                let numberedMatch = line.match(/^\s*(\d+)\.\s+(.+)/);
+                if (numberedMatch) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<div class="kb-numbered"><span class="kb-num">' + numberedMatch[1] + '.</span> ' + numberedMatch[2] + '</div>';
+                    continue;
+                }
+
+                // Bullet item: "- Something" or "* Something" or "• Something"
+                let bulletMatch = line.match(/^\s*[-•*]\s+(.+)/);
+                if (bulletMatch) {
+                    if (!inList) { html += '<ul class="kb-bullets">'; inList = true; }
+                    html += '<li>' + bulletMatch[1] + '</li>';
+                    continue;
+                }
+
+                // Regular paragraph text
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<p class="kb-para">' + line + '</p>';
+            }
+
+            if (inList) html += '</ul>';
+            return html;
         }
 
         function copyKbAnswer(btn) {
