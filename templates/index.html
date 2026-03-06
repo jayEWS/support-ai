@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edgeworks Support Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -32,8 +33,16 @@
         }
     </script>
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; margin: 0; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+        }
 
         /* ═══════════ THEME VARIABLES ═══════════ */
         :root {
@@ -47,25 +56,25 @@
             --text-tertiary: #8896a6;
             --border-color: #d4dce8;
             --border-light: #e8edf4;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
-            --shadow-md: 0 4px 16px rgba(26,79,255,0.06);
-            --shadow-lg: 0 8px 32px rgba(26,79,255,0.08);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(26, 79, 255, 0.06);
+            --shadow-lg: 0 8px 32px rgba(26, 79, 255, 0.08);
             --bubble-user-bg: linear-gradient(135deg, #1a4fff 0%, #6366f1 100%);
             --bubble-user-text: #ffffff;
             --bubble-ai-bg: #ffffff;
             --bubble-ai-text: #1e293b;
             --bubble-ai-border: #dde4ef;
-            --glass-bg: rgba(240,244,248,0.85);
-            --glass-border: rgba(255,255,255,0.6);
-            --input-area-bg: rgba(247,249,252,0.92);
-            --particle-color: rgba(26,79,255,0.06);
+            --glass-bg: rgba(240, 244, 248, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --input-area-bg: rgba(247, 249, 252, 0.92);
+            --particle-color: rgba(26, 79, 255, 0.06);
             --code-bg: #e8edf4;
             --chat-bg: linear-gradient(180deg, #edf2f9 0%, #f0f4f8 40%, #f5f0eb 100%);
             --chat-pattern-opacity: 0.03;
-            --accent-glow: rgba(26,79,255,0.08);
-            --mesh-color-1: rgba(26,79,255,0.04);
-            --mesh-color-2: rgba(99,102,241,0.03);
-            --mesh-color-3: rgba(14,165,233,0.03);
+            --accent-glow: rgba(26, 79, 255, 0.08);
+            --mesh-color-1: rgba(26, 79, 255, 0.04);
+            --mesh-color-2: rgba(99, 102, 241, 0.03);
+            --mesh-color-3: rgba(14, 165, 233, 0.03);
         }
 
         html.dark {
@@ -79,25 +88,25 @@
             --text-tertiary: #5a6880;
             --border-color: #1e2840;
             --border-light: #1a2030;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-            --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
             --bubble-user-bg: linear-gradient(135deg, #2e6bff 0%, #6366f1 100%);
             --bubble-user-text: #ffffff;
             --bubble-ai-bg: #161c28;
             --bubble-ai-text: #d4dce8;
             --bubble-ai-border: #243044;
-            --glass-bg: rgba(11,14,20,0.88);
-            --glass-border: rgba(255,255,255,0.04);
-            --input-area-bg: rgba(17,22,32,0.95);
-            --particle-color: rgba(46,107,255,0.04);
+            --glass-bg: rgba(11, 14, 20, 0.88);
+            --glass-border: rgba(255, 255, 255, 0.04);
+            --input-area-bg: rgba(17, 22, 32, 0.95);
+            --particle-color: rgba(46, 107, 255, 0.04);
             --code-bg: #1a2030;
             --chat-bg: linear-gradient(180deg, #0d1118 0%, #0b0e14 40%, #10141d 100%);
             --chat-pattern-opacity: 0.02;
-            --accent-glow: rgba(46,107,255,0.06);
-            --mesh-color-1: rgba(46,107,255,0.03);
-            --mesh-color-2: rgba(99,102,241,0.02);
-            --mesh-color-3: rgba(14,165,233,0.02);
+            --accent-glow: rgba(46, 107, 255, 0.06);
+            --mesh-color-1: rgba(46, 107, 255, 0.03);
+            --mesh-color-2: rgba(99, 102, 241, 0.02);
+            --mesh-color-3: rgba(14, 165, 233, 0.02);
         }
 
         body {
@@ -122,6 +131,7 @@
             pointer-events: none;
             overflow: hidden;
         }
+
         .mesh-bg::before {
             content: '';
             position: absolute;
@@ -133,16 +143,30 @@
                 radial-gradient(ellipse 700px 700px at 15% 20%, var(--mesh-color-1), transparent),
                 radial-gradient(ellipse 600px 600px at 75% 25%, var(--mesh-color-2), transparent),
                 radial-gradient(ellipse 500px 500px at 45% 75%, var(--mesh-color-3), transparent),
-                radial-gradient(ellipse 800px 400px at 85% 80%, rgba(244,114,182,0.02), transparent);
+                radial-gradient(ellipse 800px 400px at 85% 80%, rgba(244, 114, 182, 0.02), transparent);
             animation: meshDrift 30s ease-in-out infinite alternate;
         }
 
         @keyframes meshDrift {
-            0% { transform: translate(0, 0) rotate(0deg) scale(1); }
-            25% { transform: translate(30px, -15px) rotate(0.5deg) scale(1.02); }
-            50% { transform: translate(-20px, 20px) rotate(-0.5deg) scale(0.98); }
-            75% { transform: translate(15px, -25px) rotate(0.3deg) scale(1.01); }
-            100% { transform: translate(-10px, 10px) rotate(-0.3deg) scale(1); }
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+
+            25% {
+                transform: translate(30px, -15px) rotate(0.5deg) scale(1.02);
+            }
+
+            50% {
+                transform: translate(-20px, 20px) rotate(-0.5deg) scale(0.98);
+            }
+
+            75% {
+                transform: translate(15px, -25px) rotate(0.3deg) scale(1.01);
+            }
+
+            100% {
+                transform: translate(-10px, 10px) rotate(-0.3deg) scale(1);
+            }
         }
 
         /* Floating accent orbs - more visible */
@@ -153,54 +177,117 @@
             will-change: transform;
             opacity: 1;
         }
+
         .orb-1 {
-            width: 350px; height: 350px;
-            background: rgba(26,79,255,0.1);
-            top: 5%; left: 55%;
+            width: 350px;
+            height: 350px;
+            background: rgba(26, 79, 255, 0.1);
+            top: 5%;
+            left: 55%;
             animation: orbFloat1 22s ease-in-out infinite;
         }
+
         .orb-2 {
-            width: 280px; height: 280px;
-            background: rgba(99,102,241,0.08);
-            top: 55%; left: 15%;
+            width: 280px;
+            height: 280px;
+            background: rgba(99, 102, 241, 0.08);
+            top: 55%;
+            left: 15%;
             animation: orbFloat2 28s ease-in-out infinite;
         }
+
         .orb-3 {
-            width: 220px; height: 220px;
-            background: rgba(14,165,233,0.07);
-            top: 25%; left: 85%;
+            width: 220px;
+            height: 220px;
+            background: rgba(14, 165, 233, 0.07);
+            top: 25%;
+            left: 85%;
             animation: orbFloat3 20s ease-in-out infinite;
         }
+
         .orb-4 {
-            width: 180px; height: 180px;
-            background: rgba(244,114,182,0.05);
-            top: 70%; left: 70%;
+            width: 180px;
+            height: 180px;
+            background: rgba(244, 114, 182, 0.05);
+            top: 70%;
+            left: 70%;
             animation: orbFloat4 24s ease-in-out infinite;
         }
 
-        html.dark .orb-1 { background: rgba(46,107,255,0.07); }
-        html.dark .orb-2 { background: rgba(99,102,241,0.05); }
-        html.dark .orb-3 { background: rgba(14,165,233,0.04); }
-        html.dark .orb-4 { background: rgba(244,114,182,0.03); }
+        html.dark .orb-1 {
+            background: rgba(46, 107, 255, 0.07);
+        }
+
+        html.dark .orb-2 {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        html.dark .orb-3 {
+            background: rgba(14, 165, 233, 0.04);
+        }
+
+        html.dark .orb-4 {
+            background: rgba(244, 114, 182, 0.03);
+        }
 
         @keyframes orbFloat1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(-50px, 35px) scale(1.1); }
-            66% { transform: translate(30px, -25px) scale(0.95); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(-50px, 35px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(30px, -25px) scale(0.95);
+            }
         }
+
         @keyframes orbFloat2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(45px, -20px) scale(0.9); }
-            66% { transform: translate(-30px, 40px) scale(1.05); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(45px, -20px) scale(0.9);
+            }
+
+            66% {
+                transform: translate(-30px, 40px) scale(1.05);
+            }
         }
+
         @keyframes orbFloat3 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(-40px, -45px) scale(1.15); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(-40px, -45px) scale(1.15);
+            }
         }
+
         @keyframes orbFloat4 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(35px, 20px) scale(1.08); }
-            66% { transform: translate(-25px, -35px) scale(0.92); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(35px, 20px) scale(1.08);
+            }
+
+            66% {
+                transform: translate(-25px, -35px) scale(0.92);
+            }
         }
 
         /* ═══════════ SIDEBAR ═══════════ */
@@ -216,19 +303,22 @@
             color: var(--text-secondary);
             transition: all 0.2s ease;
         }
+
         .sidebar-link:hover {
             background: var(--bg-hover);
             color: var(--text-primary);
         }
+
         .sidebar-link.active {
-            background: linear-gradient(135deg, rgba(26,79,255,0.1), rgba(99,102,241,0.06));
+            background: linear-gradient(135deg, rgba(26, 79, 255, 0.1), rgba(99, 102, 241, 0.06));
             color: #2e6bff;
-            border: 1px solid rgba(26,79,255,0.18);
+            border: 1px solid rgba(26, 79, 255, 0.18);
         }
+
         html.dark .sidebar-link.active {
-            background: linear-gradient(135deg, rgba(46,107,255,0.14), rgba(99,102,241,0.08));
+            background: linear-gradient(135deg, rgba(46, 107, 255, 0.14), rgba(99, 102, 241, 0.08));
             color: #5694ff;
-            border-color: rgba(86,148,255,0.22);
+            border-color: rgba(86, 148, 255, 0.22);
         }
 
         /* ═══════════ CHAT AREA ═══════════ */
@@ -236,6 +326,7 @@
             background: var(--chat-bg);
             position: relative;
         }
+
         #chatbox::before {
             content: '';
             position: absolute;
@@ -246,7 +337,8 @@
             pointer-events: none;
             z-index: 0;
         }
-        #chatbox > * {
+
+        #chatbox>* {
             position: relative;
             z-index: 1;
         }
@@ -256,8 +348,9 @@
             background: var(--bubble-user-bg);
             color: var(--bubble-user-text);
             border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
-            box-shadow: 0 4px 18px rgba(26,79,255,0.22), 0 2px 8px rgba(26,79,255,0.12);
+            box-shadow: 0 4px 18px rgba(26, 79, 255, 0.22), 0 2px 8px rgba(26, 79, 255, 0.12);
         }
+
         .chat-bubble-ai {
             background: var(--bubble-ai-bg);
             color: var(--bubble-ai-text);
@@ -268,23 +361,76 @@
         }
 
         /* AI formatted message content */
-        .chat-bubble-ai .msg-text p { margin: 0 0 0.5em; }
-        .chat-bubble-ai .msg-text p:last-child { margin-bottom: 0; }
-        .chat-bubble-ai .msg-text strong { font-weight: 700; }
-        .chat-bubble-ai .msg-text em { font-style: italic; }
+        .chat-bubble-ai .msg-text p {
+            margin: 0 0 0.5em;
+        }
+
+        .chat-bubble-ai .msg-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-bubble-ai .msg-text strong {
+            font-weight: 700;
+        }
+
+        .chat-bubble-ai .msg-text em {
+            font-style: italic;
+        }
+
         .chat-bubble-ai .msg-text ul,
-        .chat-bubble-ai .msg-text ol { margin: 0.4em 0 0.4em 1.4em; padding: 0; }
-        .chat-bubble-ai .msg-text li { margin-bottom: 0.25em; }
-        .chat-bubble-ai .msg-text hr { border: none; border-top: 1px solid var(--border-color); margin: 0.75em 0; }
-        .chat-bubble-ai .msg-text code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
-        .chat-bubble-ai .msg-text pre { background: var(--code-bg); padding: 0.75em; border-radius: 0.5rem; overflow-x: auto; margin: 0.5em 0; }
-        .chat-bubble-ai .msg-text pre code { background: none; padding: 0; }
+        .chat-bubble-ai .msg-text ol {
+            margin: 0.4em 0 0.4em 1.4em;
+            padding: 0;
+        }
+
+        .chat-bubble-ai .msg-text li {
+            margin-bottom: 0.25em;
+        }
+
+        .chat-bubble-ai .msg-text hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 0.75em 0;
+        }
+
+        .chat-bubble-ai .msg-text code {
+            background: var(--code-bg);
+            padding: 0.1em 0.35em;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .chat-bubble-ai .msg-text pre {
+            background: var(--code-bg);
+            padding: 0.75em;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5em 0;
+        }
+
+        .chat-bubble-ai .msg-text pre code {
+            background: none;
+            padding: 0;
+        }
+
         .chat-bubble-ai .msg-text h1,
         .chat-bubble-ai .msg-text h2,
-        .chat-bubble-ai .msg-text h3 { font-weight: 700; margin: 0.6em 0 0.3em; }
-        .chat-bubble-ai .msg-text h1 { font-size: 1.15em; }
-        .chat-bubble-ai .msg-text h2 { font-size: 1.08em; }
-        .chat-bubble-ai .msg-text h3 { font-size: 1.02em; }
+        .chat-bubble-ai .msg-text h3 {
+            font-weight: 700;
+            margin: 0.6em 0 0.3em;
+        }
+
+        .chat-bubble-ai .msg-text h1 {
+            font-size: 1.15em;
+        }
+
+        .chat-bubble-ai .msg-text h2 {
+            font-size: 1.08em;
+        }
+
+        .chat-bubble-ai .msg-text h3 {
+            font-size: 1.02em;
+        }
 
         /* ═══════════ INPUT AREA ═══════════ */
         .input-area {
@@ -301,12 +447,14 @@
             transition: all 0.25s ease;
             box-shadow: var(--shadow-sm);
         }
+
         .input-box:focus-within {
             border-color: #2e6bff;
-            box-shadow: 0 0 0 4px rgba(46,107,255,0.1), 0 4px 16px rgba(26,79,255,0.08);
+            box-shadow: 0 0 0 4px rgba(46, 107, 255, 0.1), 0 4px 16px rgba(26, 79, 255, 0.08);
         }
+
         html.dark .input-box:focus-within {
-            box-shadow: 0 0 0 4px rgba(46,107,255,0.15), 0 4px 16px rgba(26,79,255,0.1);
+            box-shadow: 0 0 0 4px rgba(46, 107, 255, 0.15), 0 4px 16px rgba(26, 79, 255, 0.1);
         }
 
         .input-field {
@@ -316,7 +464,10 @@
             color: var(--text-primary);
             width: 100%;
         }
-        .input-field::placeholder { color: var(--text-tertiary); }
+
+        .input-field::placeholder {
+            color: var(--text-tertiary);
+        }
 
         /* ═══════════ THEME SWITCHER ═══════════ */
         .theme-switcher {
@@ -328,6 +479,7 @@
             border-radius: 10px;
             border: 1px solid var(--border-color);
         }
+
         .theme-btn {
             display: flex;
             align-items: center;
@@ -341,15 +493,18 @@
             color: var(--text-tertiary);
             transition: all 0.2s ease;
         }
+
         .theme-btn:hover {
             color: var(--text-primary);
             background: var(--bg-hover);
         }
+
         .theme-btn.active {
             background: var(--bg-secondary);
             color: #2e6bff;
-            box-shadow: 0 1px 4px rgba(26,79,255,0.12);
+            box-shadow: 0 1px 4px rgba(26, 79, 255, 0.12);
         }
+
         html.dark .theme-btn.active {
             background: #1e2840;
             color: #5694ff;
@@ -361,21 +516,24 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 0.75rem;
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 0.75rem;
             margin-top: 0.5rem;
             font-size: 0.85rem;
             backdrop-filter: blur(4px);
         }
+
         .chat-bubble-ai .file-preview {
             background: var(--code-bg);
         }
+
         .file-preview img.thumb {
             max-width: 200px;
             max-height: 150px;
             border-radius: 0.5rem;
             object-fit: cover;
         }
+
         .file-icon {
             width: 2rem;
             height: 2rem;
@@ -386,17 +544,33 @@
             font-size: 1rem;
             flex-shrink: 0;
         }
-        .file-icon.doc { background: #dbeafe; color: #2563eb; }
-        .file-icon.img { background: #fce7f3; color: #db2777; }
-        .file-icon.audio { background: #ede9fe; color: #7c3aed; }
-        .file-icon.video { background: #d1fae5; color: #059669; }
+
+        .file-icon.doc {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .file-icon.img {
+            background: #fce7f3;
+            color: #db2777;
+        }
+
+        .file-icon.audio {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
+        .file-icon.video {
+            background: #d1fae5;
+            color: #059669;
+        }
 
         /* Drag overlay */
         .drag-overlay {
             display: none;
             position: absolute;
             inset: 0;
-            background: rgba(46,107,255,0.06);
+            background: rgba(46, 107, 255, 0.06);
             border: 3px dashed #2e6bff;
             border-radius: 1.5rem;
             z-index: 100;
@@ -405,7 +579,10 @@
             pointer-events: none;
             backdrop-filter: blur(4px);
         }
-        .drag-overlay.active { display: flex; }
+
+        .drag-overlay.active {
+            display: flex;
+        }
 
         /* Pending file bar */
         .pending-file-bar {
@@ -413,24 +590,69 @@
             align-items: center;
             gap: 0.75rem;
             padding: 0.5rem 1rem;
-            background: rgba(46,107,255,0.06);
-            border: 1px solid rgba(46,107,255,0.15);
+            background: rgba(46, 107, 255, 0.06);
+            border: 1px solid rgba(46, 107, 255, 0.15);
             border-radius: 1rem;
             font-size: 0.85rem;
             color: var(--text-primary);
         }
-        .pending-file-bar.show { display: flex; }
+
+        .pending-file-bar.show {
+            display: flex;
+        }
 
         /* Screen Recording */
-        .rec-btn { transition: all 0.2s; }
-        .rec-btn:hover { background: rgba(239,68,68,0.1) !important; }
-        .rec-btn.recording { background: rgba(239,68,68,0.15) !important; animation: recPulse 1s ease-in-out infinite; }
-        @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
-        .rec-bar { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .video-bubble video { border-radius: 12px; max-width: 100%; cursor: pointer; }
-        .video-bubble video:hover { opacity: 0.9; }
-        .upload-progress { height: 3px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
-        .upload-progress-bar { height: 100%; background: #2e6bff; transition: width 0.3s; }
+        .rec-btn {
+            transition: all 0.2s;
+        }
+
+        .rec-btn:hover {
+            background: rgba(239, 68, 68, 0.1) !important;
+        }
+
+        .rec-btn.recording {
+            background: rgba(239, 68, 68, 0.15) !important;
+            animation: recPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes recPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .rec-bar {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .video-bubble video {
+            border-radius: 12px;
+            max-width: 100%;
+            cursor: pointer;
+        }
+
+        .video-bubble video:hover {
+            opacity: 0.9;
+        }
+
+        .upload-progress {
+            height: 3px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: #2e6bff;
+            transition: width 0.3s;
+        }
 
         /* History view */
         .history-card {
@@ -438,30 +660,63 @@
             border: 1px solid var(--border-color);
             transition: all 0.2s ease;
         }
+
         .history-card:hover {
-            border-color: rgba(46,107,255,0.3);
-            box-shadow: 0 8px 30px rgba(46,107,255,0.08);
+            border-color: rgba(46, 107, 255, 0.3);
+            box-shadow: 0 8px 30px rgba(46, 107, 255, 0.08);
             transform: translateY(-1px);
         }
 
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
 
         /* Animations */
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .animate-fade-in-up { animation: fadeInUp 0.3s ease-out; }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.3s ease-out;
+        }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-8px); }
-            to { opacity: 1; transform: translateX(0); }
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
-        .animate-slide-in { animation: slideIn 0.25s ease-out; }
+
+        .animate-slide-in {
+            animation: slideIn 0.25s ease-out;
+        }
 
         /* New chat button */
         .new-chat-btn {
@@ -470,9 +725,10 @@
             color: var(--text-secondary);
             transition: all 0.2s ease;
         }
+
         .new-chat-btn:hover {
-            background: rgba(46,107,255,0.08);
-            border-color: rgba(46,107,255,0.2);
+            background: rgba(46, 107, 255, 0.08);
+            border-color: rgba(46, 107, 255, 0.2);
             color: #2e6bff;
         }
 
@@ -489,19 +745,22 @@
             background: linear-gradient(135deg, #1a4fff, #2e6bff);
             color: white;
             border: none;
-            box-shadow: 0 4px 14px rgba(26,79,255,0.3);
+            box-shadow: 0 4px 14px rgba(26, 79, 255, 0.3);
             transition: all 0.2s ease;
         }
+
         .btn-primary:hover {
-            box-shadow: 0 6px 22px rgba(26,79,255,0.4);
+            box-shadow: 0 6px 22px rgba(26, 79, 255, 0.4);
             transform: translateY(-1px);
         }
+
         .btn-danger {
-            background: rgba(239,68,68,0.08);
+            background: rgba(239, 68, 68, 0.08);
             color: #ef4444;
-            border: 1px solid rgba(239,68,68,0.15);
+            border: 1px solid rgba(239, 68, 68, 0.15);
             transition: all 0.2s ease;
         }
+
         .btn-danger:hover {
             background: #ef4444;
             color: white;
@@ -510,25 +769,42 @@
 
         /* Typing indicator */
         .typing-dot {
-            width: 6px; height: 6px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: var(--text-tertiary);
             animation: typingBounce 1.4s ease-in-out infinite;
         }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
         @keyframes typingBounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-6px); }
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-6px);
+            }
         }
 
         /* Logo icon */
         .logo-icon {
             background: linear-gradient(135deg, #1a4fff, #6366f1);
-            box-shadow: 0 4px 15px rgba(26,79,255,0.3);
+            box-shadow: 0 4px 15px rgba(26, 79, 255, 0.3);
         }
+
         html.dark .logo-icon {
-            box-shadow: 0 4px 15px rgba(46,107,255,0.2);
+            box-shadow: 0 4px 15px rgba(46, 107, 255, 0.2);
         }
 
         /* Welcome card enhancement */
@@ -541,6 +817,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .welcome-card::before {
             content: '';
             position: absolute;
@@ -563,16 +840,17 @@
             cursor: default;
             transition: all 0.2s ease;
         }
+
         .quick-chip:hover {
-            border-color: rgba(46,107,255,0.3);
-            background: rgba(46,107,255,0.06);
+            border-color: rgba(46, 107, 255, 0.3);
+            background: rgba(46, 107, 255, 0.06);
             color: #2e6bff;
         }
 
         /* Ambient accent line */
         .accent-line {
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(46,107,255,0.2), rgba(99,102,241,0.15), transparent);
+            background: linear-gradient(90deg, transparent, rgba(46, 107, 255, 0.2), rgba(99, 102, 241, 0.15), transparent);
         }
 
         /* Chat meta (name + timestamp) */
@@ -584,26 +862,33 @@
             padding: 0 0.5rem;
             width: 100%;
         }
+
         .chat-meta.justify-end {
             justify-content: flex-end;
         }
+
         .chat-meta-name {
             font-size: 0.75rem;
             font-weight: 700;
             color: var(--text-secondary);
         }
+
         .chat-meta-name.user-name {
             color: #2e6bff;
         }
+
         html.dark .chat-meta-name.user-name {
             color: #5694ff;
         }
+
         .chat-meta-name.ai-name {
             color: #6366f1;
         }
+
         html.dark .chat-meta-name.ai-name {
             color: #818cf8;
         }
+
         .chat-meta-time {
             font-size: 0.65rem;
             font-weight: 500;
@@ -639,7 +924,8 @@
                     <h1 class="text-lg font-bold tracking-tight" style="color: var(--text-primary)">
                         <span class="brand-gradient">Edgeworks</span>
                     </h1>
-                    <p class="text-[9px] font-semibold uppercase tracking-[0.15em]" style="color: var(--text-tertiary)">Support Portal</p>
+                    <p class="text-[9px] font-semibold uppercase tracking-[0.15em]" style="color: var(--text-tertiary)">
+                        Support Portal</p>
                 </div>
             </div>
         </div>
@@ -692,21 +978,25 @@
 
             <!-- Theme Switcher -->
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">Theme</span>
+                <span class="text-[11px] font-semibold uppercase tracking-wider"
+                    style="color: var(--text-tertiary)">Theme</span>
                 <div class="theme-switcher">
                     <button class="theme-btn" data-theme="light" onclick="setTheme('light')" title="Light">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            <circle cx="12" cy="12" r="5" />
+                            <path
+                                d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
                         </svg>
                     </button>
                     <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="Dark">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
                         </svg>
                     </button>
                     <button class="theme-btn" data-theme="system" onclick="setTheme('system')" title="System">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+                            <rect x="2" y="3" width="20" height="14" rx="2" />
+                            <path d="M8 21h8M12 17v4" />
                         </svg>
                     </button>
                 </div>
@@ -714,7 +1004,8 @@
 
             <!-- Powered by -->
             <div class="text-center pt-3 border-t" style="border-color: var(--border-color)">
-                <p class="text-[10px] font-medium" style="color: var(--text-tertiary)">Powered by <span class="brand-gradient font-bold">Edgeworks AI</span></p>
+                <p class="text-[10px] font-medium" style="color: var(--text-tertiary)">Powered by <span
+                        class="brand-gradient font-bold">Edgeworks AI</span></p>
             </div>
         </div>
 
@@ -729,7 +1020,8 @@
         <!-- Drag Overlay -->
         <div id="drag-overlay" class="drag-overlay">
             <div class="text-center">
-                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background: rgba(46,107,255,0.1)">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                    style="background: rgba(46,107,255,0.1)">
                     <svg class="w-8 h-8 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -758,7 +1050,7 @@
                     <div class="flex flex-wrap justify-center gap-2">
                         <span class="quick-chip">💬 Chat Support</span>
                         <span class="quick-chip">📋 Ticketing</span>
-                        <span class="quick-chip">📖 Knowledge Base</span>
+                        <span class="quick-chip">📖 Edgeworks Knowledge Base</span>
                     </div>
                 </div>
             </div>
@@ -771,7 +1063,9 @@
                 <span>Recording screen...</span>
                 <span id="rec-timer" class="font-mono">00:00</span>
             </div>
-            <button onclick="stopRecording()" class="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl transition text-white font-bold text-xs uppercase tracking-widest">⏹ Stop</button>
+            <button onclick="stopRecording()"
+                class="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl transition text-white font-bold text-xs uppercase tracking-widest">⏹
+                Stop</button>
         </div>
 
         <!-- Input Area -->
@@ -781,11 +1075,13 @@
                 <div id="pending-file" class="pending-file-bar">
                     <span id="pending-file-icon" class="text-xl">📎</span>
                     <div class="flex-1 min-w-0">
-                        <p id="pending-file-name" class="font-semibold text-sm truncate" style="color: var(--text-primary)"></p>
-                        <p id="pending-file-size" class="text-[10px] font-semibold uppercase" style="color: var(--text-tertiary)"></p>
+                        <p id="pending-file-name" class="font-semibold text-sm truncate"
+                            style="color: var(--text-primary)"></p>
+                        <p id="pending-file-size" class="text-[10px] font-semibold uppercase"
+                            style="color: var(--text-tertiary)"></p>
                     </div>
-                    <button type="button" onclick="clearPendingFile()"
-                        class="hover:text-red-500 transition px-2" style="color: var(--text-tertiary)">✕</button>
+                    <button type="button" onclick="clearPendingFile()" class="hover:text-red-500 transition px-2"
+                        style="color: var(--text-tertiary)">✕</button>
                 </div>
 
                 <form id="chat-form" class="relative">
@@ -810,7 +1106,8 @@
                             <button type="button" id="rec-btn" onclick="toggleRecording()"
                                 class="rec-btn w-10 h-10 flex items-center justify-center rounded-xl transition"
                                 style="color: #ef4444" title="Record Screen">
-                                <svg id="rec-icon-video" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg id="rec-icon-video" class="w-5 h-5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                                         d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                 </svg>
@@ -832,21 +1129,30 @@
                             </button>
 
                             <!-- End Chat Dropdown -->
-                            <div id="end-chat-menu" class="hidden absolute bottom-full right-0 mb-2 w-72 rounded-2xl shadow-xl p-2 z-50"
+                            <div id="end-chat-menu"
+                                class="hidden absolute bottom-full right-0 mb-2 w-72 rounded-2xl shadow-xl p-2 z-50"
                                 style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
-                                <p class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest" style="color: var(--text-tertiary)">End Conversation</p>
-                                <button onclick="doEndChat('close')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-green-500/10 transition flex items-center gap-3">
-                                    <span class="w-8 h-8 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center text-sm">✅</span>
+                                <p class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest"
+                                    style="color: var(--text-tertiary)">End Conversation</p>
+                                <button onclick="doEndChat('close')"
+                                    class="w-full text-left px-4 py-3 rounded-xl hover:bg-green-500/10 transition flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center text-sm">✅</span>
                                     <div>
                                         <p class="text-sm font-bold" style="color: var(--text-primary)">Resolved</p>
-                                        <p class="text-[10px]" style="color: var(--text-tertiary)">Issue solved, close chat</p>
+                                        <p class="text-[10px]" style="color: var(--text-tertiary)">Issue solved, close
+                                            chat</p>
                                     </div>
                                 </button>
-                                <button onclick="doEndChat('ticket_and_notify')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-500/10 transition flex items-center gap-3">
-                                    <span class="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center text-sm">📝</span>
+                                <button onclick="doEndChat('ticket_and_notify')"
+                                    class="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-500/10 transition flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center text-sm">📝</span>
                                     <div>
-                                        <p class="text-sm font-bold" style="color: var(--text-primary)">Create Ticket</p>
-                                        <p class="text-[10px]" style="color: var(--text-tertiary)">Need follow-up from our team</p>
+                                        <p class="text-sm font-bold" style="color: var(--text-primary)">Create Ticket
+                                        </p>
+                                        <p class="text-[10px]" style="color: var(--text-tertiary)">Need follow-up from
+                                            our team</p>
                                     </div>
                                 </button>
                                 <div class="mt-1 pt-1" style="border-top: 1px solid var(--border-color)">
@@ -864,9 +1170,11 @@
 
     <!-- ═══════ HISTORY VIEW ═══════ -->
     <main id="history-view" class="flex-1 flex flex-col relative overflow-hidden hidden z-10">
-        <header class="h-16 flex items-center justify-between px-6" style="background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color)">
+        <header class="h-16 flex items-center justify-between px-6"
+            style="background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color)">
             <div class="flex items-center gap-3">
-                <div class="h-9 w-9 rounded-xl flex items-center justify-center" style="background: rgba(46,107,255,0.08); color: #2e6bff">
+                <div class="h-9 w-9 rounded-xl flex items-center justify-center"
+                    style="background: rgba(46,107,255,0.08); color: #2e6bff">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -874,11 +1182,11 @@
                 </div>
                 <div>
                     <h2 class="font-bold text-[15px]" style="color: var(--text-primary)">Support History</h2>
-                    <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">All past interactions</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">
+                        All past interactions</p>
                 </div>
             </div>
-            <button onclick="showChat()"
-                class="px-4 py-2 rounded-xl font-semibold text-xs transition"
+            <button onclick="showChat()" class="px-4 py-2 rounded-xl font-semibold text-xs transition"
                 style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)">
                 ← Back to Chat
             </button>
@@ -891,21 +1199,23 @@
 
     <!-- ═══════ KNOWLEDGE BASE VIEW ═══════ -->
     <main id="kb-view" class="flex-1 flex flex-col relative overflow-hidden hidden z-10">
-        <header class="h-16 flex items-center justify-between px-6" style="background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color)">
+        <header class="h-16 flex items-center justify-between px-6"
+            style="background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color)">
             <div class="flex items-center gap-3">
-                <div class="h-9 w-9 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.08); color: #10b981">
+                <div class="h-9 w-9 rounded-xl flex items-center justify-center"
+                    style="background: rgba(16,185,129,0.08); color: #10b981">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                 </div>
                 <div>
-                    <h2 class="font-bold text-[15px]" style="color: var(--text-primary)">Knowledge Base</h2>
-                    <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">Self-Service • Ask anything about POS</p>
+                    <h2 class="font-bold text-[15px]" style="color: var(--text-primary)">Edgeworks Knowledge Base</h2>
+                    <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">
+                        Edgeworks Self-Service • Ask anything about POS</p>
                 </div>
             </div>
-            <button onclick="showChat()"
-                class="px-4 py-2 rounded-xl font-semibold text-xs transition"
+            <button onclick="showChat()" class="px-4 py-2 rounded-xl font-semibold text-xs transition"
                 style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)">
                 ← Back to Chat
             </button>
@@ -916,33 +1226,43 @@
             <div class="max-w-3xl mx-auto">
                 <!-- Welcome Card -->
                 <div class="text-center mb-8 animate-fade-in-up">
-                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(16,185,129,0.08)">
-                        <svg class="w-8 h-8" style="color: #10b981" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                        style="background: rgba(16,185,129,0.08)">
+                        <svg class="w-8 h-8" style="color: #10b981" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2" style="color: var(--text-primary)">Knowledge Base</h3>
-                    <p class="text-sm" style="color: var(--text-tertiary)">Search our POS documentation, troubleshooting guides, and product manuals. Powered by AI.</p>
+                    <h3 class="text-xl font-bold mb-2" style="color: var(--text-primary)">Edgeworks Knowledge Base</h3>
+                    <p class="text-sm" style="color: var(--text-tertiary)">Search our POS documentation, troubleshooting
+                        guides, and product manuals. Powered by AI.</p>
                 </div>
 
                 <!-- Search Box -->
                 <div class="mb-6">
                     <form id="kb-search-form" class="relative">
-                        <div class="input-box flex items-center rounded-2xl p-1.5 pl-5" style="border: 2px solid var(--border-color)">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0" style="color: var(--text-tertiary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <div class="input-box flex items-center rounded-2xl p-1.5 pl-5"
+                            style="border: 2px solid var(--border-color)">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0" style="color: var(--text-tertiary)" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                            <input type="text" id="kb-search-input" placeholder="Ask anything... e.g. How to close counter? NETS error troubleshooting"
+                            <input type="text" id="kb-search-input"
+                                placeholder="Ask anything... e.g. How to close counter? NETS error troubleshooting"
                                 class="input-field flex-1 text-[15px] py-3" />
-                            <select id="kb-language" class="mr-2 px-3 py-2 rounded-xl text-xs font-semibold" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)">
+                            <select id="kb-language" class="mr-2 px-3 py-2 rounded-xl text-xs font-semibold"
+                                style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)">
                                 <option value="en">English</option>
                                 <option value="id">Bahasa</option>
                                 <option value="zh">中文</option>
                             </select>
-                            <button type="submit" class="btn-primary px-5 py-2.5 rounded-xl font-bold text-sm tracking-wide flex items-center gap-2">
+                            <button type="submit"
+                                class="btn-primary px-5 py-2.5 rounded-xl font-bold text-sm tracking-wide flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
                                 Ask AI
                             </button>
@@ -952,18 +1272,30 @@
 
                 <!-- Quick Topics -->
                 <div id="kb-quick-topics" class="flex flex-wrap gap-2 mb-6 justify-center">
-                    <button onclick="kbQuickAsk('How to close counter at end of day?')" class="quick-chip cursor-pointer hover:scale-105 transition">🔒 Closing Counter</button>
-                    <button onclick="kbQuickAsk('How to process NETS payment?')" class="quick-chip cursor-pointer hover:scale-105 transition">💳 NETS Payment</button>
-                    <button onclick="kbQuickAsk('How to add a new product in EquipWeb?')" class="quick-chip cursor-pointer hover:scale-105 transition">📦 Add Product</button>
-                    <button onclick="kbQuickAsk('How to process a refund?')" class="quick-chip cursor-pointer hover:scale-105 transition">💰 Refund</button>
-                    <button onclick="kbQuickAsk('How to set up KDS kitchen display?')" class="quick-chip cursor-pointer hover:scale-105 transition">🍽️ KDS Setup</button>
-                    <button onclick="kbQuickAsk('NETS terminal troubleshooting')" class="quick-chip cursor-pointer hover:scale-105 transition">🔧 NETS Troubleshoot</button>
-                    <button onclick="kbQuickAsk('How to configure FomoPay integration?')" class="quick-chip cursor-pointer hover:scale-105 transition">📱 FomoPay</button>
-                    <button onclick="kbQuickAsk('How to sync Xero accounting?')" class="quick-chip cursor-pointer hover:scale-105 transition">📊 Xero Sync</button>
-                    <button onclick="kbQuickAsk('How to manage foodpanda orders?')" class="quick-chip cursor-pointer hover:scale-105 transition">🛵 foodpanda</button>
-                    <button onclick="kbQuickAsk('How to generate GST report?')" class="quick-chip cursor-pointer hover:scale-105 transition">📋 GST Report</button>
-                    <button onclick="kbQuickAsk('How to set up user roles and privileges?')" class="quick-chip cursor-pointer hover:scale-105 transition">👤 User Roles</button>
-                    <button onclick="kbQuickAsk('Stock take and inventory management')" class="quick-chip cursor-pointer hover:scale-105 transition">📦 Inventory</button>
+                    <button onclick="kbQuickAsk('How to close counter at end of day?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">🔒 Closing Counter</button>
+                    <button onclick="kbQuickAsk('How to process NETS payment?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">💳 NETS Payment</button>
+                    <button onclick="kbQuickAsk('How to add a new product in EquipWeb?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">📦 Add Product</button>
+                    <button onclick="kbQuickAsk('How to process a refund?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">💰 Refund</button>
+                    <button onclick="kbQuickAsk('How to set up KDS kitchen display?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">🍽️ KDS Setup</button>
+                    <button onclick="kbQuickAsk('NETS terminal troubleshooting')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">🔧 NETS Troubleshoot</button>
+                    <button onclick="kbQuickAsk('How to configure FomoPay integration?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">📱 FomoPay</button>
+                    <button onclick="kbQuickAsk('How to sync Xero accounting?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">📊 Xero Sync</button>
+                    <button onclick="kbQuickAsk('How to manage foodpanda orders?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">🛵 foodpanda</button>
+                    <button onclick="kbQuickAsk('How to generate GST report?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">📋 GST Report</button>
+                    <button onclick="kbQuickAsk('How to set up user roles and privileges?')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">👤 User Roles</button>
+                    <button onclick="kbQuickAsk('Stock take and inventory management')"
+                        class="quick-chip cursor-pointer hover:scale-105 transition">📦 Inventory</button>
                 </div>
 
                 <!-- Results Area -->
@@ -976,192 +1308,192 @@
 
     <!-- ═══════ JAVASCRIPT ═══════ -->
     <script>
-        /* ── Particle System ── */
-        (function initParticles() {
-            const canvas = document.getElementById('particle-canvas');
-            const ctx = canvas.getContext('2d');
-            let particles = [];
-            let animId = null;
-            let w, h;
-            const PARTICLE_COUNT = 50;
-            const CONNECTION_DIST = 120;
-            const MOUSE_RADIUS = 150;
-            let mouse = { x: -999, y: -999 };
+            /* ── Particle System ── */
+            (function initParticles() {
+                const canvas = document.getElementById('particle-canvas');
+                const ctx = canvas.getContext('2d');
+                let particles = [];
+                let animId = null;
+                let w, h;
+                const PARTICLE_COUNT = 50;
+                const CONNECTION_DIST = 120;
+                const MOUSE_RADIUS = 150;
+                let mouse = { x: -999, y: -999 };
 
-            function resize() {
-                w = canvas.width = window.innerWidth;
-                h = canvas.height = window.innerHeight;
-            }
+                function resize() {
+                    w = canvas.width = window.innerWidth;
+                    h = canvas.height = window.innerHeight;
+                }
 
-            function isDark() {
-                return document.documentElement.classList.contains('dark');
-            }
+                function isDark() {
+                    return document.documentElement.classList.contains('dark');
+                }
 
-            function createParticle() {
-                return {
-                    x: Math.random() * w,
-                    y: Math.random() * h,
-                    vx: (Math.random() - 0.5) * 0.4,
-                    vy: (Math.random() - 0.5) * 0.4,
-                    r: Math.random() * 2 + 1,
-                    opacity: Math.random() * 0.4 + 0.15
+                function createParticle() {
+                    return {
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        vx: (Math.random() - 0.5) * 0.4,
+                        vy: (Math.random() - 0.5) * 0.4,
+                        r: Math.random() * 2 + 1,
+                        opacity: Math.random() * 0.4 + 0.15
+                    };
+                }
+
+                function initAll() {
+                    resize();
+                    particles = [];
+                    for (let i = 0; i < PARTICLE_COUNT; i++) {
+                        particles.push(createParticle());
+                    }
+                }
+
+                function draw() {
+                    ctx.clearRect(0, 0, w, h);
+                    const dark = isDark();
+                    const baseColor = dark ? '120, 160, 255' : '26, 79, 255';
+                    const lineBaseColor = dark ? '80, 130, 255' : '26, 79, 255';
+
+                    // Draw connections
+                    for (let i = 0; i < particles.length; i++) {
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const dx = particles[i].x - particles[j].x;
+                            const dy = particles[i].y - particles[j].y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < CONNECTION_DIST) {
+                                const alpha = (1 - dist / CONNECTION_DIST) * (dark ? 0.08 : 0.1);
+                                ctx.strokeStyle = `rgba(${lineBaseColor}, ${alpha})`;
+                                ctx.lineWidth = 0.5;
+                                ctx.beginPath();
+                                ctx.moveTo(particles[i].x, particles[i].y);
+                                ctx.lineTo(particles[j].x, particles[j].y);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+
+                    // Draw particles
+                    for (const p of particles) {
+                        // Mouse interaction - gentle push
+                        const mdx = p.x - mouse.x;
+                        const mdy = p.y - mouse.y;
+                        const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+                        if (mDist < MOUSE_RADIUS && mDist > 0) {
+                            const force = (MOUSE_RADIUS - mDist) / MOUSE_RADIUS * 0.008;
+                            p.vx += (mdx / mDist) * force;
+                            p.vy += (mdy / mDist) * force;
+                        }
+
+                        // Move
+                        p.x += p.vx;
+                        p.y += p.vy;
+
+                        // Damping
+                        p.vx *= 0.999;
+                        p.vy *= 0.999;
+
+                        // Boundary wrap
+                        if (p.x < -10) p.x = w + 10;
+                        if (p.x > w + 10) p.x = -10;
+                        if (p.y < -10) p.y = h + 10;
+                        if (p.y > h + 10) p.y = -10;
+
+                        // Draw dot
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${baseColor}, ${p.opacity})`;
+                        ctx.fill();
+                    }
+
+                    animId = requestAnimationFrame(draw);
+                }
+
+                window.addEventListener('resize', () => {
+                    resize();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                });
+
+                document.addEventListener('mouseleave', () => {
+                    mouse.x = -999;
+                    mouse.y = -999;
+                });
+
+                // Reduce particles if low performance
+                let lastTime = performance.now();
+                let frameCount = 0;
+                function checkPerformance() {
+                    frameCount++;
+                    const now = performance.now();
+                    if (now - lastTime > 2000) {
+                        const fps = frameCount / ((now - lastTime) / 1000);
+                        if (fps < 30 && particles.length > 20) {
+                            particles.splice(0, 10);
+                        }
+                        frameCount = 0;
+                        lastTime = now;
+                    }
+                }
+                const origDraw = draw;
+                draw = function () {
+                    checkPerformance();
+                    ctx.clearRect(0, 0, w, h);
+                    const dark = isDark();
+                    const baseColor = dark ? '120, 160, 255' : '26, 79, 255';
+                    const lineBaseColor = dark ? '80, 130, 255' : '26, 79, 255';
+
+                    for (let i = 0; i < particles.length; i++) {
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const dx = particles[i].x - particles[j].x;
+                            const dy = particles[i].y - particles[j].y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < CONNECTION_DIST) {
+                                const alpha = (1 - dist / CONNECTION_DIST) * (dark ? 0.08 : 0.1);
+                                ctx.strokeStyle = `rgba(${lineBaseColor}, ${alpha})`;
+                                ctx.lineWidth = 0.5;
+                                ctx.beginPath();
+                                ctx.moveTo(particles[i].x, particles[i].y);
+                                ctx.lineTo(particles[j].x, particles[j].y);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+
+                    for (const p of particles) {
+                        const mdx = p.x - mouse.x;
+                        const mdy = p.y - mouse.y;
+                        const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+                        if (mDist < MOUSE_RADIUS && mDist > 0) {
+                            const force = (MOUSE_RADIUS - mDist) / MOUSE_RADIUS * 0.008;
+                            p.vx += (mdx / mDist) * force;
+                            p.vy += (mdy / mDist) * force;
+                        }
+
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vx *= 0.999;
+                        p.vy *= 0.999;
+
+                        if (p.x < -10) p.x = w + 10;
+                        if (p.x > w + 10) p.x = -10;
+                        if (p.y < -10) p.y = h + 10;
+                        if (p.y > h + 10) p.y = -10;
+
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${baseColor}, ${p.opacity})`;
+                        ctx.fill();
+                    }
+
+                    animId = requestAnimationFrame(draw);
                 };
-            }
 
-            function initAll() {
-                resize();
-                particles = [];
-                for (let i = 0; i < PARTICLE_COUNT; i++) {
-                    particles.push(createParticle());
-                }
-            }
-
-            function draw() {
-                ctx.clearRect(0, 0, w, h);
-                const dark = isDark();
-                const baseColor = dark ? '120, 160, 255' : '26, 79, 255';
-                const lineBaseColor = dark ? '80, 130, 255' : '26, 79, 255';
-
-                // Draw connections
-                for (let i = 0; i < particles.length; i++) {
-                    for (let j = i + 1; j < particles.length; j++) {
-                        const dx = particles[i].x - particles[j].x;
-                        const dy = particles[i].y - particles[j].y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < CONNECTION_DIST) {
-                            const alpha = (1 - dist / CONNECTION_DIST) * (dark ? 0.08 : 0.1);
-                            ctx.strokeStyle = `rgba(${lineBaseColor}, ${alpha})`;
-                            ctx.lineWidth = 0.5;
-                            ctx.beginPath();
-                            ctx.moveTo(particles[i].x, particles[i].y);
-                            ctx.lineTo(particles[j].x, particles[j].y);
-                            ctx.stroke();
-                        }
-                    }
-                }
-
-                // Draw particles
-                for (const p of particles) {
-                    // Mouse interaction - gentle push
-                    const mdx = p.x - mouse.x;
-                    const mdy = p.y - mouse.y;
-                    const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
-                    if (mDist < MOUSE_RADIUS && mDist > 0) {
-                        const force = (MOUSE_RADIUS - mDist) / MOUSE_RADIUS * 0.008;
-                        p.vx += (mdx / mDist) * force;
-                        p.vy += (mdy / mDist) * force;
-                    }
-
-                    // Move
-                    p.x += p.vx;
-                    p.y += p.vy;
-
-                    // Damping
-                    p.vx *= 0.999;
-                    p.vy *= 0.999;
-
-                    // Boundary wrap
-                    if (p.x < -10) p.x = w + 10;
-                    if (p.x > w + 10) p.x = -10;
-                    if (p.y < -10) p.y = h + 10;
-                    if (p.y > h + 10) p.y = -10;
-
-                    // Draw dot
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(${baseColor}, ${p.opacity})`;
-                    ctx.fill();
-                }
-
-                animId = requestAnimationFrame(draw);
-            }
-
-            window.addEventListener('resize', () => {
-                resize();
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                mouse.x = e.clientX;
-                mouse.y = e.clientY;
-            });
-
-            document.addEventListener('mouseleave', () => {
-                mouse.x = -999;
-                mouse.y = -999;
-            });
-
-            // Reduce particles if low performance
-            let lastTime = performance.now();
-            let frameCount = 0;
-            function checkPerformance() {
-                frameCount++;
-                const now = performance.now();
-                if (now - lastTime > 2000) {
-                    const fps = frameCount / ((now - lastTime) / 1000);
-                    if (fps < 30 && particles.length > 20) {
-                        particles.splice(0, 10);
-                    }
-                    frameCount = 0;
-                    lastTime = now;
-                }
-            }
-            const origDraw = draw;
-            draw = function() {
-                checkPerformance();
-                ctx.clearRect(0, 0, w, h);
-                const dark = isDark();
-                const baseColor = dark ? '120, 160, 255' : '26, 79, 255';
-                const lineBaseColor = dark ? '80, 130, 255' : '26, 79, 255';
-
-                for (let i = 0; i < particles.length; i++) {
-                    for (let j = i + 1; j < particles.length; j++) {
-                        const dx = particles[i].x - particles[j].x;
-                        const dy = particles[i].y - particles[j].y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < CONNECTION_DIST) {
-                            const alpha = (1 - dist / CONNECTION_DIST) * (dark ? 0.08 : 0.1);
-                            ctx.strokeStyle = `rgba(${lineBaseColor}, ${alpha})`;
-                            ctx.lineWidth = 0.5;
-                            ctx.beginPath();
-                            ctx.moveTo(particles[i].x, particles[i].y);
-                            ctx.lineTo(particles[j].x, particles[j].y);
-                            ctx.stroke();
-                        }
-                    }
-                }
-
-                for (const p of particles) {
-                    const mdx = p.x - mouse.x;
-                    const mdy = p.y - mouse.y;
-                    const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
-                    if (mDist < MOUSE_RADIUS && mDist > 0) {
-                        const force = (MOUSE_RADIUS - mDist) / MOUSE_RADIUS * 0.008;
-                        p.vx += (mdx / mDist) * force;
-                        p.vy += (mdy / mDist) * force;
-                    }
-
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.vx *= 0.999;
-                    p.vy *= 0.999;
-
-                    if (p.x < -10) p.x = w + 10;
-                    if (p.x > w + 10) p.x = -10;
-                    if (p.y < -10) p.y = h + 10;
-                    if (p.y > h + 10) p.y = -10;
-
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(${baseColor}, ${p.opacity})`;
-                    ctx.fill();
-                }
-
-                animId = requestAnimationFrame(draw);
-            };
-
-            initAll();
-            draw();
-        })();
+                initAll();
+                draw();
+            })();
 
         /* ── Theme Management ── */
         function setTheme(theme) {
@@ -1183,7 +1515,7 @@
         }
 
         // Initialize theme
-        (function() {
+        (function () {
             const saved = localStorage.getItem('ews_theme') || 'system';
             applyTheme(saved);
             requestAnimationFrame(() => {
@@ -1548,15 +1880,15 @@
             if (!ts) return null;
             const d = (ts instanceof Date) ? ts : new Date(ts);
             if (isNaN(d.getTime())) return null;
-            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const day = days[d.getDay()];
-            const dd = String(d.getDate()).padStart(2,'0');
+            const dd = String(d.getDate()).padStart(2, '0');
             const mon = months[d.getMonth()];
             const year = d.getFullYear();
-            const hh = String(d.getHours()).padStart(2,'0');
-            const mm = String(d.getMinutes()).padStart(2,'0');
-            const ss = String(d.getSeconds()).padStart(2,'0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
             return `${day}, ${dd} ${mon} ${year} ${hh}:${mm}:${ss}`;
         }
 
@@ -1935,67 +2267,67 @@
         async function kbSearch(query) {
             const results = document.getElementById('kb-results');
             const lang = document.getElementById('kb-language').value;
-            
+
             // Show loading
             results.innerHTML = `
                 <div class="p-8 rounded-2xl animate-fade-in-up" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
                     <div class="flex items-center gap-4">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 flex-shrink-0"></div>
-                        <div>
-                            <p class="font-bold text-sm" style="color: var(--text-primary)">Searching knowledge base...</p>
-                            <p class="text-xs mt-1" style="color: var(--text-tertiary)">"${query}"</p>
+                        // Confidence color
+                        const conf = data.confidence || 0;
+                        let confColor = '#ef4444'; let confLabel = 'Low';
+                        if (conf >= 0.7) { confColor = '#10b981'; confLabel = 'High'; }
+                        else if (conf >= 0.4) { confColor = '#f59e0b'; confLabel = 'Medium'; }
+
+                        // Format answer with markdown-like rendering
+                        const formattedAnswer = formatKbAnswer(data.answer);
+
+                        // Build result card (NO "Internal" label, NO source info for customers)
+                        const resultHtml = `
+                < div class="animate-fade-in-up" >
+                                <!-- Query Badge -->
+                                <div class="flex items-start gap-3 mb-3">
+                                    <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background: var(--bubble-user-bg)">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="pt-1">
+                                        <p class="font-bold text-sm" style="color: var(--text-primary)">${query}</p>
+                                    </div>
+                                </div>
+
+                                <!--Answer Card-- >
+                <div class="ml-11 p-5 rounded-2xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1)">
+                            <svg class="w-3.5 h-3.5" style="color: #10b981" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
                         </div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider" style="color: #10b981">AI Answer</span>
+                        <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold" style="background: ${confColor}15; color: ${confColor}; border: 1px solid ${confColor}30">
+                            ${confLabel} Confidence (${Math.round(conf * 100)}%)
+                        </span>
                     </div>
+                    <div class="kb-answer text-sm leading-relaxed" style="color: var(--text-primary)">${formattedAnswer}</div>
+
+                    <!-- Actions -->
+                    <div class="mt-3 flex items-center gap-2">
+                        <button onclick="copyKbAnswer(this)" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Copy answer">
+                            📋 Copy
+                        </button>
+                        <button onclick="kbQuickAsk('Tell me more about: ${query.replace(/'/g, "\\'")}")" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Ask follow-up">
+                        🔄 Ask More
+                    </button>
                 </div>
-            `;
+                                </div >
+                            </div >
+                `;
 
-            try {
-                const res = await fetch('/api/kb/query', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query, language: lang })
-                });
-                const data = await res.json();
-
-                if (!res.ok) {
-                    results.innerHTML = `
-                        <div class="p-6 rounded-2xl text-center" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2)">
-                            <p class="font-bold text-red-500">Error: ${data.error || 'Failed to query knowledge base'}</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Save to history
-                kbSearchHistory.unshift({ query, answer: data.answer, timestamp: new Date(), confidence: data.confidence });
-                if (kbSearchHistory.length > 20) kbSearchHistory.pop();
-
-                // Confidence color
-                const conf = data.confidence || 0;
-                let confColor = '#ef4444'; let confLabel = 'Low';
-                if (conf >= 0.7) { confColor = '#10b981'; confLabel = 'High'; }
-                else if (conf >= 0.4) { confColor = '#f59e0b'; confLabel = 'Medium'; }
-
-                // Format answer with markdown-like rendering
-                const formattedAnswer = formatKbAnswer(data.answer);
-
-                // Build result card
-                const resultHtml = `
-                    <div class="animate-fade-in-up">
-                        <!-- Query Badge -->
-                        <div class="flex items-start gap-3 mb-3">
-                            <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background: var(--bubble-user-bg)">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div class="pt-1">
-                                <p class="font-bold text-sm" style="color: var(--text-primary)">${query}</p>
-                            </div>
-                        </div>
-
-                        <!-- Answer Card -->
-                        <div class="ml-11 p-5 rounded-2xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
+                        // Prepend new result, keep previous results
+                        const prevResults = results.innerHTML.includes('Searching knowledge base') ? '' : results.innerHTML;
+                        results.innerHTML = resultHtml + (prevResults ? '<div class="my-4" style="border-bottom: 1px dashed var(--border-color)"></div>' + prevResults : '');
                             <div class="flex items-center gap-2 mb-3">
                                 <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1)">
                                     <svg class="w-3.5 h-3.5" style="color: #10b981" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2022,23 +2354,25 @@
                     </div>
                 `;
 
-                // Prepend new result, keep previous results
-                const prevResults = results.innerHTML.includes('Searching knowledge base') ? '' : results.innerHTML;
-                results.innerHTML = resultHtml + (prevResults ? '<div class="my-4" style="border-bottom: 1px dashed var(--border-color)"></div>' + prevResults : '');
+            // Prepend new result, keep previous results
+            const prevResults = results.innerHTML.includes('Searching knowledge base') ? '' : results.innerHTML;
+            results.innerHTML = resultHtml + (prevResults ? '<div class="my-4" style="border-bottom: 1px dashed var(--border-color)"></div>' + prevResults : '');
 
-            } catch (err) {
-                results.innerHTML = `
+        } catch (err) {
+            results.innerHTML = `
                     <div class="p-6 rounded-2xl text-center" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2)">
                         <p class="font-bold text-red-500">⚠️ Network error. Please try again.</p>
                     </div>
                 `;
-            }
+        }
         }
 
         function formatKbAnswer(text) {
             if (!text) return '';
+            // Remove all 'Source #' and 'Source: ...' references for customers
+            let cleaned = text.replace(/Source\s*\d+/gi, '').replace(/Source\s*:\s*[^\n\r]*/gi, '');
             // Basic markdown-like formatting
-            let html = text
+            let html = cleaned
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                 // Bold
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')

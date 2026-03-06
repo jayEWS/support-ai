@@ -78,25 +78,84 @@
         }
 
         /* Formatted AI message styles */
-        .message-bubble .msg-text p { margin: 0 0 0.5em 0; }
-        .message-bubble .msg-text p:last-child { margin-bottom: 0; }
-        .message-bubble .msg-text strong { font-weight: 700; }
-        .message-bubble .msg-text em { font-style: italic; }
+        .message-bubble .msg-text p {
+            margin: 0 0 0.5em 0;
+        }
+
+        .message-bubble .msg-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-bubble .msg-text strong {
+            font-weight: 700;
+        }
+
+        .message-bubble .msg-text em {
+            font-style: italic;
+        }
+
         .message-bubble .msg-text ul,
-        .message-bubble .msg-text ol { margin: 0.4em 0 0.4em 1.4em; padding: 0; }
-        .message-bubble .msg-text li { margin-bottom: 0.25em; }
-        .message-bubble .msg-text hr { border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 0.75em 0; }
-        .message-bubble .msg-text code { background: rgba(0,0,0,0.08); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
-        .message-bubble .msg-text pre { background: rgba(0,0,0,0.08); padding: 0.75em; border-radius: 0.5rem; overflow-x: auto; margin: 0.5em 0; }
-        .message-bubble .msg-text pre code { background: none; padding: 0; }
+        .message-bubble .msg-text ol {
+            margin: 0.4em 0 0.4em 1.4em;
+            padding: 0;
+        }
+
+        .message-bubble .msg-text li {
+            margin-bottom: 0.25em;
+        }
+
+        .message-bubble .msg-text hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 0.75em 0;
+        }
+
+        .message-bubble .msg-text code {
+            background: rgba(0, 0, 0, 0.08);
+            padding: 0.1em 0.35em;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .message-bubble .msg-text pre {
+            background: rgba(0, 0, 0, 0.08);
+            padding: 0.75em;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5em 0;
+        }
+
+        .message-bubble .msg-text pre code {
+            background: none;
+            padding: 0;
+        }
+
         .message-bubble .msg-text h1,
         .message-bubble .msg-text h2,
-        .message-bubble .msg-text h3 { font-weight: 700; margin: 0.6em 0 0.3em 0; }
-        .message-bubble .msg-text h1 { font-size: 1.15em; }
-        .message-bubble .msg-text h2 { font-size: 1.08em; }
-        .message-bubble .msg-text h3 { font-size: 1.02em; }
-        .bg-white .msg-text hr { border-top-color: #e5e7eb; }
-        .bg-white .msg-text code { background: #f1f5f9; }
+        .message-bubble .msg-text h3 {
+            font-weight: 700;
+            margin: 0.6em 0 0.3em 0;
+        }
+
+        .message-bubble .msg-text h1 {
+            font-size: 1.15em;
+        }
+
+        .message-bubble .msg-text h2 {
+            font-size: 1.08em;
+        }
+
+        .message-bubble .msg-text h3 {
+            font-size: 1.02em;
+        }
+
+        .bg-white .msg-text hr {
+            border-top-color: #e5e7eb;
+        }
+
+        .bg-white .msg-text code {
+            background: #f1f5f9;
+        }
 
         #macro-picker {
             position: absolute;
@@ -179,34 +238,188 @@
         }
 
         /* ---- Customer DataTable ---- */
-        .cdt-wrap { position: relative; }
-        .cdt-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
-        .cdt-scroll { overflow-x:auto; overflow-y:auto; max-height:70vh; border:1px solid #e5e7eb; border-radius:16px; background:#fff; }
-        .cdt-scroll::-webkit-scrollbar { width:6px; height:6px; }
-        .cdt-scroll::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
-        .cdt-table { border-collapse:collapse; white-space:nowrap; }
-        .cdt-table th, .cdt-table td { padding:8px 14px; font-size:12px; border-bottom:1px solid #f1f5f9; }
-        .cdt-table thead { position:sticky; top:0; z-index:2; background:#f8fafc; }
-        .cdt-table thead th { cursor:pointer; user-select:none; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; font-weight:800; }
-        .cdt-table thead th:hover { color:#3b82f6; }
-        .cdt-table thead th .sort-icon { margin-left:4px; font-size:9px; opacity:0.4; }
-        .cdt-table thead th .sort-icon.active { opacity:1; color:#3b82f6; }
-        .cdt-table tbody tr:hover { background:#f8fafc; }
-        .cdt-table th.drag-over { border-left:3px solid #3b82f6; }
-        .cdt-table th[draggable] { cursor:grab; }
-        .cdt-table th[draggable]:active { cursor:grabbing; }
-        .cdt-pager { display:flex; align-items:center; justify-content:space-between; margin-top:12px; flex-wrap:wrap; gap:8px; }
-        .cdt-pager button { padding:6px 12px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; font-size:11px; font-weight:700; cursor:pointer; transition:all .15s; }
-        .cdt-pager button:hover:not(:disabled) { background:#eff6ff; border-color:#93c5fd; color:#2563eb; }
-        .cdt-pager button:disabled { opacity:0.35; cursor:default; }
-        .cdt-pager button.active { background:#2563eb; color:#fff; border-color:#2563eb; }
-        .cdt-pager select { padding:5px 8px; border-radius:8px; border:1px solid #e5e7eb; font-size:11px; font-weight:600; }
-        .cdt-col-toggle { position:relative; display:inline-block; }
-        .cdt-col-menu { display:none; position:absolute; top:100%; left:0; z-index:50; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.1); padding:8px 0; min-width:200px; max-height:360px; overflow-y:auto; }
-        .cdt-col-menu.open { display:block; }
-        .cdt-col-menu label { display:flex; align-items:center; gap:8px; padding:6px 16px; font-size:11px; font-weight:600; color:#475569; cursor:pointer; transition:background .1s; }
-        .cdt-col-menu label:hover { background:#f1f5f9; }
-        .cdt-col-menu input[type=checkbox] { accent-color:#2563eb; width:14px; height:14px; }
+        .cdt-wrap {
+            position: relative;
+        }
+
+        .cdt-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .cdt-scroll {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 70vh;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            background: #fff;
+        }
+
+        .cdt-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .cdt-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .cdt-table {
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+
+        .cdt-table th,
+        .cdt-table td {
+            padding: 8px 14px;
+            font-size: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .cdt-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #f8fafc;
+        }
+
+        .cdt-table thead th {
+            cursor: pointer;
+            user-select: none;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            font-weight: 800;
+        }
+
+        .cdt-table thead th:hover {
+            color: #3b82f6;
+        }
+
+        .cdt-table thead th .sort-icon {
+            margin-left: 4px;
+            font-size: 9px;
+            opacity: 0.4;
+        }
+
+        .cdt-table thead th .sort-icon.active {
+            opacity: 1;
+            color: #3b82f6;
+        }
+
+        .cdt-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .cdt-table th.drag-over {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .cdt-table th[draggable] {
+            cursor: grab;
+        }
+
+        .cdt-table th[draggable]:active {
+            cursor: grabbing;
+        }
+
+        .cdt-pager {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .cdt-pager button {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .cdt-pager button:hover:not(:disabled) {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #2563eb;
+        }
+
+        .cdt-pager button:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+
+        .cdt-pager button.active {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        .cdt-pager select {
+            padding: 5px 8px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .cdt-col-toggle {
+            position: relative;
+            display: inline-block;
+        }
+
+        .cdt-col-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 50;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .1);
+            padding: 8px 0;
+            min-width: 200px;
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .cdt-col-menu.open {
+            display: block;
+        }
+
+        .cdt-col-menu label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: background .1s;
+        }
+
+        .cdt-col-menu label:hover {
+            background: #f1f5f9;
+        }
+
+        .cdt-col-menu input[type=checkbox] {
+            accent-color: #2563eb;
+            width: 14px;
+            height: 14px;
+        }
     </style>
 </head>
 
@@ -246,19 +459,20 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                     <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <i class="fas fa-chart-line text-blue-600"></i> Conversation Volume</h3><canvas id="volumeChart"
-                        height="150"></canvas>
+                        <i class="fas fa-chart-line text-blue-600"></i> Conversation Volume
+                    </h3><canvas id="volumeChart" height="150"></canvas>
                 </div>
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                     <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <i class="fas fa-chart-pie text-blue-600"></i> Priorities</h3><canvas
-                        id="priorityChart"></canvas>
+                        <i class="fas fa-chart-pie text-blue-600"></i> Priorities
+                    </h3><canvas id="priorityChart"></canvas>
                 </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                     <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <i class="fas fa-trophy text-amber-500"></i> Leaderboard</h3>
+                        <i class="fas fa-trophy text-amber-500"></i> Leaderboard
+                    </h3>
                     <div class="overflow-hidden">
                         <table class="min-w-full">
                             <thead class="bg-gray-50">
@@ -275,7 +489,8 @@
                 <div class="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-16 -mt-16"></div>
                     <h3 class="font-bold mb-6 flex items-center gap-2 relative z-10 uppercase text-xs tracking-widest">
-                        <i class="fas fa-brain text-blue-400"></i> AI Strategic Insights</h3>
+                        <i class="fas fa-brain text-blue-400"></i> AI Strategic Insights
+                    </h3>
                     <div id="ai-trends"
                         class="text-sm text-blue-100/80 leading-relaxed whitespace-pre-wrap relative z-10">Analyzing...
                     </div>
@@ -329,7 +544,8 @@
                 <div class="p-6 space-y-6">
                     <!-- Ticket Info -->
                     <div>
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Current Ticket</h4>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Current Ticket
+                        </h4>
                         <div class="space-y-3 text-xs">
                             <p class="flex justify-between"><strong>Priority:</strong> <span id="sidebar-priority"
                                     class="uppercase font-bold">--</span></p>
@@ -342,7 +558,8 @@
 
                     <!-- Customer Stats -->
                     <div id="sidebar-customer-stats" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History</h4>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History
+                        </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="bg-blue-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-blue-600" id="sidebar-total-tickets">0</p>
@@ -382,7 +599,8 @@
 
                     <!-- Past Tickets -->
                     <div id="sidebar-past-tickets" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Recent Tickets</h4>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Recent Tickets
+                        </h4>
                         <div id="sidebar-tickets-list" class="space-y-2"></div>
                     </div>
 
@@ -408,17 +626,28 @@
             <aside class="w-80 bg-white border-r flex flex-col">
                 <div class="p-4 border-b bg-blue-600">
                     <div class="flex items-center justify-between mb-3">
-                        <h2 class="font-bold text-white flex items-center gap-2"><i class="fas fa-headset text-lg"></i> Live Chat</h2>
-                        <button onclick="loadLiveChat()" class="text-blue-200 hover:text-white transition"><i class="fas fa-sync-alt text-xs"></i></button>
+                        <h2 class="font-bold text-white flex items-center gap-2"><i class="fas fa-headset text-lg"></i>
+                            Live Chat</h2>
+                        <button onclick="loadLiveChat()" class="text-blue-200 hover:text-white transition"><i
+                                class="fas fa-sync-alt text-xs"></i></button>
                     </div>
                     <input type="text" id="lc-search" placeholder="Search customer..."
                         class="w-full border-0 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 bg-blue-700 text-white placeholder-blue-300"
                         oninput="filterLiveChats()">
                 </div>
                 <div class="grid grid-cols-3 text-center border-b bg-blue-50 py-2">
-                    <div><p class="text-sm font-black text-blue-700" id="lc-stat-total">0</p><p class="text-[8px] text-blue-400 font-bold uppercase">Active</p></div>
-                    <div><p class="text-sm font-black text-amber-600" id="lc-stat-waiting">0</p><p class="text-[8px] text-amber-400 font-bold uppercase">Waiting</p></div>
-                    <div><p class="text-sm font-black text-green-600" id="lc-stat-replied">0</p><p class="text-[8px] text-green-400 font-bold uppercase">Replied</p></div>
+                    <div>
+                        <p class="text-sm font-black text-blue-700" id="lc-stat-total">0</p>
+                        <p class="text-[8px] text-blue-400 font-bold uppercase">Active</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-amber-600" id="lc-stat-waiting">0</p>
+                        <p class="text-[8px] text-amber-400 font-bold uppercase">Waiting</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-green-600" id="lc-stat-replied">0</p>
+                        <p class="text-[8px] text-green-400 font-bold uppercase">Replied</p>
+                    </div>
                 </div>
                 <div id="lc-conversation-list" class="flex-1 overflow-y-auto conversation-list">
                     <div class="p-8 text-center text-gray-400 text-sm">Loading...</div>
@@ -429,16 +658,25 @@
             <div class="flex-1 flex flex-col bg-[#f8f9fb] relative">
                 <header class="bg-white border-b p-4 flex justify-between items-center h-16 shrink-0">
                     <div class="flex items-center gap-3">
-                        <div id="lc-avatar" class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">?</div>
+                        <div id="lc-avatar"
+                            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">
+                            ?</div>
                         <div>
                             <h3 id="lc-active-name" class="font-bold text-sm">Select a chat</h3>
-                            <p id="lc-active-meta" class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">No active session</p>
+                            <p id="lc-active-meta"
+                                class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">No active session
+                            </p>
                         </div>
                     </div>
                     <div id="lc-actions" class="hidden flex items-center gap-2">
-                        <span id="lc-typing-indicator" class="text-xs text-gray-400 italic hidden">Customer is typing...</span>
-                        <button onclick="lcCreateTicket()" class="px-4 py-1.5 bg-amber-500 text-white rounded-lg text-[10px] font-bold hover:bg-amber-600 transition uppercase tracking-widest flex items-center gap-1"><i class="fas fa-ticket-alt"></i> Create Ticket</button>
-                        <button onclick="lcCloseChat('close')" class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition uppercase tracking-widest flex items-center gap-1"><i class="fas fa-check"></i> Resolve</button>
+                        <span id="lc-typing-indicator" class="text-xs text-gray-400 italic hidden">Customer is
+                            typing...</span>
+                        <button onclick="lcCreateTicket()"
+                            class="px-4 py-1.5 bg-amber-500 text-white rounded-lg text-[10px] font-bold hover:bg-amber-600 transition uppercase tracking-widest flex items-center gap-1"><i
+                                class="fas fa-ticket-alt"></i> Create Ticket</button>
+                        <button onclick="lcCloseChat('close')"
+                            class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition uppercase tracking-widest flex items-center gap-1"><i
+                                class="fas fa-check"></i> Resolve</button>
                     </div>
                 </header>
                 <div id="lc-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
@@ -453,7 +691,8 @@
                             class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition resize-none text-sm"
                             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();lcSendReply()}"></textarea>
                         <button onclick="lcSendReply()"
-                            class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 active:scale-95 transition-all"><i class="fas fa-paper-plane"></i></button>
+                            class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 active:scale-95 transition-all"><i
+                                class="fas fa-paper-plane"></i></button>
                     </div>
                 </footer>
             </div>
@@ -461,7 +700,9 @@
             <!-- RIGHT: Customer info sidebar -->
             <aside class="w-72 bg-white border-l overflow-y-auto hidden lg:block">
                 <div class="p-6 border-b text-center">
-                    <div id="lc-sidebar-avatar" class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20 uppercase">?</div>
+                    <div id="lc-sidebar-avatar"
+                        class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20 uppercase">
+                        ?</div>
                     <h3 id="lc-sidebar-name" class="font-bold text-lg">Customer</h3>
                     <p id="lc-sidebar-company" class="text-sm text-gray-500 italic">--</p>
                     <p id="lc-sidebar-userid" class="text-[9px] text-gray-400 font-mono mt-1">--</p>
@@ -470,13 +711,17 @@
                     <div>
                         <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Session Info</h4>
                         <div class="space-y-3 text-xs">
-                            <p class="flex justify-between"><strong>Messages:</strong> <span id="lc-sidebar-msgcount">--</span></p>
-                            <p class="flex justify-between"><strong>Status:</strong> <span id="lc-sidebar-status" class="uppercase font-bold">--</span></p>
-                            <p class="flex justify-between"><strong>Last Activity:</strong> <span id="lc-sidebar-lastactivity">--</span></p>
+                            <p class="flex justify-between"><strong>Messages:</strong> <span
+                                    id="lc-sidebar-msgcount">--</span></p>
+                            <p class="flex justify-between"><strong>Status:</strong> <span id="lc-sidebar-status"
+                                    class="uppercase font-bold">--</span></p>
+                            <p class="flex justify-between"><strong>Last Activity:</strong> <span
+                                    id="lc-sidebar-lastactivity">--</span></p>
                         </div>
                     </div>
                     <div id="lc-sidebar-stats" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History</h4>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History
+                        </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="bg-blue-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-blue-600" id="lc-total-tickets">0</p>
@@ -525,14 +770,20 @@
             <aside class="w-80 bg-white border-r flex flex-col">
                 <div class="p-4 border-b bg-green-600">
                     <div class="flex items-center justify-between mb-3">
-                        <h2 class="font-bold text-white flex items-center gap-2"><i class="fab fa-whatsapp text-lg"></i> WhatsApp</h2>
+                        <h2 class="font-bold text-white flex items-center gap-2"><i class="fab fa-whatsapp text-lg"></i>
+                            WhatsApp</h2>
                         <div class="flex items-center gap-2">
-                            <button id="wa-simulate-btn" onclick="openSimulateModal()" class="text-green-200 hover:text-white transition hidden" title="Simulate incoming message (Test Mode)"><i class="fas fa-flask text-xs"></i></button>
-                            <button onclick="loadWhatsApp()" class="text-green-200 hover:text-white transition"><i class="fas fa-sync-alt text-xs"></i></button>
+                            <button id="wa-simulate-btn" onclick="openSimulateModal()"
+                                class="text-green-200 hover:text-white transition hidden"
+                                title="Simulate incoming message (Test Mode)"><i
+                                    class="fas fa-flask text-xs"></i></button>
+                            <button onclick="loadWhatsApp()" class="text-green-200 hover:text-white transition"><i
+                                    class="fas fa-sync-alt text-xs"></i></button>
                         </div>
                     </div>
                     <!-- Test mode banner -->
-                    <div id="wa-test-banner" class="hidden bg-yellow-400 text-yellow-900 text-[10px] font-bold px-3 py-1.5 rounded-lg mb-2 flex items-center gap-2">
+                    <div id="wa-test-banner"
+                        class="hidden bg-yellow-400 text-yellow-900 text-[10px] font-bold px-3 py-1.5 rounded-lg mb-2 flex items-center gap-2">
                         <i class="fas fa-flask"></i> TEST MODE — Messages are local only, not sent to WhatsApp
                     </div>
                     <input type="text" id="wa-search" placeholder="Search phone number..."
@@ -541,10 +792,22 @@
                 </div>
                 <!-- Stats bar -->
                 <div class="grid grid-cols-4 text-center border-b bg-green-50 py-2">
-                    <div><p class="text-sm font-black text-green-700" id="wa-stat-total">0</p><p class="text-[8px] text-green-500 font-bold uppercase">Total</p></div>
-                    <div><p class="text-sm font-black text-blue-600" id="wa-stat-inbound">0</p><p class="text-[8px] text-blue-400 font-bold uppercase">In</p></div>
-                    <div><p class="text-sm font-black text-purple-600" id="wa-stat-outbound">0</p><p class="text-[8px] text-purple-400 font-bold uppercase">Out</p></div>
-                    <div><p class="text-sm font-black text-orange-600" id="wa-stat-contacts">0</p><p class="text-[8px] text-orange-400 font-bold uppercase">Contacts</p></div>
+                    <div>
+                        <p class="text-sm font-black text-green-700" id="wa-stat-total">0</p>
+                        <p class="text-[8px] text-green-500 font-bold uppercase">Total</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-blue-600" id="wa-stat-inbound">0</p>
+                        <p class="text-[8px] text-blue-400 font-bold uppercase">In</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-purple-600" id="wa-stat-outbound">0</p>
+                        <p class="text-[8px] text-purple-400 font-bold uppercase">Out</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-orange-600" id="wa-stat-contacts">0</p>
+                        <p class="text-[8px] text-orange-400 font-bold uppercase">Contacts</p>
+                    </div>
                 </div>
                 <div id="wa-conversation-list" class="flex-1 overflow-y-auto conversation-list">
                     <div class="p-8 text-center text-gray-400 text-sm">Loading...</div>
@@ -552,20 +815,24 @@
             </aside>
 
             <!-- Center: message thread -->
-            <div class="flex-1 flex flex-col bg-[#efeae2]" style="background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22 width=%2220%22 height=%2220%22><rect fill=%22%23efeae2%22 width=%2280%22 height=%2280%22/><circle cx=%2240%22 cy=%2240%22 r=%221%22 fill=%22%23e5ddd5%22/></svg>')">
+            <div class="flex-1 flex flex-col bg-[#efeae2]"
+                style="background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22 width=%2220%22 height=%2220%22><rect fill=%22%23efeae2%22 width=%2280%22 height=%2280%22/><circle cx=%2240%22 cy=%2240%22 r=%221%22 fill=%22%23e5ddd5%22/></svg>')">
                 <!-- Thread header -->
                 <header class="bg-white border-b p-4 flex justify-between items-center h-16 shrink-0 shadow-sm">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold" id="wa-avatar">
+                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold"
+                            id="wa-avatar">
                             <i class="fab fa-whatsapp text-lg"></i>
                         </div>
                         <div>
                             <h3 class="font-bold text-sm text-gray-800" id="wa-thread-name">Select a conversation</h3>
-                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter" id="wa-thread-phone">Click a contact on the left</p>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter"
+                                id="wa-thread-phone">Click a contact on the left</p>
                         </div>
                     </div>
                     <div id="wa-thread-actions" class="hidden flex items-center gap-2">
-                        <button onclick="openTicketModal()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition uppercase tracking-widest flex items-center gap-1">
+                        <button onclick="openTicketModal()"
+                            class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition uppercase tracking-widest flex items-center gap-1">
                             <i class="fas fa-ticket-alt"></i> Create Ticket
                         </button>
                     </div>
@@ -591,14 +858,16 @@
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
-                    <p class="text-[9px] text-gray-400 mt-1 px-1">⚠️ 24h session window — use template messages for contacts outside session</p>
+                    <p class="text-[9px] text-gray-400 mt-1 px-1">⚠️ 24h session window — use template messages for
+                        contacts outside session</p>
                 </footer>
             </div>
 
             <!-- Right panel: contact info -->
             <aside id="wa-sidebar" class="w-72 bg-white border-l overflow-y-auto hidden lg:block">
                 <div class="p-6 border-b text-center">
-                    <div class="w-20 h-20 rounded-2xl bg-green-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-green-600/20" id="wa-sidebar-avatar">
+                    <div class="w-20 h-20 rounded-2xl bg-green-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-green-600/20"
+                        id="wa-sidebar-avatar">
                         <i class="fab fa-whatsapp text-3xl"></i>
                     </div>
                     <h3 class="font-bold text-lg" id="wa-sidebar-name">Contact</h3>
@@ -606,7 +875,8 @@
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Conversation Stats</h4>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Conversation
+                            Stats</h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="bg-blue-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-blue-600" id="wa-sidebar-inbound">0</p>
@@ -619,7 +889,8 @@
                         </div>
                     </div>
                     <div id="wa-sidebar-ticket-info" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Linked Ticket</h4>
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Linked Ticket
+                        </h4>
                         <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
                             <p class="text-sm font-bold text-orange-700" id="wa-sidebar-ticket-id">--</p>
                         </div>
@@ -632,16 +903,21 @@
         <div id="wa-ticket-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeTicketModal()">
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-ticket-alt text-blue-600"></i> Convert to Ticket</h3>
-                    <button onclick="closeTicketModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i
+                            class="fas fa-ticket-alt text-blue-600"></i> Convert to Ticket</h3>
+                    <button onclick="closeTicketModal()" class="text-gray-400 hover:text-gray-600"><i
+                            class="fas fa-times"></i></button>
                 </div>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Title</label>
-                        <input id="wa-ticket-title" type="text" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. Customer needs help with POS setup">
+                        <label
+                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Title</label>
+                        <input id="wa-ticket-title" type="text" class="w-full border rounded-lg px-3 py-2 text-sm"
+                            placeholder="e.g. Customer needs help with POS setup">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Priority</label>
+                        <label
+                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Priority</label>
                         <select id="wa-ticket-priority" class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="Low">Low</option>
                             <option value="Medium" selected>Medium</option>
@@ -649,8 +925,10 @@
                             <option value="Urgent">Urgent</option>
                         </select>
                     </div>
-                    <p class="text-xs text-gray-400">The full WhatsApp transcript will be attached to the ticket. The customer will be notified via WhatsApp.</p>
-                    <button onclick="convertToTicket()" id="wa-ticket-submit-btn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    <p class="text-xs text-gray-400">The full WhatsApp transcript will be attached to the ticket. The
+                        customer will be notified via WhatsApp.</p>
+                    <button onclick="convertToTicket()" id="wa-ticket-submit-btn"
+                        class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-blue-700 transition flex items-center justify-center gap-2">
                         <i class="fas fa-check"></i> Create Ticket & Notify Customer
                     </button>
                 </div>
@@ -662,27 +940,37 @@
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Macros</h2>
-                    <p class="text-xs text-gray-400 mt-1">Quick responses & templates — type <code class="bg-gray-100 px-1 rounded">/</code> in reply box to search</p>
+                    <p class="text-xs text-gray-400 mt-1">Quick responses & templates — type <code
+                            class="bg-gray-100 px-1 rounded">/</code> in reply box to search</p>
                 </div>
                 <div class="flex gap-3 items-center">
                     <span id="macro-count" class="text-xs font-bold text-gray-400"></span>
-                    <button onclick="toggleAddMacro()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow hover:bg-blue-700 transition flex items-center gap-2"><i class="fas fa-plus"></i> Add Macro</button>
+                    <button onclick="toggleAddMacro()"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow hover:bg-blue-700 transition flex items-center gap-2"><i
+                            class="fas fa-plus"></i> Add Macro</button>
                 </div>
             </div>
             <!-- Add Macro (collapsible) -->
             <div id="add-macro-panel" class="mb-6 bg-white p-6 rounded-2xl border shadow-sm hidden">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <input id="macro-name" type="text" placeholder="Macro Name" class="border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
-                    <input id="macro-category" type="text" placeholder="Category (e.g. POS - FNB)" class="border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
-                    <button onclick="saveMacro()" class="bg-blue-600 text-white rounded-lg font-bold text-sm px-4 py-2 uppercase tracking-widest hover:bg-blue-700 transition"><i class="fas fa-save mr-1"></i> Save</button>
+                    <input id="macro-name" type="text" placeholder="Macro Name"
+                        class="border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
+                    <input id="macro-category" type="text" placeholder="Category (e.g. POS - FNB)"
+                        class="border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
+                    <button onclick="saveMacro()"
+                        class="bg-blue-600 text-white rounded-lg font-bold text-sm px-4 py-2 uppercase tracking-widest hover:bg-blue-700 transition"><i
+                            class="fas fa-save mr-1"></i> Save</button>
                 </div>
-                <textarea id="macro-content" placeholder="Macro content... Use {customer_name}, {company}, {agent_name} as placeholders" class="w-full border rounded-lg p-2.5 text-sm min-h-[100px] focus:ring-2 focus:ring-blue-200 outline-none"></textarea>
+                <textarea id="macro-content"
+                    placeholder="Macro content... Use {customer_name}, {company}, {agent_name} as placeholders"
+                    class="w-full border rounded-lg p-2.5 text-sm min-h-[100px] focus:ring-2 focus:ring-blue-200 outline-none"></textarea>
             </div>
             <!-- Search & Category Filter -->
             <div class="mb-4 flex flex-col md:flex-row gap-3">
                 <div class="relative flex-1">
                     <i class="fas fa-search absolute left-3 top-3 text-gray-300"></i>
-                    <input id="macro-search" type="text" placeholder="Search macros..." oninput="filterMacrosUI()" class="w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
+                    <input id="macro-search" type="text" placeholder="Search macros..." oninput="filterMacrosUI()"
+                        class="w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-200 outline-none">
                 </div>
             </div>
             <div class="mb-6 flex flex-wrap gap-2" id="macro-category-tabs"></div>
@@ -696,7 +984,8 @@
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Knowledge Base</h2>
-                    <p class="text-xs text-gray-400 mt-1">Upload documents, fetch from URLs, and train AI to understand your business</p>
+                    <p class="text-xs text-gray-400 mt-1">Upload documents, fetch from URLs, and train AI to understand
+                        your business</p>
                 </div>
                 <div class="flex gap-3">
                     <button onclick="trainAI()" id="train-ai-btn"
@@ -709,39 +998,57 @@
             <!-- Stats Cards -->
             <div class="grid grid-cols-4 gap-4 mb-6" id="kb-stats">
 
-            <!-- ═══ AI Knowledge Search (Internal Agent) ═══ -->
-            <div class="mb-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-brain text-purple-600 text-lg"></i>
+                <!-- ═══ AI Knowledge Search (Internal Agent) ═══ -->
+                <div class="mb-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-brain text-purple-600 text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-black text-gray-800 uppercase tracking-tight">Edgeworks Knowledge
+                                Base</h3>
+                            <p class="text-[10px] text-gray-400">Edgeworks Self-Service • Search documentation with AI •
+                                Sources visible</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-sm font-black text-gray-800 uppercase tracking-tight">Ask AI Knowledge Base</h3>
-                        <p class="text-[10px] text-gray-400">Internal Self-Service • Search documentation with AI • Sources visible</p>
+                    <form id="admin-kb-search-form" onsubmit="event.preventDefault(); adminKbSearch();"
+                        class="flex gap-2 mb-3">
+                        <input type="text" id="admin-kb-input"
+                            placeholder="Ask anything... e.g. How to close counter? NETS troubleshooting"
+                            class="flex-1 px-4 py-3 text-sm border border-purple-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 bg-white">
+                        <select id="admin-kb-lang"
+                            class="px-3 py-2 rounded-xl text-xs font-bold border border-purple-200 bg-white text-gray-600">
+                            <option value="en">English</option>
+                            <option value="id">Bahasa</option>
+                            <option value="zh">中文</option>
+                        </select>
+                        <button type="submit"
+                            class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-600/20">
+                            <i class="fas fa-bolt"></i> Ask AI
+                        </button>
+                    </form>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <button onclick="adminKbQuick('How to close counter at end of day?')"
+                            class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🔒
+                            Closing Counter</button>
+                        <button onclick="adminKbQuick('How to process NETS payment?')"
+                            class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">💳
+                            NETS Payment</button>
+                        <button onclick="adminKbQuick('How to add a new product in EquipWeb?')"
+                            class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">📦
+                            Add Product</button>
+                        <button onclick="adminKbQuick('How to process a refund?')"
+                            class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">💰
+                            Refund</button>
+                        <button onclick="adminKbQuick('NETS terminal troubleshooting')"
+                            class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🔧
+                            NETS Troubleshoot</button>
+                        <button onclick="adminKbQuick('How to set up KDS kitchen display?')"
+                            class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🍽️
+                            KDS Setup</button>
                     </div>
+                    <div id="admin-kb-results" class="space-y-3"><!-- AI results injected here --></div>
                 </div>
-                <form id="admin-kb-search-form" onsubmit="event.preventDefault(); adminKbSearch();" class="flex gap-2 mb-3">
-                    <input type="text" id="admin-kb-input" placeholder="Ask anything... e.g. How to close counter? NETS troubleshooting"
-                        class="flex-1 px-4 py-3 text-sm border border-purple-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 bg-white">
-                    <select id="admin-kb-lang" class="px-3 py-2 rounded-xl text-xs font-bold border border-purple-200 bg-white text-gray-600">
-                        <option value="en">English</option>
-                        <option value="id">Bahasa</option>
-                        <option value="zh">中文</option>
-                    </select>
-                    <button type="submit" class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-600/20">
-                        <i class="fas fa-bolt"></i> Ask AI
-                    </button>
-                </form>
-                <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="adminKbQuick('How to close counter at end of day?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🔒 Closing Counter</button>
-                    <button onclick="adminKbQuick('How to process NETS payment?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">💳 NETS Payment</button>
-                    <button onclick="adminKbQuick('How to add a new product in EquipWeb?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">📦 Add Product</button>
-                    <button onclick="adminKbQuick('How to process a refund?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">💰 Refund</button>
-                    <button onclick="adminKbQuick('NETS terminal troubleshooting')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🔧 NETS Troubleshoot</button>
-                    <button onclick="adminKbQuick('How to set up KDS kitchen display?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🍽️ KDS Setup</button>
-                </div>
-                <div id="admin-kb-results" class="space-y-3"><!-- AI results injected here --></div>
-            </div>
                 <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Documents</p>
                     <p class="text-2xl font-black text-blue-600" id="kb-stat-files">--</p>
@@ -763,9 +1070,11 @@
             <!-- Upload, URL Fetch & Paste Text Area -->
             <div class="grid grid-cols-3 gap-4 mb-6">
                 <!-- File Upload -->
-                <div class="bg-white p-6 rounded-2xl border border-dashed border-gray-200 hover:border-blue-400 transition-all cursor-pointer group" onclick="document.getElementById('kb-upload-input').click()">
+                <div class="bg-white p-6 rounded-2xl border border-dashed border-gray-200 hover:border-blue-400 transition-all cursor-pointer group"
+                    onclick="document.getElementById('kb-upload-input').click()">
                     <div class="text-center">
-                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition">
+                        <div
+                            class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition">
                             <i class="fas fa-cloud-upload-alt text-blue-500 text-xl"></i>
                         </div>
                         <p class="text-sm font-bold text-gray-700">Upload Documents</p>
@@ -794,9 +1103,11 @@
                     </div>
                 </div>
                 <!-- Paste Text -->
-                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer group" onclick="togglePastePanel()">
+                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer group"
+                    onclick="togglePastePanel()">
                     <div class="text-center">
-                        <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-100 transition">
+                        <div
+                            class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-100 transition">
                             <i class="fas fa-paste text-amber-500 text-xl"></i>
                         </div>
                         <p class="text-sm font-bold text-gray-700">Paste Text</p>
@@ -813,14 +1124,18 @@
                             <i class="fas fa-paste text-amber-600 text-lg"></i>
                         </div>
                         <div>
-                            <h3 class="text-sm font-black text-gray-800 uppercase tracking-tight">Create KB from Text</h3>
-                            <p class="text-[10px] text-gray-400">Paste or type content below. It will be saved as a document and indexed by AI.</p>
+                            <h3 class="text-sm font-black text-gray-800 uppercase tracking-tight">Create KB from Text
+                            </h3>
+                            <p class="text-[10px] text-gray-400">Paste or type content below. It will be saved as a
+                                document and indexed by AI.</p>
                         </div>
                     </div>
-                    <button onclick="togglePastePanel()" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-lg"></i></button>
+                    <button onclick="togglePastePanel()" class="text-gray-400 hover:text-gray-600 transition"><i
+                            class="fas fa-times text-lg"></i></button>
                 </div>
                 <div class="space-y-3">
-                    <input type="text" id="kb-paste-title" placeholder="Document title (e.g. How to setup NETS terminal)"
+                    <input type="text" id="kb-paste-title"
+                        placeholder="Document title (e.g. How to setup NETS terminal)"
                         class="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
                     <textarea id="kb-paste-content" rows="8" placeholder="Paste or type your knowledge content here...
 
@@ -846,12 +1161,17 @@ Step 3: Select NETS and enter terminal ID..."
                         <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <i class="fas fa-exclamation-triangle text-amber-500 text-2xl"></i>
                         </div>
-                        <h3 class="text-lg font-black text-gray-800 uppercase tracking-tight">Document Already Exists</h3>
-                        <p class="text-sm text-gray-500 mt-2" id="kb-exists-message">A knowledge base document with this name already exists.</p>
+                        <h3 class="text-lg font-black text-gray-800 uppercase tracking-tight">Document Already Exists
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-2" id="kb-exists-message">A knowledge base document with this
+                            name already exists.</p>
                     </div>
                     <div class="flex gap-3">
-                        <button onclick="closeKbExistsModal()" class="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
-                        <button onclick="overwriteKB()" class="flex-1 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition shadow-lg shadow-amber-500/20"><i class="fas fa-sync-alt mr-1"></i> Overwrite</button>
+                        <button onclick="closeKbExistsModal()"
+                            class="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
+                        <button onclick="overwriteKB()"
+                            class="flex-1 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition shadow-lg shadow-amber-500/20"><i
+                                class="fas fa-sync-alt mr-1"></i> Overwrite</button>
                     </div>
                 </div>
             </div>
@@ -859,19 +1179,23 @@ Step 3: Select NETS and enter terminal ID..."
             <!-- Progress Bar -->
             <div id="upload-status-box" class="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-2xl hidden">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-blue-600 uppercase tracking-widest" id="upload-status-text">Uploading...</span>
+                    <span class="text-xs font-bold text-blue-600 uppercase tracking-widest"
+                        id="upload-status-text">Uploading...</span>
                     <span class="text-xs font-black text-blue-600" id="upload-percent">0%</span>
                 </div>
                 <div class="w-full bg-blue-200 rounded-full h-1.5">
-                    <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" id="upload-progress-bar" style="width: 0%"></div>
+                    <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-300" id="upload-progress-bar"
+                        style="width: 0%"></div>
                 </div>
             </div>
 
             <!-- Train AI Progress -->
             <div id="train-status-box" class="mb-6 bg-purple-50 border border-purple-100 p-4 rounded-2xl hidden">
                 <div class="flex items-center gap-3">
-                    <div class="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-                    <span class="text-xs font-bold text-purple-600 uppercase tracking-widest" id="train-status-text">Training AI... Re-indexing knowledge base</span>
+                    <div class="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full">
+                    </div>
+                    <span class="text-xs font-bold text-purple-600 uppercase tracking-widest"
+                        id="train-status-text">Training AI... Re-indexing knowledge base</span>
                 </div>
             </div>
 
@@ -886,13 +1210,26 @@ Step 3: Select NETS and enter terminal ID..."
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/50">
                         <tr>
-                            <th class="px-6 py-3 text-left w-10"><input type="checkbox" onchange="toggleAllKnowledge(this)" class="rounded border-gray-300"></th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Document Name</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Source</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Uploaded By</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Date</th>
-                            <th class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">Status</th>
-                            <th class="px-6 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">Actions</th>
+                            <th class="px-6 py-3 text-left w-10"><input type="checkbox"
+                                    onchange="toggleAllKnowledge(this)" class="rounded border-gray-300"></th>
+                            <th
+                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
+                                Document Name</th>
+                            <th
+                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
+                                Source</th>
+                            <th
+                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
+                                Uploaded By</th>
+                            <th
+                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
+                                Date</th>
+                            <th
+                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
+                                Status</th>
+                            <th
+                                class="px-6 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">
+                                Actions</th>
                         </tr>
                     </thead>
                     <tbody id="knowledge-list" class="divide-y divide-gray-50"></tbody>
@@ -905,17 +1242,21 @@ Step 3: Select NETS and enter terminal ID..."
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Customer Data</h2>
-                    <p class="text-xs text-gray-400 mt-1">Manage customer profiles. Import existing customers so AI recognizes them automatically.</p>
+                    <p class="text-xs text-gray-400 mt-1">Manage customer profiles. Import existing customers so AI
+                        recognizes them automatically.</p>
                 </div>
                 <div class="flex gap-3">
-                    <button id="cdt-unmask-btn" onclick="toggleUnmask()" class="hidden bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition flex items-center gap-2" title="Show/Hide sensitive data">
+                    <button id="cdt-unmask-btn" onclick="toggleUnmask()"
+                        class="hidden bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition flex items-center gap-2"
+                        title="Show/Hide sensitive data">
                         <i class="fas fa-eye-slash" id="cdt-unmask-icon"></i> <span id="cdt-unmask-label">Show</span>
                     </button>
                     <button onclick="document.getElementById('customer-import-input').click()"
                         class="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-green-600/20 hover:bg-green-700 transition flex items-center gap-2">
                         <i class="fas fa-file-import"></i> Import
                     </button>
-                    <input type="file" id="customer-import-input" class="hidden" accept=".csv,.xlsx,.xls,.json,.pdf,.txt,.text,.tsv" onchange="handleCustomerImport(this)">
+                    <input type="file" id="customer-import-input" class="hidden"
+                        accept=".csv,.xlsx,.xls,.json,.pdf,.txt,.text,.tsv" onchange="handleCustomerImport(this)">
                     <button onclick="showAddCustomerModal()"
                         class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center gap-2">
                         <i class="fas fa-user-plus"></i> Add Customer
@@ -941,7 +1282,8 @@ Step 3: Select NETS and enter terminal ID..."
 
             <!-- Import Status -->
             <div id="customer-import-status" class="mb-6 bg-green-50 border border-green-100 p-4 rounded-2xl hidden">
-                <span class="text-xs font-bold text-green-600 uppercase tracking-widest" id="customer-import-text">Importing...</span>
+                <span class="text-xs font-bold text-green-600 uppercase tracking-widest"
+                    id="customer-import-text">Importing...</span>
             </div>
 
             <!-- Customer DataTable -->
@@ -951,32 +1293,50 @@ Step 3: Select NETS and enter terminal ID..."
         <!-- Add/Edit Customer Modal -->
         <div id="customer-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
-                <h3 class="text-lg font-bold text-gray-800 mb-6 uppercase tracking-tight" id="customer-modal-title">Add Customer</h3>
+                <h3 class="text-lg font-bold text-gray-800 mb-6 uppercase tracking-tight" id="customer-modal-title">Add
+                    Customer</h3>
                 <div class="space-y-4">
                     <div id="cust-account-id-row" class="hidden">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Account ID</label>
-                        <input type="text" id="cust-account-id" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-500 font-mono" readonly>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Account
+                            ID</label>
+                        <input type="text" id="cust-account-id"
+                            class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-500 font-mono"
+                            readonly>
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Name *</label>
-                        <input type="text" id="cust-name" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="Customer name">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Name
+                            *</label>
+                        <input type="text" id="cust-name"
+                            class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+                            placeholder="Customer name">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Company / Outlet</label>
-                        <input type="text" id="cust-company" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="PT ABC / Outlet XYZ">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Company
+                            / Outlet</label>
+                        <input type="text" id="cust-company"
+                            class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+                            placeholder="PT ABC / Outlet XYZ">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Mobile / Phone *</label>
-                        <input type="text" id="cust-identifier" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="+628123456789">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Mobile /
+                            Phone *</label>
+                        <input type="text" id="cust-identifier"
+                            class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+                            placeholder="+628123456789">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Position</label>
-                        <input type="text" id="cust-position" class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" placeholder="Owner / Manager / Kasir">
+                        <label
+                            class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Position</label>
+                        <input type="text" id="cust-position"
+                            class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+                            placeholder="Owner / Manager / Kasir">
                     </div>
                 </div>
                 <div class="flex gap-3 mt-6">
-                    <button onclick="saveCustomer()" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition">Save</button>
-                    <button onclick="closeCustomerModal()" class="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
+                    <button onclick="saveCustomer()"
+                        class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition">Save</button>
+                    <button onclick="closeCustomerModal()"
+                        class="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
                 </div>
             </div>
         </div>
@@ -1026,24 +1386,32 @@ Step 3: Select NETS and enter terminal ID..."
         <div id="wa-simulate-modal" class="modal-overlay hidden">
             <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-fade-in">
                 <div class="bg-green-600 p-6 flex justify-between items-center">
-                    <h3 class="text-white font-bold flex items-center gap-2"><i class="fas fa-flask"></i> Simulate Inbound Message</h3>
-                    <button onclick="document.getElementById('wa-simulate-modal').classList.add('hidden')" class="text-green-200 hover:text-white"><i class="fas fa-times"></i></button>
+                    <h3 class="text-white font-bold flex items-center gap-2"><i class="fas fa-flask"></i> Simulate
+                        Inbound Message</h3>
+                    <button onclick="document.getElementById('wa-simulate-modal').classList.add('hidden')"
+                        class="text-green-200 hover:text-white"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="p-6 space-y-4">
-                    <p class="text-xs text-gray-500">Simulate a customer sending a WhatsApp message. It will be processed through the full AI pipeline (intent classification → RAG → response).</p>
+                    <p class="text-xs text-gray-500">Simulate a customer sending a WhatsApp message. It will be
+                        processed through the full AI pipeline (intent classification → RAG → response).</p>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone Number</label>
-                        <input type="text" id="sim-phone" placeholder="+628199887766" class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none" />
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone
+                            Number</label>
+                        <input type="text" id="sim-phone" placeholder="+628199887766"
+                            class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none" />
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Customer Message</label>
-                        <textarea id="sim-message" rows="3" placeholder="e.g. Bagaimana cara closing di V5?" class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none resize-none"></textarea>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Customer
+                            Message</label>
+                        <textarea id="sim-message" rows="3" placeholder="e.g. Bagaimana cara closing di V5?"
+                            class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none resize-none"></textarea>
                     </div>
                     <div id="sim-result" class="hidden bg-green-50 border border-green-200 rounded-xl p-4">
                         <p class="text-[10px] font-bold text-green-600 uppercase mb-1">AI Response:</p>
                         <p id="sim-result-text" class="text-sm text-gray-700 whitespace-pre-wrap"></p>
                     </div>
-                    <button onclick="runSimulation()" id="sim-run-btn" class="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2">
+                    <button onclick="runSimulation()" id="sim-run-btn"
+                        class="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2">
                         <i class="fas fa-play"></i> Send Simulated Message
                     </button>
                 </div>
@@ -1056,8 +1424,10 @@ Step 3: Select NETS and enter terminal ID..."
                 <!-- AI Preferences -->
                 <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
                     <div>
-                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
-                            <i class="fas fa-robot text-blue-600"></i> AI Preferences</h3>
+                        <h3
+                            class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                            <i class="fas fa-robot text-blue-600"></i> AI Preferences
+                        </h3>
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -1072,19 +1442,25 @@ Step 3: Select NETS and enter terminal ID..."
                 <!-- WhatsApp Settings -->
                 <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
                     <div>
-                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
-                            <i class="fab fa-whatsapp text-green-600"></i> WhatsApp Settings</h3>
+                        <h3
+                            class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                            <i class="fab fa-whatsapp text-green-600"></i> WhatsApp Settings
+                        </h3>
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-bold text-gray-700">Test Mode</p>
                                     <p class="text-xs text-gray-400">Chat locally without Meta API credentials</p>
                                 </div>
-                                <button id="wa-testmode-toggle" onclick="toggleTestMode()" class="w-12 h-6 rounded-full bg-gray-300 relative transition-colors duration-200 cursor-pointer">
-                                    <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow"></div>
+                                <button id="wa-testmode-toggle" onclick="toggleTestMode()"
+                                    class="w-12 h-6 rounded-full bg-gray-300 relative transition-colors duration-200 cursor-pointer">
+                                    <div
+                                        class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow">
+                                    </div>
                                 </button>
                             </div>
-                            <div id="wa-meta-status" class="text-xs text-gray-400 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+                            <div id="wa-meta-status"
+                                class="text-xs text-gray-400 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
                                 <i class="fas fa-circle-notch fa-spin text-gray-300"></i> Checking...
                             </div>
                         </div>
@@ -1093,34 +1469,47 @@ Step 3: Select NETS and enter terminal ID..."
                 <!-- Ticket Email Notification -->
                 <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6 lg:col-span-2">
                     <div>
-                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
-                            <i class="fas fa-envelope text-indigo-600"></i> Ticket Email Notification</h3>
-                        <p class="text-xs text-gray-400 mb-6">When a customer ends a chat and creates a ticket, an email notification will be sent to the configured address.</p>
+                        <h3
+                            class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                            <i class="fas fa-envelope text-indigo-600"></i> Ticket Email Notification
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-6">When a customer ends a chat and creates a ticket, an email
+                            notification will be sent to the configured address.</p>
                         <div class="space-y-5">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-bold text-gray-700">Enable Email Notification</p>
                                     <p class="text-xs text-gray-400">Send email when a new ticket is created</p>
                                 </div>
-                                <button id="ticket-notify-toggle" onclick="toggleTicketNotify()" class="w-12 h-6 rounded-full bg-gray-300 relative transition-colors duration-200 cursor-pointer">
-                                    <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow"></div>
+                                <button id="ticket-notify-toggle" onclick="toggleTicketNotify()"
+                                    class="w-12 h-6 rounded-full bg-gray-300 relative transition-colors duration-200 cursor-pointer">
+                                    <div
+                                        class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow">
+                                    </div>
                                 </button>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Notify To (Primary)</label>
-                                <input type="email" id="ticket-notify-email" value="jay@edgeworks.com.sg" placeholder="e.g. jay@edgeworks.com.sg"
+                                <label
+                                    class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Notify
+                                    To (Primary)</label>
+                                <input type="email" id="ticket-notify-email" value="jay@edgeworks.com.sg"
+                                    placeholder="e.g. jay@edgeworks.com.sg"
                                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">CC (Optional, comma-separated)</label>
-                                <input type="text" id="ticket-notify-cc" value="" placeholder="e.g. support@edgeworks.com.sg, admin@edgeworks.com.sg"
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">CC
+                                    (Optional, comma-separated)</label>
+                                <input type="text" id="ticket-notify-cc" value=""
+                                    placeholder="e.g. support@edgeworks.com.sg, admin@edgeworks.com.sg"
                                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                             </div>
                             <div class="flex items-center gap-3 pt-2">
-                                <button onclick="saveTicketNotifySettings()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition shadow-sm">
+                                <button onclick="saveTicketNotifySettings()"
+                                    class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition shadow-sm">
                                     <i class="fas fa-save mr-1"></i> Save
                                 </button>
-                                <button onclick="testTicketEmail()" class="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition">
+                                <button onclick="testTicketEmail()"
+                                    class="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition">
                                     <i class="fas fa-paper-plane mr-1"></i> Send Test Email
                                 </button>
                                 <span id="ticket-notify-status" class="text-xs text-gray-400"></span>
@@ -1239,7 +1628,7 @@ Step 3: Select NETS and enter terminal ID..."
             updateSidebarCounts();
 
             // Determine active tab from URL path (e.g., /whatsapp, /team/admin)
-            const validTabs = ['overview','inbox','team','tickets','whatsapp','macros','knowledge','customers','settings','audit','usermst','groupperms','privsetup','livechat'];
+            const validTabs = ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat'];
             const pathParts = window.location.pathname.replace(/^\/+/, '').split('/');
             let startTab = 'overview', startSub = null;
             if (pathParts[0] && validTabs.includes(pathParts[0])) {
@@ -1251,7 +1640,7 @@ Step 3: Select NETS and enter terminal ID..."
                 startSub = localStorage.getItem('support_portal_active_sub') || null;
             }
             // Auto-expand parent submenu for nested tabs
-            const submenuMap = {inbox:'chat', whatsapp:'chat', livechat:'chat', team:'team', tickets:'tickets', settings:'settings', macros:'settings', usermst:'settings', groupperms:'settings', privsetup:'settings', audit:'settings', knowledge:'settings', admin:'settings', support:'settings', system_admin:'settings'};
+            const submenuMap = { inbox: 'chat', whatsapp: 'chat', livechat: 'chat', team: 'team', tickets: 'tickets', settings: 'settings', macros: 'settings', usermst: 'settings', groupperms: 'settings', privsetup: 'settings', audit: 'settings', knowledge: 'settings', admin: 'settings', support: 'settings', system_admin: 'settings' };
             const parentMenu = submenuMap[startTab];
             if (parentMenu) {
                 const sub = document.getElementById(`${parentMenu}-submenu`);
@@ -1392,7 +1781,7 @@ Step 3: Select NETS and enter terminal ID..."
             if (tab !== 'whatsapp' && waPollingInterval) { clearInterval(waPollingInterval); waPollingInterval = null; }
             // Stop LiveChat polling when leaving that tab
             if (tab !== 'livechat' && lcPollingInterval) { clearInterval(lcPollingInterval); lcPollingInterval = null; }
-            if (tab !== 'livechat' && lcAdminWs) { try { lcAdminWs.close(); } catch(_) {} lcAdminWs = null; }
+            if (tab !== 'livechat' && lcAdminWs) { try { lcAdminWs.close(); } catch (_) { } lcAdminWs = null; }
             ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat'].forEach(t => {
                 const el = document.getElementById(`${t}-view`);
                 if (el) el.classList.toggle('hidden', t !== tab);
@@ -1451,7 +1840,7 @@ Step 3: Select NETS and enter terminal ID..."
                     const el = document.getElementById('count-whatsapp');
                     if (el) el.innerText = wa.unique_contacts || 0;
                 }
-            } catch(_) {}
+            } catch (_) { }
             // Live Chat count
             try {
                 const lcRes = await fetchWithAuth('/api/livechat/sessions');
@@ -1460,7 +1849,7 @@ Step 3: Select NETS and enter terminal ID..."
                     const el = document.getElementById('count-livechat');
                     if (el) el.innerText = lc.length || 0;
                 }
-            } catch(_) {}
+            } catch (_) { }
         }
 
         async function loadAnalytics() {
@@ -1523,7 +1912,7 @@ Step 3: Select NETS and enter terminal ID..."
                             const b = document.getElementById('count-livechat');
                             if (b) b.innerText = lcAllChats.length;
                         }
-                    } catch(_) {}
+                    } catch (_) { }
                 }, 8000);
             } catch (err) {
                 console.error('Failed to load live chats:', err);
@@ -1581,9 +1970,9 @@ Step 3: Select NETS and enter terminal ID..."
             const now = new Date();
             const diff = Math.floor((now - date) / 1000);
             if (diff < 60) return 'just now';
-            if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-            if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-            return `${Math.floor(diff/86400)}d ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
         }
 
         async function lcSelectChat(userId) {
@@ -1621,7 +2010,7 @@ Step 3: Select NETS and enter terminal ID..."
                         document.getElementById('lc-resolved-tickets').innerText = ctx.stats.resolved_tickets;
                     }
                 }
-            } catch(_) {}
+            } catch (_) { }
 
             // Load messages
             const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(userId)}/messages`);
@@ -1665,7 +2054,7 @@ Step 3: Select NETS and enter terminal ID..."
         }
 
         function lcConnectAdminWs(userId) {
-            if (lcAdminWs) { try { lcAdminWs.close(); } catch(_) {} }
+            if (lcAdminWs) { try { lcAdminWs.close(); } catch (_) { } }
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             lcAdminWs = new WebSocket(`${protocol}//${window.location.host}/ws/portal/admin/${encodeURIComponent(userId)}`);
 
@@ -1915,7 +2304,7 @@ Step 3: Select NETS and enter terminal ID..."
                     ticketsEl.classList.remove('hidden');
                     ticketsList.innerHTML = ctx.recent_tickets.map(t => {
                         const statusColor = t.status === 'resolved' ? 'green' : t.status === 'open' ? 'blue' : 'amber';
-                        const date = t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'}) : '--';
+                        const date = t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
                         return `<div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
                             <div class="flex justify-between items-start">
                                 <span class="text-[10px] font-black text-gray-600">#${t.id}</span>
@@ -1933,7 +2322,7 @@ Step 3: Select NETS and enter terminal ID..."
                 const memberEl = document.getElementById('sidebar-member-info');
                 memberEl.classList.remove('hidden');
                 document.getElementById('sidebar-member-since').innerText = ctx.profile.member_since
-                    ? new Date(ctx.profile.member_since).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})
+                    ? new Date(ctx.profile.member_since).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                     : '--';
                 document.getElementById('sidebar-position').innerText = ctx.profile.position || '--';
 
@@ -2030,7 +2419,7 @@ Step 3: Select NETS and enter terminal ID..."
                     const cfgRes = await fetchWithAuth('/api/whatsapp/config-status');
                     const cfg = await cfgRes.json();
                     waTestMode = cfg.test_mode;
-                    
+
                     // Update test mode banner in WhatsApp panel
                     const testBanner = document.getElementById('wa-test-banner');
                     const simBtn = document.getElementById('wa-simulate-btn');
@@ -2041,10 +2430,10 @@ Step 3: Select NETS and enter terminal ID..."
                         testBanner.classList.add('hidden');
                         simBtn.classList.add('hidden');
                     }
-                    
+
                     // Update settings page toggle
                     updateTestModeToggle(cfg.test_mode);
-                    
+
                     // Update meta status in settings
                     const metaStatus = document.getElementById('wa-meta-status');
                     if (metaStatus) {
@@ -2059,11 +2448,11 @@ Step 3: Select NETS and enter terminal ID..."
                             metaStatus.className = 'text-xs bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2';
                         }
                     }
-                    
+
                     // Remove old amber banner
                     const oldBanner = document.getElementById('wa-config-banner');
                     if (oldBanner) oldBanner.remove();
-                } catch(_) {}
+                } catch (_) { }
 
                 const statsRes = await fetchWithAuth('/api/whatsapp/stats');
                 const stats = await statsRes.json();
@@ -2094,7 +2483,7 @@ Step 3: Select NETS and enter terminal ID..."
                         await loadWhatsAppConversations(document.getElementById('wa-search').value);
                         if (waSelectedPhone) await refreshWaThread();
                     }
-                } catch (_) {}
+                } catch (_) { }
             }, 5000); // Poll every 5 seconds
         }
 
@@ -2111,10 +2500,10 @@ Step 3: Select NETS and enter terminal ID..."
                 list.innerHTML = data.conversations.map(c => {
                     const name = c.customer_name || c.phone_number;
                     const initials = name.charAt(0).toUpperCase();
-                    const timeAgo = c.last_message_at ? new Date(c.last_message_at).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+                    const timeAgo = c.last_message_at ? new Date(c.last_message_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
                     const dirIcon = c.last_direction === 'inbound' ? '↙️' : '↗️';
                     const isSelected = waSelectedPhone === c.phone_number;
-                    return `<div onclick="loadWhatsAppThread('${c.phone_number}', '${(c.customer_name||'').replace(/'/g,"\\\\'")}')"
+                    return `<div onclick="loadWhatsAppThread('${c.phone_number}', '${(c.customer_name || '').replace(/'/g, "\\\\'")}')"
                          class="p-4 cursor-pointer hover:bg-green-50 transition border-b ${isSelected ? 'bg-green-50 border-l-4 border-l-green-500' : ''}">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initials}</div>
@@ -2166,8 +2555,8 @@ Step 3: Select NETS and enter terminal ID..."
                     return;
                 }
                 // Update sidebar stats
-                const inCount = data.messages.filter(m => m.direction==='inbound').length;
-                const outCount = data.messages.filter(m => m.direction==='outbound').length;
+                const inCount = data.messages.filter(m => m.direction === 'inbound').length;
+                const outCount = data.messages.filter(m => m.direction === 'outbound').length;
                 document.getElementById('wa-sidebar-inbound').textContent = inCount;
                 document.getElementById('wa-sidebar-outbound').textContent = outCount;
                 // Check for linked ticket
@@ -2185,12 +2574,12 @@ Step 3: Select NETS and enter terminal ID..."
 
                 container.innerHTML = data.messages.map(m => {
                     const isInbound = m.direction === 'inbound';
-                    const time = m.created_at ? new Date(m.created_at).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) : '';
+                    const time = m.created_at ? new Date(m.created_at).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : '';
                     const ticketBadge = m.ticket_id ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold ml-1">🎫 #${m.ticket_id}</span>` : '';
                     const statusIcon = m.status === 'failed' ? ' ❌' : (m.status === 'pending' ? ' 🕐' : (m.direction === 'outbound' ? ' ✓✓' : ''));
                     // Detect screen recording
                     const videoMatch = m.content.match(/📹 Screen Recording: (\/uploads\/chat\/[\w.-]+\.webm)/);
-                    const contentHtml = videoMatch 
+                    const contentHtml = videoMatch
                         ? `<video src="${videoMatch[1]}" controls playsinline preload="metadata" style="border-radius:10px; width:100%; max-height:220px;"></video><div class="flex items-center gap-2 mt-1 text-xs text-gray-400"><i class="fas fa-video"></i> Screen Recording <a href="${videoMatch[1]}" download class="ml-auto hover:underline"><i class="fas fa-download"></i></a></div>`
                         : `<p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>`;
                     if (isInbound) {
@@ -2220,7 +2609,7 @@ Step 3: Select NETS and enter terminal ID..."
             try {
                 const res = await fetchWithAuth('/api/whatsapp/send', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone_number: waSelectedPhone, message: msg })
                 });
                 if (res.ok) {
@@ -2255,7 +2644,7 @@ Step 3: Select NETS and enter terminal ID..."
             try {
                 const res = await fetchWithAuth('/api/whatsapp/convert-ticket', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone_number: waSelectedPhone, title, priority })
                 });
                 const data = await res.json();
@@ -2278,7 +2667,7 @@ Step 3: Select NETS and enter terminal ID..."
         /* ── Markdown-light formatter for AI/bot messages ── */
         function formatMessage(raw) {
             if (!raw) return '';
-            let t = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            let t = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             t = t.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`);
             t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
             t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -2340,7 +2729,7 @@ Step 3: Select NETS and enter terminal ID..."
             try {
                 const res = await fetchWithAuth('/api/whatsapp/test-mode', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ secret, enabled: !waTestMode })
                 });
                 if (res.ok) {
@@ -2399,7 +2788,7 @@ Step 3: Select NETS and enter terminal ID..."
             try {
                 const res = await fetchWithAuth('/api/settings', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ticket_notify_enabled: ticketNotifyEnabled ? 'true' : 'false',
                         ticket_notify_email: document.getElementById('ticket-notify-email').value.trim(),
@@ -2430,7 +2819,7 @@ Step 3: Select NETS and enter terminal ID..."
             try {
                 const res = await fetchWithAuth('/api/settings/test-email', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
+                    headers: { 'Content-Type': 'application/json' }
                 });
                 if (res && res.ok) {
                     const data = await res.json();
@@ -2472,7 +2861,7 @@ Step 3: Select NETS and enter terminal ID..."
             try {
                 const res = await fetchWithAuth('/api/whatsapp/simulate', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone_number: phone, message })
                 });
                 const data = await res.json();
@@ -2518,7 +2907,7 @@ Step 3: Select NETS and enter terminal ID..."
             const q = (document.getElementById('macro-search')?.value || '').toLowerCase();
             let filtered = macros;
             if (macroFilterCat !== 'All') filtered = filtered.filter(m => m.category === macroFilterCat);
-            if (q) filtered = filtered.filter(m => m.name.toLowerCase().includes(q) || m.content.toLowerCase().includes(q) || (m.category||'').toLowerCase().includes(q));
+            if (q) filtered = filtered.filter(m => m.name.toLowerCase().includes(q) || m.content.toLowerCase().includes(q) || (m.category || '').toLowerCase().includes(q));
             document.getElementById('macro-count').textContent = `${filtered.length} of ${macros.length} macros`;
             // Re-render category tabs active state
             const cats = ['All', ...new Set(macros.map(m => m.category).filter(Boolean).sort())];
@@ -2527,10 +2916,10 @@ Step 3: Select NETS and enter terminal ID..."
                 const active = macroFilterCat === c;
                 return `<button onclick="macroFilterCat='${c}';filterMacrosUI()" class="px-3 py-1.5 rounded-full text-xs font-bold transition ${active ? 'bg-blue-600 text-white shadow' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}">${c} <span class="ml-1 opacity-70">${count}</span></button>`;
             }).join('');
-            const catColors = {'Welcome':'bg-green-50 text-green-600','Acknowledgement':'bg-cyan-50 text-cyan-600','Troubleshooting':'bg-orange-50 text-orange-600','POS - FNB':'bg-red-50 text-red-600','POS - Retail':'bg-violet-50 text-violet-600','POS - Wholesale':'bg-amber-50 text-amber-700','Inventory':'bg-emerald-50 text-emerald-600','Report':'bg-indigo-50 text-indigo-600','Integration':'bg-pink-50 text-pink-600','Escalation':'bg-rose-50 text-rose-600','Follow-Up':'bg-sky-50 text-sky-600','Closing':'bg-gray-100 text-gray-600'};
+            const catColors = { 'Welcome': 'bg-green-50 text-green-600', 'Acknowledgement': 'bg-cyan-50 text-cyan-600', 'Troubleshooting': 'bg-orange-50 text-orange-600', 'POS - FNB': 'bg-red-50 text-red-600', 'POS - Retail': 'bg-violet-50 text-violet-600', 'POS - Wholesale': 'bg-amber-50 text-amber-700', 'Inventory': 'bg-emerald-50 text-emerald-600', 'Report': 'bg-indigo-50 text-indigo-600', 'Integration': 'bg-pink-50 text-pink-600', 'Escalation': 'bg-rose-50 text-rose-600', 'Follow-Up': 'bg-sky-50 text-sky-600', 'Closing': 'bg-gray-100 text-gray-600' };
             document.getElementById('macros-list').innerHTML = filtered.length ? filtered.map(m => {
                 const cc = catColors[m.category] || 'bg-blue-50 text-blue-600';
-                const preview = m.content.length > 120 ? m.content.substring(0,120) + '...' : m.content;
+                const preview = m.content.length > 120 ? m.content.substring(0, 120) + '...' : m.content;
                 return `<div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 group hover:border-blue-200 hover:shadow-md transition-all flex flex-col">
                     <div class="flex justify-between items-start mb-2">
                         <h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition leading-tight">${m.name}</h4>
@@ -2538,14 +2927,14 @@ Step 3: Select NETS and enter terminal ID..."
                     </div>
                     <p class="text-[11px] text-gray-400 mb-3 flex-1 whitespace-pre-line leading-relaxed">${preview}</p>
                     <div class="flex justify-between items-center pt-2 border-t border-gray-50">
-                        <button onclick="copyMacro('${m.content.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" class="text-[10px] font-bold text-blue-500 hover:text-blue-700 transition"><i class="fas fa-copy mr-1"></i>Copy</button>
+                        <button onclick="copyMacro('${m.content.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')}')" class="text-[10px] font-bold text-blue-500 hover:text-blue-700 transition"><i class="fas fa-copy mr-1"></i>Copy</button>
                         <button onclick="deleteMacro(${m.id})" class="text-[10px] font-bold text-red-400 hover:text-red-600 transition"><i class="fas fa-trash mr-1"></i>Delete</button>
                     </div>
                 </div>`;
             }).join('') : '<div class="col-span-full text-center py-12 text-gray-400"><i class="fas fa-search text-3xl mb-3"></i><p class="text-sm font-bold">No macros found</p></div>';
         }
         function copyMacro(text) {
-            const decoded = text.replace(/\\n/g,'\n').replace(/\\'/g,"'").replace(/\\\\/g,'\\');
+            const decoded = text.replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
             navigator.clipboard.writeText(decoded).then(() => {
                 const toast = document.createElement('div');
                 toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-xl shadow-lg text-sm font-bold z-50';
@@ -2624,7 +3013,7 @@ Step 3: Select NETS and enter terminal ID..."
                         loadKnowledge(); loadKBStats();
                     } else {
                         let errMsg = 'Unknown error';
-                        try { errMsg = JSON.parse(xhr.responseText).error || xhr.responseText; } catch(e) { errMsg = xhr.responseText || xhr.statusText; }
+                        try { errMsg = JSON.parse(xhr.responseText).error || xhr.responseText; } catch (e) { errMsg = xhr.responseText || xhr.statusText; }
                         statusText.innerText = `❌ Upload Failed: ${errMsg}`;
                         box.classList.remove('bg-blue-50', 'border-blue-100');
                         box.classList.add('bg-red-50', 'border-red-100');
@@ -2634,7 +3023,7 @@ Step 3: Select NETS and enter terminal ID..."
                         setTimeout(() => { box.classList.add('hidden'); box.classList.remove('bg-red-50', 'border-red-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-red-600'); statusText.classList.add('text-blue-600'); }, 6000);
                     }
                 };
-                xhr.onerror = function() {
+                xhr.onerror = function () {
                     statusText.innerText = '❌ Network error — could not upload file(s)';
                     box.classList.remove('bg-blue-50', 'border-blue-100');
                     box.classList.add('bg-red-50', 'border-red-100');
@@ -2738,7 +3127,7 @@ Step 3: Select NETS and enter terminal ID..."
                 const res = await fetchWithAuth('/api/knowledge/batch-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filenames: s }) });
                 if (res && res.ok) { showKBToast(`✅ ${s.length} file(s) deleted successfully`, 'green'); }
                 else { showKBToast('❌ Failed to delete some files', 'red'); }
-            } catch(e) { showKBToast('❌ Delete failed: ' + e.message, 'red'); }
+            } catch (e) { showKBToast('❌ Delete failed: ' + e.message, 'red'); }
             loadKnowledge(); loadKBStats();
         }
         async function deleteKnowledge(f) {
@@ -2747,7 +3136,7 @@ Step 3: Select NETS and enter terminal ID..."
                 const res = await fetchWithAuth(`/api/knowledge/${f}`, { method: 'DELETE' });
                 if (res && res.ok) { showKBToast(`✅ ${f} deleted successfully`, 'green'); }
                 else { showKBToast(`❌ Failed to delete ${f}`, 'red'); }
-            } catch(e) { showKBToast('❌ Delete failed: ' + e.message, 'red'); }
+            } catch (e) { showKBToast('❌ Delete failed: ' + e.message, 'red'); }
             loadKnowledge(); loadKBStats();
         }
         function showKBToast(msg, color) {
@@ -2807,7 +3196,7 @@ Step 3: Select NETS and enter terminal ID..."
         }
         function adminFormatAnswer(text) {
             if (!text) return '';
-            return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/^(\d+)\.\s+(.+)/gm, '<li class="ml-4 mb-1"><span class="font-semibold text-purple-600 mr-1">$1.</span> $2</li>')
                 .replace(/^[-•]\s+(.+)/gm, '<li class="ml-4 mb-1">• $1</li>')
@@ -2823,7 +3212,7 @@ Step 3: Select NETS and enter terminal ID..."
             }
         }
         // Character counter
-        document.getElementById('kb-paste-content').addEventListener('input', function() {
+        document.getElementById('kb-paste-content').addEventListener('input', function () {
             document.getElementById('kb-paste-charcount').textContent = this.value.length.toLocaleString();
         });
 
@@ -2950,13 +3339,13 @@ Step 3: Select NETS and enter terminal ID..."
             if (customerUnmasked) {
                 icon.className = 'fas fa-eye';
                 label.innerText = 'Hide';
-                btn.classList.remove('bg-gray-100','text-gray-600');
-                btn.classList.add('bg-amber-100','text-amber-700');
+                btn.classList.remove('bg-gray-100', 'text-gray-600');
+                btn.classList.add('bg-amber-100', 'text-amber-700');
             } else {
                 icon.className = 'fas fa-eye-slash';
                 label.innerText = 'Show';
-                btn.classList.remove('bg-amber-100','text-amber-700');
-                btn.classList.add('bg-gray-100','text-gray-600');
+                btn.classList.remove('bg-amber-100', 'text-amber-700');
+                btn.classList.add('bg-gray-100', 'text-gray-600');
             }
             loadCustomers();
         }
@@ -2964,18 +3353,18 @@ Step 3: Select NETS and enter terminal ID..."
         // --- Customer DataTable Engine ---
         const CDT = {
             columns: [
-                { key:'_no',      label:'No',             visible:true, sortable:false, getter: (c,i)=> i+1 },
-                { key:'accountId',label:'Account ID',     visible:true, sortable:true,  getter: c=> c.identifier||'', numeric: true },
-                { key:'title',    label:'Title',          visible:true, sortable:true,  getter: c=> c.title||'' },
-                { key:'firstName',label:'First Name',     visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p[0]||''; }},
-                { key:'lastName', label:'Last Name',      visible:true, sortable:true,  getter: c=> { const p=(c.name||'').trim().split(/\s+/); return p.length>1?p.slice(1).join(' '):''; }},
-                { key:'email',    label:'Email',          visible:true, sortable:true,  getter: c=> c.email||'' },
-                { key:'mobile',   label:'Mobile',         visible:true, sortable:true,  getter: c=> c.mobile||'' },
-                { key:'company',  label:'Company',        visible:true, sortable:true,  getter: c=> c.company||'' },
-                { key:'outlet',   label:'Outlet',         visible:true, sortable:true,  getter: c=> c.outlet_pos||'' },
-                { key:'address',  label:'Outlet Address', visible:true, sortable:true,  getter: c=> c.outlet_address||'' },
-                { key:'category', label:'Column1',        visible:true, sortable:true,  getter: c=> c.category||'' },
-                { key:'_actions', label:'Actions',        visible:true, sortable:false, getter: null }
+                { key: '_no', label: 'No', visible: true, sortable: false, getter: (c, i) => i + 1 },
+                { key: 'accountId', label: 'Account ID', visible: true, sortable: true, getter: c => c.identifier || '', numeric: true },
+                { key: 'title', label: 'Title', visible: true, sortable: true, getter: c => c.title || '' },
+                { key: 'firstName', label: 'First Name', visible: true, sortable: true, getter: c => { const p = (c.name || '').trim().split(/\s+/); return p[0] || ''; } },
+                { key: 'lastName', label: 'Last Name', visible: true, sortable: true, getter: c => { const p = (c.name || '').trim().split(/\s+/); return p.length > 1 ? p.slice(1).join(' ') : ''; } },
+                { key: 'email', label: 'Email', visible: true, sortable: true, getter: c => c.email || '' },
+                { key: 'mobile', label: 'Mobile', visible: true, sortable: true, getter: c => c.mobile || '' },
+                { key: 'company', label: 'Company', visible: true, sortable: true, getter: c => c.company || '' },
+                { key: 'outlet', label: 'Outlet', visible: true, sortable: true, getter: c => c.outlet_pos || '' },
+                { key: 'address', label: 'Outlet Address', visible: true, sortable: true, getter: c => c.outlet_address || '' },
+                { key: 'category', label: 'Column1', visible: true, sortable: true, getter: c => c.category || '' },
+                { key: '_actions', label: 'Actions', visible: true, sortable: false, getter: null }
             ],
             sortCol: 'accountId',
             sortAsc: true,
@@ -2986,24 +3375,24 @@ Step 3: Select NETS and enter terminal ID..."
 
             // save/load prefs
             savePrefs() {
-                const p = { order: this.columns.map(c=>c.key), hidden: this.columns.filter(c=>!c.visible).map(c=>c.key), sortCol: this.sortCol, sortAsc: this.sortAsc, perPage: this.perPage };
-                try { localStorage.setItem('cdt_prefs', JSON.stringify(p)); } catch(e){}
+                const p = { order: this.columns.map(c => c.key), hidden: this.columns.filter(c => !c.visible).map(c => c.key), sortCol: this.sortCol, sortAsc: this.sortAsc, perPage: this.perPage };
+                try { localStorage.setItem('cdt_prefs', JSON.stringify(p)); } catch (e) { }
             },
             loadPrefs() {
                 try {
                     const p = JSON.parse(localStorage.getItem('cdt_prefs'));
                     if (!p) return;
                     if (p.order) {
-                        const map = {}; this.columns.forEach(c=> map[c.key]=c);
-                        const reordered = p.order.map(k=>map[k]).filter(Boolean);
-                        this.columns.forEach(c=> { if(!reordered.includes(c)) reordered.push(c); });
+                        const map = {}; this.columns.forEach(c => map[c.key] = c);
+                        const reordered = p.order.map(k => map[k]).filter(Boolean);
+                        this.columns.forEach(c => { if (!reordered.includes(c)) reordered.push(c); });
                         this.columns = reordered;
                     }
-                    if (p.hidden) this.columns.forEach(c=> { if(p.hidden.includes(c.key)) c.visible=false; });
-                    if (p.sortCol && this.columns.some(c=>c.key===p.sortCol)) this.sortCol = p.sortCol;
+                    if (p.hidden) this.columns.forEach(c => { if (p.hidden.includes(c.key)) c.visible = false; });
+                    if (p.sortCol && this.columns.some(c => c.key === p.sortCol)) this.sortCol = p.sortCol;
                     if (p.sortAsc !== undefined) this.sortAsc = p.sortAsc;
                     if (p.perPage) this.perPage = p.perPage;
-                } catch(e){}
+                } catch (e) { }
             },
 
             // get filtered + sorted data
@@ -3012,30 +3401,30 @@ Step 3: Select NETS and enter terminal ID..."
                 if (this.searchQ) {
                     const q = this.searchQ;
                     data = data.filter(c =>
-                        (c.name||'').toLowerCase().includes(q) ||
-                        (c.company||'').toLowerCase().includes(q) ||
-                        (c.account_id||'').toLowerCase().includes(q) ||
-                        (c.identifier||'').toLowerCase().includes(q) ||
-                        (c.outlet_pos||'').toLowerCase().includes(q) ||
-                        (c.email||'').toLowerCase().includes(q) ||
-                        (c.mobile||'').toLowerCase().includes(q) ||
-                        (c.category||'').toLowerCase().includes(q) ||
-                        (c.outlet_address||'').toLowerCase().includes(q)
+                        (c.name || '').toLowerCase().includes(q) ||
+                        (c.company || '').toLowerCase().includes(q) ||
+                        (c.account_id || '').toLowerCase().includes(q) ||
+                        (c.identifier || '').toLowerCase().includes(q) ||
+                        (c.outlet_pos || '').toLowerCase().includes(q) ||
+                        (c.email || '').toLowerCase().includes(q) ||
+                        (c.mobile || '').toLowerCase().includes(q) ||
+                        (c.category || '').toLowerCase().includes(q) ||
+                        (c.outlet_address || '').toLowerCase().includes(q)
                     );
                 }
                 // sort
-                const col = this.columns.find(c=>c.key===this.sortCol);
+                const col = this.columns.find(c => c.key === this.sortCol);
                 if (col && col.sortable && col.getter) {
                     const dir = this.sortAsc ? 1 : -1;
-                    data = [...data].sort((a,b)=>{
+                    data = [...data].sort((a, b) => {
                         if (col.numeric) {
                             // Extract number from strings like 'EWS000002' for numeric sort
-                            const na = parseInt((col.getter(a,0).toString().match(/\d+/) || ['0'])[0]);
-                            const nb = parseInt((col.getter(b,0).toString().match(/\d+/) || ['0'])[0]);
+                            const na = parseInt((col.getter(a, 0).toString().match(/\d+/) || ['0'])[0]);
+                            const nb = parseInt((col.getter(b, 0).toString().match(/\d+/) || ['0'])[0]);
                             return (na - nb) * dir;
                         }
-                        const va = col.getter(a,0).toString().toLowerCase();
-                        const vb = col.getter(b,0).toString().toLowerCase();
+                        const va = col.getter(a, 0).toString().toLowerCase();
+                        const vb = col.getter(b, 0).toString().toLowerCase();
                         return va < vb ? -dir : va > vb ? dir : 0;
                     });
                 }
@@ -3050,19 +3439,19 @@ Step 3: Select NETS and enter terminal ID..."
                 if (this.page > totalPages) this.page = totalPages;
                 const start = (this.page - 1) * this.perPage;
                 const pageData = data.slice(start, start + this.perPage);
-                const visCols = this.columns.filter(c=>c.visible);
+                const visCols = this.columns.filter(c => c.visible);
 
                 let html = '';
                 // Toolbar
                 html += '<div class="cdt-toolbar">';
                 // Search
-                html += '<input type="text" id="cdt-search" placeholder="Search..." value="' + (this.searchQ ? this.searchQ.replace(/"/g,'&quot;') : '') + '" class="flex-1 min-w-[200px] px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">';
+                html += '<input type="text" id="cdt-search" placeholder="Search..." value="' + (this.searchQ ? this.searchQ.replace(/"/g, '&quot;') : '') + '" class="flex-1 min-w-[200px] px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">';
                 // Column toggle
                 html += '<div class="cdt-col-toggle"><button id="cdt-col-btn" class="px-4 py-2.5 text-xs font-bold uppercase tracking-wider border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-2"><i class="fas fa-columns"></i> Columns</button>';
                 html += '<div id="cdt-col-menu" class="cdt-col-menu">';
-                this.columns.forEach((col,i)=>{
-                    if (col.key==='_no'||col.key==='_actions') return;
-                    html += `<label><input type="checkbox" data-col-idx="${i}" ${col.visible?'checked':''}> ${col.label}</label>`;
+                this.columns.forEach((col, i) => {
+                    if (col.key === '_no' || col.key === '_actions') return;
+                    html += `<label><input type="checkbox" data-col-idx="${i}" ${col.visible ? 'checked' : ''}> ${col.label}</label>`;
                 });
                 html += '</div></div>';
                 // Count info
@@ -3083,16 +3472,16 @@ Step 3: Select NETS and enter terminal ID..."
                 html += '<thead><tr>';
                 visCols.forEach((col, vi) => {
                     const isSorted = this.sortCol === col.key;
-                    const draggable = col.key!=='_no' && col.key!=='_actions' ? 'draggable="true"' : '';
+                    const draggable = col.key !== '_no' && col.key !== '_actions' ? 'draggable="true"' : '';
                     let icon = '';
                     if (col.sortable) {
                         if (isSorted) {
-                            icon = `<span class="sort-icon active"><i class="fas fa-sort-${this.sortAsc?'up':'down'}"></i></span>`;
+                            icon = `<span class="sort-icon active"><i class="fas fa-sort-${this.sortAsc ? 'up' : 'down'}"></i></span>`;
                         } else {
                             icon = '<span class="sort-icon"><i class="fas fa-sort"></i></span>';
                         }
                     }
-                    const align = col.key==='_actions' ? 'text-align:right;' : col.key==='_no' ? 'text-align:center;' : '';
+                    const align = col.key === '_actions' ? 'text-align:right;' : col.key === '_no' ? 'text-align:center;' : '';
                     html += `<th data-col-key="${col.key}" ${draggable} style="${align}">${col.label}${icon}</th>`;
                 });
                 html += '</tr></thead>';
@@ -3107,7 +3496,7 @@ Step 3: Select NETS and enter terminal ID..."
                         html += '<tr>';
                         visCols.forEach(col => {
                             if (col.key === '_no') {
-                                html += `<td style="text-align:center;color:#94a3b8;font-family:monospace;">${globalIdx+1}</td>`;
+                                html += `<td style="text-align:center;color:#94a3b8;font-family:monospace;">${globalIdx + 1}</td>`;
                             } else if (col.key === '_actions') {
                                 html += `<td style="text-align:right;"><button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button><button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button></td>`;
                             } else if (col.key === 'accountId') {
@@ -3120,7 +3509,7 @@ Step 3: Select NETS and enter terminal ID..."
                             } else if (col.key === 'category') {
                                 const v = col.getter(c, globalIdx);
                                 if (v) {
-                                    const cls = v==='FNB'?'bg-orange-50 text-orange-600':'bg-blue-50 text-blue-600';
+                                    const cls = v === 'FNB' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600';
                                     html += `<td><span class="px-2 py-1 text-[10px] font-bold uppercase rounded-lg ${cls}">${v}</span></td>`;
                                 } else {
                                     html += '<td style="color:#94a3b8;">--</td>';
@@ -3140,23 +3529,23 @@ Step 3: Select NETS and enter terminal ID..."
                 html += '<div style="display:flex;align-items:center;gap:6px;">';
                 html += `<span class="text-xs text-gray-500">Rows per page:</span>`;
                 html += '<select id="cdt-perpage">';
-                [25,50,100,200,500].forEach(n=>{
-                    html += `<option value="${n}" ${this.perPage===n?'selected':''}>${n}</option>`;
+                [25, 50, 100, 200, 500].forEach(n => {
+                    html += `<option value="${n}" ${this.perPage === n ? 'selected' : ''}>${n}</option>`;
                 });
                 html += '</select>';
-                html += `<span class="text-xs text-gray-400 ml-2">${start+1}-${Math.min(start+this.perPage, totalFiltered)} of ${totalFiltered}</span>`;
+                html += `<span class="text-xs text-gray-400 ml-2">${start + 1}-${Math.min(start + this.perPage, totalFiltered)} of ${totalFiltered}</span>`;
                 html += '</div>';
                 html += '<div style="display:flex;align-items:center;gap:4px;">';
-                html += `<button id="cdt-prev" ${this.page<=1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+                html += `<button id="cdt-prev" ${this.page <= 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
                 // page buttons
                 const maxBtns = 7;
-                let pStart = Math.max(1, this.page - Math.floor(maxBtns/2));
+                let pStart = Math.max(1, this.page - Math.floor(maxBtns / 2));
                 let pEnd = Math.min(totalPages, pStart + maxBtns - 1);
                 if (pEnd - pStart < maxBtns - 1) pStart = Math.max(1, pEnd - maxBtns + 1);
                 for (let p = pStart; p <= pEnd; p++) {
-                    html += `<button class="cdt-page-btn ${p===this.page?'active':''}" data-page="${p}">${p}</button>`;
+                    html += `<button class="cdt-page-btn ${p === this.page ? 'active' : ''}" data-page="${p}">${p}</button>`;
                 }
-                html += `<button id="cdt-next" ${this.page>=totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+                html += `<button id="cdt-next" ${this.page >= totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
                 html += '</div></div>';
 
                 root.innerHTML = html;
@@ -3185,7 +3574,7 @@ Step 3: Select NETS and enter terminal ID..."
                 // Search
                 const searchEl = document.getElementById('cdt-search');
                 if (searchEl) {
-                    searchEl.addEventListener('input', function() {
+                    searchEl.addEventListener('input', function () {
                         self.searchQ = this.value.trim().toLowerCase();
                         self.page = 1;
                         self.render();
@@ -3202,7 +3591,7 @@ Step 3: Select NETS and enter terminal ID..."
                     document.addEventListener('click', () => colMenu.classList.remove('open'), { once: false });
                     colMenu.addEventListener('click', e => e.stopPropagation());
                     colMenu.querySelectorAll('input[type=checkbox]').forEach(cb => {
-                        cb.addEventListener('change', function() {
+                        cb.addEventListener('change', function () {
                             const idx = parseInt(this.dataset.colIdx);
                             self.columns[idx].visible = this.checked;
                             self.savePrefs();
@@ -3213,7 +3602,7 @@ Step 3: Select NETS and enter terminal ID..."
                 // Sort
                 document.querySelectorAll('#cdt-tbl thead th[data-col-key]').forEach(th => {
                     const key = th.dataset.colKey;
-                    const col = self.columns.find(c=>c.key===key);
+                    const col = self.columns.find(c => c.key === key);
                     if (!col || !col.sortable) return;
                     th.addEventListener('click', () => {
                         if (self.sortCol === key) { self.sortAsc = !self.sortAsc; }
@@ -3224,19 +3613,19 @@ Step 3: Select NETS and enter terminal ID..."
                 });
                 // Drag & drop columns
                 document.querySelectorAll('#cdt-tbl thead th[draggable]').forEach(th => {
-                    th.addEventListener('dragstart', function(e) {
-                        self.dragSrcIdx = self.columns.findIndex(c=>c.key===this.dataset.colKey);
+                    th.addEventListener('dragstart', function (e) {
+                        self.dragSrcIdx = self.columns.findIndex(c => c.key === this.dataset.colKey);
                         e.dataTransfer.effectAllowed = 'move';
                         e.dataTransfer.setData('text/plain', this.dataset.colKey);
                         this.style.opacity = '0.4';
                     });
-                    th.addEventListener('dragend', function() { this.style.opacity = '1'; });
-                    th.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
-                    th.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
-                    th.addEventListener('drop', function(e) {
+                    th.addEventListener('dragend', function () { this.style.opacity = '1'; });
+                    th.addEventListener('dragover', function (e) { e.preventDefault(); this.classList.add('drag-over'); });
+                    th.addEventListener('dragleave', function () { this.classList.remove('drag-over'); });
+                    th.addEventListener('drop', function (e) {
                         e.preventDefault();
                         this.classList.remove('drag-over');
-                        const destIdx = self.columns.findIndex(c=>c.key===this.dataset.colKey);
+                        const destIdx = self.columns.findIndex(c => c.key === this.dataset.colKey);
                         if (self.dragSrcIdx !== null && self.dragSrcIdx !== destIdx) {
                             const moved = self.columns.splice(self.dragSrcIdx, 1)[0];
                             self.columns.splice(destIdx, 0, moved);
@@ -3251,10 +3640,10 @@ Step 3: Select NETS and enter terminal ID..."
                 if (prevBtn) prevBtn.addEventListener('click', () => { self.page--; self.render(); });
                 if (nextBtn) nextBtn.addEventListener('click', () => { self.page++; self.render(); });
                 document.querySelectorAll('.cdt-page-btn').forEach(btn => {
-                    btn.addEventListener('click', function() { self.page = parseInt(this.dataset.page); self.render(); });
+                    btn.addEventListener('click', function () { self.page = parseInt(this.dataset.page); self.render(); });
                 });
                 const ppSel = document.getElementById('cdt-perpage');
-                if (ppSel) ppSel.addEventListener('change', function() { self.perPage = parseInt(this.value); self.page = 1; self.savePrefs(); self.render(); });
+                if (ppSel) ppSel.addEventListener('change', function () { self.perPage = parseInt(this.value); self.page = 1; self.savePrefs(); self.render(); });
             }
         };
 
@@ -3424,7 +3813,7 @@ Step 3: Select NETS and enter terminal ID..."
                     loadKnowledge(); loadKBStats();
                 } else {
                     let errMsg = 'Unknown error';
-                    try { const data = await res.json(); errMsg = data.error || data.detail || errMsg; } catch(e) {}
+                    try { const data = await res.json(); errMsg = data.error || data.detail || errMsg; } catch (e) { }
                     statusText.innerText = `❌ Crawl failed: ${errMsg}`;
                     box.classList.remove('bg-blue-50', 'border-blue-100');
                     box.classList.add('bg-red-50', 'border-red-100');
