@@ -2273,61 +2273,51 @@
                 <div class="p-8 rounded-2xl animate-fade-in-up" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
                     <div class="flex items-center gap-4">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 flex-shrink-0"></div>
-                        // Confidence color
-                        const conf = data.confidence || 0;
-                        let confColor = '#ef4444'; let confLabel = 'Low';
-                        if (conf >= 0.7) { confColor = '#10b981'; confLabel = 'High'; }
-                        else if (conf >= 0.4) { confColor = '#f59e0b'; confLabel = 'Medium'; }
-
-                        // Format answer with markdown-like rendering
-                        const formattedAnswer = formatKbAnswer(data.answer);
-
-                        // Build result card (NO "Internal" label, NO source info for customers)
-                        const resultHtml = `
-                < div class="animate-fade-in-up" >
-                                <!-- Query Badge -->
-                                <div class="flex items-start gap-3 mb-3">
-                                    <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background: var(--bubble-user-bg)">
-                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div class="pt-1">
-                                        <p class="font-bold text-sm" style="color: var(--text-primary)">${query}</p>
-                                    </div>
-                                </div>
-
-                                <!--Answer Card-- >
-                <div class="ml-11 p-5 rounded-2xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1)">
-                            <svg class="w-3.5 h-3.5" style="color: #10b981" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                        </div>
-                        <span class="text-[11px] font-bold uppercase tracking-wider" style="color: #10b981">AI Answer</span>
-                        <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold" style="background: ${confColor}15; color: ${confColor}; border: 1px solid ${confColor}30">
-                            ${confLabel} Confidence (${Math.round(conf * 100)}%)
-                        </span>
+                        <p class="text-sm font-semibold" style="color: var(--text-secondary)">Searching knowledge base with AI...</p>
                     </div>
-                    <div class="kb-answer text-sm leading-relaxed" style="color: var(--text-primary)">${formattedAnswer}</div>
-
-                    <!-- Actions -->
-                    <div class="mt-3 flex items-center gap-2">
-                        <button onclick="copyKbAnswer(this)" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Copy answer">
-                            📋 Copy
-                        </button>
-                        <button onclick="kbQuickAsk('Tell me more about: ${query.replace(/'/g, "\\'")}")" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Ask follow-up">
-                        🔄 Ask More
-                    </button>
                 </div>
-                                </div >
-                            </div >
-                `;
+            `;
 
-                        // Prepend new result, keep previous results
-                        const prevResults = results.innerHTML.includes('Searching knowledge base') ? '' : results.innerHTML;
-                        results.innerHTML = resultHtml + (prevResults ? '<div class="my-4" style="border-bottom: 1px dashed var(--border-color)"></div>' + prevResults : '');
+            try {
+                const res = await fetch('/api/kb/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, language: lang })
+                });
+
+                const data = await res.json();
+
+                if (data.error) {
+                    results.innerHTML = `<div class="p-6 rounded-2xl text-center" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2)"><p class="font-bold text-red-500">${data.error}</p></div>`;
+                    return;
+                }
+
+                // Confidence color
+                const conf = data.confidence || 0;
+                let confColor = '#ef4444'; let confLabel = 'Low';
+                if (conf >= 0.7) { confColor = '#10b981'; confLabel = 'High'; }
+                else if (conf >= 0.4) { confColor = '#f59e0b'; confLabel = 'Medium'; }
+
+                // Format answer with markdown-like rendering
+                const formattedAnswer = formatKbAnswer(data.answer);
+
+                // Build result card (NO "Internal" label, NO source info for customers)
+                const resultHtml = `
+                    <div class="animate-fade-in-up">
+                        <!-- Query Badge -->
+                        <div class="flex items-start gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background: var(--bubble-user-bg)">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="pt-1">
+                                <p class="font-bold text-sm" style="color: var(--text-primary)">${query}</p>
+                            </div>
+                        </div>
+
+                        <!-- Answer Card -->
+                        <div class="ml-11 p-5 rounded-2xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
                             <div class="flex items-center gap-2 mb-3">
                                 <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1)">
                                     <svg class="w-3.5 h-3.5" style="color: #10b981" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2346,7 +2336,7 @@
                                 <button onclick="copyKbAnswer(this)" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Copy answer">
                                     📋 Copy
                                 </button>
-                                <button onclick="kbQuickAsk('Tell me more about: ${query.replace(/'/g, "\\\\'")}')" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Ask follow-up">
+                                <button onclick="kbQuickAsk('Tell me more about: ${query.replace(/'/g, "\\\\'").replace(/"/g, '&quot;')}')" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition hover:scale-105" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color)" title="Ask follow-up">
                                     🔄 Ask More
                                 </button>
                             </div>
@@ -2354,17 +2344,17 @@
                     </div>
                 `;
 
-            // Prepend new result, keep previous results
-            const prevResults = results.innerHTML.includes('Searching knowledge base') ? '' : results.innerHTML;
-            results.innerHTML = resultHtml + (prevResults ? '<div class="my-4" style="border-bottom: 1px dashed var(--border-color)"></div>' + prevResults : '');
+                // Prepend new result, keep previous results
+                const prevResults = results.innerHTML.includes('Searching knowledge base') ? '' : results.innerHTML;
+                results.innerHTML = resultHtml + (prevResults ? '<div class="my-4" style="border-bottom: 1px dashed var(--border-color)"></div>' + prevResults : '');
 
-        } catch (err) {
-            results.innerHTML = `
+            } catch (err) {
+                results.innerHTML = `
                     <div class="p-6 rounded-2xl text-center" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2)">
                         <p class="font-bold text-red-500">⚠️ Network error. Please try again.</p>
                     </div>
                 `;
-        }
+            }
         }
 
         function formatKbAnswer(text) {
