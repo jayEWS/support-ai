@@ -1437,10 +1437,21 @@ async def upload_screen_recording(
 
 @app.post("/api/kb/query")
 @limiter.limit("10/minute")
-async def kb_internal_query(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Internal staff knowledge base query - searches KB and returns AI answer without creating tickets or chat sessions"""
+async def kb_internal_query(request: Request):
+    """Knowledge base query - available to both customers and agents. Sources only shown to authenticated agents."""
     set_trace_id()
     try:
+        # Optionally detect if caller is an authenticated agent
+        is_agent = False
+        try:
+            token = _extract_bearer_token(request) or request.cookies.get("access_token")
+            if token:
+                payload = decode_access_token(token)
+                if payload and _require_db().get_agent(payload.get("sub")):
+                    is_agent = True
+        except Exception:
+            pass
+
         data = await request.json()
         query = data.get("query", "").strip()
         language = data.get("language", "en")
@@ -1468,14 +1479,21 @@ async def kb_internal_query(request: Request, agent: Annotated[dict, Depends(get
         # Include chunk_ids for RFF feedback (V2 only)
         chunk_ids = result.chunk_ids if hasattr(result, 'chunk_ids') else []
         
-        return {
+        # Only expose sources & chunk_ids to authenticated agents
+        response_data = {
             "answer": result.answer,
             "confidence": result.confidence,
-            "sources": result.source_documents if result.source_documents else [],
             "retrieval_method": result.retrieval_method if hasattr(result, 'retrieval_method') else "unknown",
             "query": query,
-            "chunk_ids": chunk_ids,
         }
+        if is_agent:
+            response_data["sources"] = result.source_documents if result.source_documents else []
+            response_data["chunk_ids"] = chunk_ids
+        else:
+            response_data["sources"] = []
+            response_data["chunk_ids"] = []
+        
+        return response_data
     except Exception as e:
         logger.error(f"KB internal query error: {e}")
         return JSONResponse({"error": f"Failed to query knowledge base: {str(e)}"}, status_code=500)

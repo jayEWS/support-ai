@@ -708,6 +708,40 @@
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-4 gap-4 mb-6" id="kb-stats">
+
+            <!-- ═══ AI Knowledge Search (Internal Agent) ═══ -->
+            <div class="mb-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-brain text-purple-600 text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-gray-800 uppercase tracking-tight">Ask AI Knowledge Base</h3>
+                        <p class="text-[10px] text-gray-400">Internal Self-Service • Search documentation with AI • Sources visible</p>
+                    </div>
+                </div>
+                <form id="admin-kb-search-form" onsubmit="event.preventDefault(); adminKbSearch();" class="flex gap-2 mb-3">
+                    <input type="text" id="admin-kb-input" placeholder="Ask anything... e.g. How to close counter? NETS troubleshooting"
+                        class="flex-1 px-4 py-3 text-sm border border-purple-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 bg-white">
+                    <select id="admin-kb-lang" class="px-3 py-2 rounded-xl text-xs font-bold border border-purple-200 bg-white text-gray-600">
+                        <option value="en">English</option>
+                        <option value="id">Bahasa</option>
+                        <option value="zh">中文</option>
+                    </select>
+                    <button type="submit" class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-600/20">
+                        <i class="fas fa-bolt"></i> Ask AI
+                    </button>
+                </form>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button onclick="adminKbQuick('How to close counter at end of day?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🔒 Closing Counter</button>
+                    <button onclick="adminKbQuick('How to process NETS payment?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">💳 NETS Payment</button>
+                    <button onclick="adminKbQuick('How to add a new product in EquipWeb?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">📦 Add Product</button>
+                    <button onclick="adminKbQuick('How to process a refund?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">💰 Refund</button>
+                    <button onclick="adminKbQuick('NETS terminal troubleshooting')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🔧 NETS Troubleshoot</button>
+                    <button onclick="adminKbQuick('How to set up KDS kitchen display?')" class="px-3 py-1.5 bg-white border border-purple-100 rounded-lg text-[10px] font-bold text-gray-500 hover:text-purple-600 hover:border-purple-300 transition">🍽️ KDS Setup</button>
+                </div>
+                <div id="admin-kb-results" class="space-y-3"><!-- AI results injected here --></div>
+            </div>
                 <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Documents</p>
                     <p class="text-2xl font-black text-blue-600" id="kb-stat-files">--</p>
@@ -2668,6 +2702,55 @@
             bar.style.width = color === 'green' ? '100%' : '0%';
             percentText.innerText = '';
             setTimeout(() => { box.classList.add('hidden'); box.classList.remove(`bg-${color}-50`, `border-${color}-100`); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.className = 'text-xs font-bold text-blue-600 uppercase tracking-widest'; statusText.id = 'upload-status-text'; }, 4000);
+        }
+
+        /* ═══ Admin KB AI Search (with sources) ═══ */
+        function adminKbQuick(q) { document.getElementById('admin-kb-input').value = q; adminKbSearch(); }
+        async function adminKbSearch() {
+            const query = document.getElementById('admin-kb-input').value.trim();
+            if (!query) return;
+            const lang = document.getElementById('admin-kb-lang').value;
+            const results = document.getElementById('admin-kb-results');
+            results.innerHTML = `<div class="flex items-center gap-3 p-4 bg-white rounded-xl border border-purple-100"><div class="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full"></div><span class="text-xs font-bold text-purple-600 uppercase tracking-widest">Searching knowledge base...</span></div>`;
+            try {
+                const res = await fetchWithAuth('/api/kb/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, language: lang }) });
+                const data = await res.json();
+                if (!res.ok) { results.innerHTML = `<div class="p-4 bg-red-50 rounded-xl border border-red-100 text-red-600 text-xs font-bold">${data.error || 'Failed to query'}</div>`; return; }
+                const conf = data.confidence || 0;
+                let confColor = '#ef4444', confLabel = 'Low';
+                if (conf >= 0.7) { confColor = '#10b981'; confLabel = 'High'; }
+                else if (conf >= 0.4) { confColor = '#f59e0b'; confLabel = 'Medium'; }
+                const sources = data.sources && data.sources.length > 0
+                    ? data.sources.map(s => `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold bg-gray-100 text-gray-600"><i class="fas fa-file-alt"></i> ${s}</span>`).join(' ')
+                    : '<span class="text-[10px] text-gray-400">No specific source</span>';
+                const answer = adminFormatAnswer(data.answer);
+                results.innerHTML = `
+                    <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-[10px] font-black text-purple-600 uppercase tracking-widest">AI Answer</span>
+                            <span class="ml-auto px-2 py-0.5 rounded-full text-[9px] font-bold" style="background: ${confColor}15; color: ${confColor}; border: 1px solid ${confColor}30">${confLabel} (${Math.round(conf * 100)}%)</span>
+                        </div>
+                        <div class="text-sm text-gray-700 leading-relaxed mb-3 kb-admin-answer">${answer}</div>
+                        <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
+                            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mr-2">Sources:</span>
+                            ${sources}
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="navigator.clipboard.writeText(document.querySelector('.kb-admin-answer').innerText).then(()=>{this.innerHTML='✅ Copied!';setTimeout(()=>this.innerHTML='📋 Copy',2000)})" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold text-gray-500 hover:bg-gray-100 transition">📋 Copy</button>
+                            <button onclick="adminKbQuick('Tell me more about: '+document.getElementById('admin-kb-input').value)" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold text-gray-500 hover:bg-gray-100 transition">🔄 Ask More</button>
+                        </div>
+                    </div>`;
+            } catch (e) {
+                results.innerHTML = `<div class="p-4 bg-red-50 rounded-xl border border-red-100 text-red-600 text-xs font-bold">⚠️ Network error: ${e.message}</div>`;
+            }
+        }
+        function adminFormatAnswer(text) {
+            if (!text) return '';
+            return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^(\d+)\.\s+(.+)/gm, '<li class="ml-4 mb-1"><span class="font-semibold text-purple-600 mr-1">$1.</span> $2</li>')
+                .replace(/^[-•]\s+(.+)/gm, '<li class="ml-4 mb-1">• $1</li>')
+                .replace(/\n\n/g, '</p><p class="mb-2">').replace(/\n/g, '<br>');
         }
 
         async function trainAI() {
