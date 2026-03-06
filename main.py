@@ -1437,7 +1437,7 @@ async def upload_screen_recording(
 
 @app.post("/api/kb/query")
 @limiter.limit("10/minute")
-async def kb_internal_query(request: Request):
+async def kb_internal_query(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
     """Internal staff knowledge base query - searches KB and returns AI answer without creating tickets or chat sessions"""
     set_trace_id()
     try:
