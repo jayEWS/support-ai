@@ -2364,16 +2364,20 @@
             // Basic markdown-like formatting
             let html = cleaned
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                // Bold
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                // Numbered lists
-                .replace(/^(\d+)\.\s+(.+)/gm, '<li class="ml-4 mb-1"><span class="font-semibold text-brand-600 mr-1">$1.</span> $2</li>')
-                // Bullet points
-                .replace(/^[-•]\s+(.+)/gm, '<li class="ml-4 mb-1">• $1</li>')
-                // Line breaks
-                .replace(/\n\n/g, '</p><p class="mb-2">')
+                // Headers (e.g. ### Header or **Header:**) -> make them look like headers
+                .replace(/^(###|##|#)\s+(.+)/gm, '<h3 class="font-bold text-lg mt-4 mb-2 text-brand-500">$2</h3>')
+                // Bold 
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>')
+                // Remove stray asterisks used as pseudo-bullets at the start of lines
+                .replace(/^\s*\*\s+(?!\*)/gm, '• ')
+                // Numbered lists (1. Item)
+                .replace(/^(\d+)\.\s+(.+)/gm, '<div class="flex items-start mt-1 mb-1"><span class="font-semibold text-brand-600 mr-2 min-w-[1.2rem]">$1.</span> <span class="flex-1">$2</span></div>')
+                // Bullet points (- Item or • Item)
+                .replace(/^[-•]\s+(.+)/gm, '<div class="flex items-start mt-1 mb-1"><span class="text-brand-500 mr-2 font-bold">•</span> <span class="flex-1">$1</span></div>')
+                // Line breaks (only wrap normal text in paragraphs, skip divs we just made)
+                .replace(/\n\n/g, '</p><p class="mb-2 mt-2">')
                 .replace(/\n/g, '<br>');
-            return '<p class="mb-2">' + html + '</p>';
+            return '<div class="space-y-1"><p>' + html + '</p></div>';
         }
 
         function copyKbAnswer(btn) {
