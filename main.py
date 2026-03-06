@@ -1541,9 +1541,27 @@ async def kb_internal_query(request: Request):
         if not is_agent:
             # Remove 'Internal' and 'Source' references for customers
             import re
+            
+            # Remove any variations of Internal
             answer = re.sub(r"Internal[\s:]*", "", answer, flags=re.IGNORECASE)
-            answer = re.sub(r"Source\s*\d+", "", answer, flags=re.IGNORECASE)
-            answer = re.sub(r"Source\s*:\s*[^\n\r]*", "", answer, flags=re.IGNORECASE)
+            
+            # Remove "Sources:" or "Source:" followed by anything until the end of the line/text
+            answer = re.sub(r"Sources?:\s*.*?(?=\n|$)", "", answer, flags=re.IGNORECASE)
+            answer = re.sub(r"\*?\*?Sources?:?\*?\*?\s*.*?(?=\n|$)", "", answer, flags=re.IGNORECASE)
+            
+            # Remove [1], [2], {1}, etc. which are often used for source citations
+            answer = re.sub(r"\[\d+\]", "", answer)
+            answer = re.sub(r"\{\d+\}", "", answer)
+            
+            # Remove filenames with common extensions (e.g. file.txt, document.pdf)
+            answer = re.sub(r"[\w-]+\.(txt|pdf|docx|md|csv)", "", answer, flags=re.IGNORECASE)
+            
+            # Remove stray empty brackets and parentheses left behind
+            answer = re.sub(r"\(\s*\)", "", answer)
+            answer = re.sub(r"\[\s*\]", "", answer)
+            
+            # Clean up trailing newlines resulting from source removal
+            answer = answer.strip()
         response_data = {
             "answer": answer,
             "confidence": result.confidence,
