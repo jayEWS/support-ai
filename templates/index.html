@@ -895,7 +895,7 @@
             color: var(--text-tertiary);
         }
 
-                /* ═══════════ KB ANSWER FORMATTING ═══════════ */
+        /* ═══════════ KB ANSWER FORMATTING ═══════════ */
         .kb-answer {
             font-size: 0.95rem;
             line-height: 1.6;
@@ -936,7 +936,8 @@
         }
 
         .kb-clue {
-            color: #ff3b3b; /* Red as requested */
+            color: #ff3b3b;
+            /* Red as requested */
             font-weight: 700;
         }
 
@@ -974,7 +975,7 @@
                     <h1 class="text-lg font-bold tracking-tight" style="color: var(--text-primary)">
                         <span class="brand-gradient">Edgeworks</span>
                     </h1>
-                    <p class="text-[9px] font-semibold uppercase tracking-[0.15em]" style="color: var(--text-tertiary)">
+                    <p class="text-[9px] font-semibold tracking-[0.15em]" style="color: var(--text-tertiary)">
                         Support Portal</p>
                 </div>
             </div>
@@ -1028,8 +1029,7 @@
 
             <!-- Theme Switcher -->
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold uppercase tracking-wider"
-                    style="color: var(--text-tertiary)">Theme</span>
+                <span class="text-[11px] font-semibold tracking-wider" style="color: var(--text-tertiary)">Theme</span>
                 <div class="theme-switcher">
                     <button class="theme-btn" data-theme="light" onclick="setTheme('light')" title="Light">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -1127,8 +1127,8 @@
                     <div class="flex-1 min-w-0">
                         <p id="pending-file-name" class="font-semibold text-sm truncate"
                             style="color: var(--text-primary)"></p>
-                        <p id="pending-file-size" class="text-[10px] font-semibold uppercase"
-                            style="color: var(--text-tertiary)"></p>
+                        <p id="pending-file-size" class="text-[10px] font-semibold" style="color: var(--text-tertiary)">
+                        </p>
                     </div>
                     <button type="button" onclick="clearPendingFile()" class="hover:text-red-500 transition px-2"
                         style="color: var(--text-tertiary)">✕</button>
@@ -2407,7 +2407,7 @@
             }
         }
 
-                                                                                function formatKbAnswer(text) {
+        function formatKbAnswer(text) {
             if (!text) return '';
 
             // 1. Initial Cleanup
@@ -2435,7 +2435,7 @@
 
             const lines = cleaned.split('\n');
             let html = '';
-            
+
             lines.forEach(line => {
                 let trimmed = line.trim();
                 if (!trimmed) {
@@ -2462,8 +2462,8 @@
                     html += `<div class="kb-bullet">${content}</div>`;
                 }
                 // Header (Must end in colon AND be short, or be a specific section title)
-                else if ((trimmed.endsWith(':') && trimmed.length < 60) || 
-                         /^(Prerequisites|Instructions|Step-by-step|Steps to|Troubleshooting|Note|Summary|Post-Closing|Reconciliation|How to.*):?$/i.test(trimmed)) {
+                else if ((trimmed.endsWith(':') && trimmed.length < 60) ||
+                    /^(Prerequisites|Instructions|Step-by-step|Steps to|Troubleshooting|Note|Summary|Post-Closing|Reconciliation|How to.*):?$/i.test(trimmed)) {
                     html += `<span class="kb-title">${safeText}</span>`;
                 }
                 // Standard Paragraph
