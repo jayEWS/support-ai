@@ -35,10 +35,16 @@ class UserRepository(BaseRepository):
                 "created_at": str(user.created_at) if user.created_at else None,
             }
 
-    def get_all_users(self) -> List[dict]:
-        """Get all portal users."""
+    def get_all_users(self, page: int = 1, per_page: int = 50) -> List[dict]:
+        """Get all portal users with pagination."""
         with self.session_scope() as session:
-            users = session.query(User).order_by(User.created_at.desc()).all()
+            users = (
+                session.query(User)
+                .order_by(User.created_at.desc())
+                .offset((page - 1) * per_page)
+                .limit(per_page)
+                .all()
+            )
             return [
                 {
                     "identifier": u.identifier,

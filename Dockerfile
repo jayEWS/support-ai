@@ -21,8 +21,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Pre-create data directories
-RUN mkdir -p data/knowledge data/db_storage data/uploads/chat
+# Security Fix M4: Create non-root user and set ownership
+RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
+
+# Pre-create data directories with correct permissions
+RUN mkdir -p data/knowledge data/db_storage data/uploads/chat \
+    && chown -R appuser:appuser /app/data
+
+# Switch to non-root user
+USER appuser
 
 # Health check (start-period allows time for AI models to load)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

@@ -33,13 +33,14 @@ class AuditRepository(BaseRepository):
             )
             session.add(log)
 
-    def get_audit_logs(self, limit: int = 50) -> List[dict]:
-        """Get recent audit logs."""
+    def get_audit_logs(self, page: int = 1, per_page: int = 50) -> List[dict]:
+        """Get recent audit logs with pagination."""
         with self.session_scope() as session:
             logs = (
                 session.query(AuditLog)
-                .order_by(desc(AuditLog.timestamp))
-                .limit(limit)
+                .order_by(AuditLog.timestamp.desc())
+                .offset((page - 1) * per_page)
+                .limit(per_page)
                 .all()
             )
             return [

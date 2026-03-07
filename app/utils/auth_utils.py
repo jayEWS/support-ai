@@ -4,7 +4,8 @@ import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError
 from app.core.config import settings
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -48,7 +49,7 @@ def create_mfa_token(user_id: str, challenge_id: int, expires_delta: Optional[ti
 def decode_token(token: str):
     try:
         return jwt.decode(token, settings.AUTH_SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError:
+    except PyJWTError:
         return None
 
 def create_refresh_token() -> str:
@@ -73,5 +74,5 @@ def decode_access_token(token: str):
     try:
         payload = jwt.decode(token, settings.AUTH_SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
-    except JWTError:
+    except PyJWTError:
         return None

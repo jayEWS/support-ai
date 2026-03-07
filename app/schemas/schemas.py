@@ -53,3 +53,29 @@ class TicketResponse(BaseModel):
     status: str
     summary: str
     created_at: datetime
+
+
+# --- AI Tool Schemas ---
+
+class DBQueryRequest(BaseModel):
+    table_name: str
+    filters: Optional[dict] = Field(default_factory=dict)
+    limit: int = 50
+
+
+class CheckVoucherRequest(BaseModel):
+    voucher_code: str
+
+
+class RedeemVoucherRequest(BaseModel):
+    voucher_code: str
+
+
+class DeviceCheckRequest(BaseModel):
+    device_id: str
+    device_type: str
+
+
+class LogSearchRequest(BaseModel):
+    device_id: str
+    minutes_ago: int = 60

@@ -46,7 +46,8 @@ class WhatsAppWebhookService:
         Normalize incoming Meta WhatsApp Cloud API webhook payload.
         """
         payload = await request.json()
-        logger.info(f"Raw Meta WhatsApp webhook payload: {payload}")
+        # Security Fix H10: Don't log raw payload (contains customer PII)
+        logger.debug(f"WhatsApp webhook received, object type: {payload.get('object', 'unknown')}")
 
         try:
             # Validate it's a WhatsApp event
@@ -215,16 +216,29 @@ class WhatsAppWebhookService:
             raise HTTPException(status_code=400, detail=f"Invalid payload: {str(e)}")
 
     @staticmethod
-    def validate_signature(request: Request, signature: str) -> bool:
+    def validate_signature(raw_body: bytes, signature: str) -> bool:
         """
         Validate Meta webhook signature (X-Hub-Signature-256).
         Meta signs payloads with SHA256 HMAC using App Secret.
+
+        Security Fix C7: Actually validate the signature instead of returning True.
         """
         app_secret = settings.WHATSAPP_APP_SECRET
         if not app_secret:
-            return True  # Skip validation if not configured
+            logger.warning("[SECURITY] WHATSAPP_APP_SECRET not configured — webhook signature validation SKIPPED")
+            return True  # Allow if not configured (dev mode), but warn loudly
 
         if not signature or not signature.startswith("sha256="):
+            logger.warning("[SECURITY] Missing or malformed webhook signature")
             return False
 
-        return True  # Full implementation needs raw body bytes
+        expected_sig = "sha256=" + hmac.new(
+            app_secret.encode("utf-8"),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+
+        is_valid = hmac.compare_digest(expected_sig, signature)
+        if not is_valid:
+            logger.warning("[SECURITY] Webhook signature mismatch — possible tampering")
+        return is_valid

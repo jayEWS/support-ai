@@ -33,31 +33,44 @@ class TicketRepository(BaseRepository):
                 priority=priority,
                 due_at=due_at,
                 status=status,
+                tenant_id=self.tenant_id  # P1 Fix: Explicitly link to current tenant
             )
             session.add(ticket)
             session.flush()
             tid = ticket.id
-            logger.info(f"Ticket #{tid} created for {user_id}")
+            logger.info(f"Ticket #{tid} created for {user_id} in tenant {self.tenant_id}")
             return tid
 
     def get_all_tickets(self, filter_type: str = "all") -> List[dict]:
-        """Get all tickets with optional status filter."""
+        """Get all tickets with optional status filter, scoped by tenant."""
         with self.session_scope() as session:
             q = session.query(Ticket)
+            q = self._apply_tenant_filter(q, Ticket) # P1 Fix: Scoping by tenant
+            
             if filter_type == "open":
                 q = q.filter(Ticket.status.notin_(["CLOSED"]))
             elif filter_type == "closed":
                 q = q.filter_by(status="CLOSED")
+                
             tickets = q.order_by(desc(Ticket.created_at)).all()
             return [self._ticket_to_dict(t) for t in tickets]
 
-    def get_tickets_by_user(self, user_id: str, limit: int = 20) -> List[dict]:
-        """Get tickets for a specific user."""
+    def get_ticket(self, ticket_id: int) -> Optional[dict]:
+        """Fetch a single ticket securely, scoped by tenant."""
         with self.session_scope() as session:
+            query = session.query(Ticket).filter(Ticket.id == ticket_id)
+            query = self._apply_tenant_filter(query, Ticket) # P1 Fix: Prevent IDOR
+            ticket = query.first()
+            return self._ticket_to_dict(ticket) if ticket else None
+
+    def get_tickets_by_user(self, user_id: str, limit: int = 20) -> List[dict]:
+        """Get tickets for a specific user, scoped by tenant."""
+        with self.session_scope() as session:
+            q = session.query(Ticket).filter_by(user_id=user_id)
+            q = self._apply_tenant_filter(q, Ticket) # P1 Fix
+            
             tickets = (
-                session.query(Ticket)
-                .filter_by(user_id=user_id)
-                .order_by(desc(Ticket.created_at))
+                q.order_by(desc(Ticket.created_at))
                 .limit(limit)
                 .all()
             )
@@ -76,12 +89,14 @@ class TicketRepository(BaseRepository):
             return self._ticket_to_dict(ticket) if ticket else None
 
     def update_ticket_status(self, ticket_id: int, status: str):
-        """Update ticket status."""
+        """Update ticket status, scoped by tenant."""
         with self.session_scope() as session:
-            ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+            q = session.query(Ticket).filter_by(id=ticket_id)
+            q = self._apply_tenant_filter(q, Ticket) # P1 Fix
+            ticket = q.first()
             if ticket:
                 ticket.status = status
-                ticket.modified_at = datetime.utcnow()
+                ticket.modified_at = datetime.now(timezone.utc)
 
     def update_ticket_sla(self, ticket_id: int, priority: str, due_at: datetime = None):
         """Update ticket SLA priority and due date."""
@@ -94,11 +109,14 @@ class TicketRepository(BaseRepository):
                 ticket.modified_at = datetime.utcnow()
 
     def get_ticket_counts(self) -> dict:
-        """Get ticket counts by status."""
+        """Get ticket counts by status, scoped by tenant."""
         with self.session_scope() as session:
-            total = session.query(Ticket).count()
-            open_count = session.query(Ticket).filter(Ticket.status.notin_(["CLOSED"])).count()
-            closed = session.query(Ticket).filter_by(status="CLOSED").count()
+            base_q = session.query(Ticket)
+            base_q = self._apply_tenant_filter(base_q, Ticket) # P1 Fix
+            
+            total = base_q.count()
+            open_count = base_q.filter(Ticket.status.notin_(["CLOSED"])).count()
+            closed = base_q.filter_by(status="CLOSED").count()
             return {"total": total, "open": open_count, "closed": closed}
 
     def add_to_queue(self, ticket_id: int, priority_level: int = 1):

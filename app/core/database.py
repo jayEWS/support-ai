@@ -761,10 +761,16 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-    def get_all_users(self):
+    def get_all_users(self, page: int = 1, per_page: int = 50):
         session = self.get_session()
         try:
-            users = session.query(User).all()
+            users = (
+                session.query(User)
+                .order_by(User.created_at.desc())
+                .offset((page - 1) * per_page)
+                .limit(per_page)
+                .all()
+            )
             return [ { 
                 "identifier": u.identifier,
                 "account_id": u.identifier,
@@ -835,38 +841,52 @@ class DatabaseManager:
 
     def create_or_update_user(self, identifier: str, name: str = None, company: str = None, position: str = None, outlet_pos: str = None, state: str = 'idle', email: str = None, mobile: str = None, outlet_address: str = None, category: str = None, language: str = None):
         import re
+        from sqlalchemy.exc import IntegrityError
         # Auto-fill mobile from identifier if it looks like a phone number
         if not mobile and identifier and re.match(r'^\+?\d{8,15}$', identifier.replace(' ','')):
             mobile = identifier
-        session = self.get_session()
-        try:
-            user = session.get(User, identifier)
-            if user:
-                if name: user.name = name
-                if company: user.company = company
-                if position: user.position = position
-                if outlet_pos: user.outlet_pos = outlet_pos
-                if email: user.email = email
-                if mobile: user.mobile = mobile
-                if outlet_address: user.outlet_address = outlet_address
-                if category: user.category = category
-                if language: user.language = language
-                user.state = state
-                # Auto-assign account_id if missing
-                if not user.account_id:
-                    user.account_id = self._get_next_account_id(session)
-                # Auto-fill mobile from identifier if still empty
-                if not user.mobile and re.match(r'^\+?\d{8,15}$', identifier.replace(' ','')):
-                    user.mobile = identifier
-            else:
-                account_id = self._get_next_account_id(session)
-                user = User(identifier=identifier, account_id=account_id, name=name, company=company, position=position, outlet_pos=outlet_pos, state=state, email=email, mobile=mobile, outlet_address=outlet_address, category=category, language=language)
-                session.add(user)
-            session.commit()
-        except Exception as e:
-            session.rollback()
-        finally:
-            self.Session.remove()
+            
+        max_retries = 3
+        for attempt in range(max_retries):
+            session = self.get_session()
+            try:
+                user = session.get(User, identifier)
+                if user:
+                    if name: user.name = name
+                    if company: user.company = company
+                    if position: user.position = position
+                    if outlet_pos: user.outlet_pos = outlet_pos
+                    if email: user.email = email
+                    if mobile: user.mobile = mobile
+                    if outlet_address: user.outlet_address = outlet_address
+                    if category: user.category = category
+                    if language: user.language = language
+                    user.state = state
+                    # Auto-assign account_id if missing
+                    if not user.account_id:
+                        user.account_id = self._get_next_account_id(session)
+                    # Auto-fill mobile from identifier if still empty
+                    if not user.mobile and re.match(r'^\+?\d{8,15}$', identifier.replace(' ','')):
+                        user.mobile = identifier
+                else:
+                    account_id = self._get_next_account_id(session)
+                    user = User(identifier=identifier, account_id=account_id, name=name, company=company, position=position, outlet_pos=outlet_pos, state=state, email=email, mobile=mobile, outlet_address=outlet_address, category=category, language=language)
+                    session.add(user)
+                    
+                session.commit()
+                break  # Success
+            except IntegrityError as e:
+                session.rollback()
+                if attempt == max_retries - 1:
+                    logger.error(f"Race condition saving user {identifier} after {max_retries} retries: {e}")
+                else:
+                    logger.warning(f"Race condition saving user {identifier}, retrying ({attempt + 1}/{max_retries})...")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error saving user {identifier}: {e}")
+                break
+            finally:
+                self.Session.remove()
 
     # ============ Agents ============
     def create_or_get_agent(self, user_id: str, name: str = None, email: str = None, department: str = "Support", skills: str = "[]", google_id: str = None):
@@ -1127,12 +1147,15 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-    def get_audit_logs(self, limit: int = 50):
+    def get_audit_logs(self, page: int = 1, per_page: int = 50):
         session = self.get_session()
         try:
             logs = session.query(AuditLog, Agent.name) \
                 .outerjoin(Agent, AuditLog.agent_id == Agent.user_id) \
-                .order_by(desc(AuditLog.timestamp)).limit(limit).all()
+                .order_by(AuditLog.timestamp.desc()) \
+                .offset((page - 1) * per_page) \
+                .limit(per_page) \
+                .all()
             return [ { "timestamp": l[0].timestamp, "agent_name": l[1] or "System", "action": l[0].action, "target_type": l[0].target_type, "target_id": l[0].target_id } for l in logs ]
         finally:
             self.Session.remove()
@@ -1282,7 +1305,8 @@ class DatabaseManager:
             ).group_by(WhatsAppMessage.phone_number)
 
             if search:
-                subq = subq.filter(WhatsAppMessage.phone_number.ilike(f'%{search}%'))
+                escaped_search = search.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+                subq = subq.filter(WhatsAppMessage.phone_number.ilike(f'%{escaped_search}%', escape='\\'))
 
             total = subq.count()
             conversations = subq.order_by(desc(sqla_func.max(WhatsAppMessage.created_at))).offset((page - 1) * per_page).limit(per_page).all()

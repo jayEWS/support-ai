@@ -49,11 +49,12 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER: str = "gmail"  # Options: gmail, sendgrid, mock
     
     # Security
-    API_SECRET_KEY: str = ""  # Set via environment variable - MUST be changed in production
+    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "changethis")
     AUTH_SECRET_KEY: str = ""  # Set via environment variable - MUST be changed in production
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    # Security Fix M2: Reduce default access token lifetime from 1440 (24h) to 60 minutes
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     MFA_ENABLED: bool = True
     MFA_REQUIRED_FOR_ALL: bool = True
     MFA_CODE_EXPIRE_MINUTES: int = 5
@@ -112,8 +113,27 @@ class Settings(BaseSettings):
     def _validate_production_settings(self):
         """Ensure critical secrets are set in production."""
         if not self.DEBUG:
-            if self.SECRET_KEY in ["", "changethis", "secret"]:
+            # Security Fix C8: Check the ACTUAL JWT signing key, not just SECRET_KEY
+            weak_values = [
+                "", "changethis", "secret", "your-secret-key",
+                "super-secret-production-key-for-testing",
+                "another-secret-key", "please-change-me",
+            ]
+            
+            if self.SECRET_KEY.lower().strip() in weak_values:
                 raise ValueError("CRITICAL: SECRET_KEY is weak or missing in PRODUCTION mode!")
+            
+            if self.AUTH_SECRET_KEY.lower().strip() in weak_values:
+                raise ValueError(
+                    "CRITICAL: AUTH_SECRET_KEY is weak or missing in PRODUCTION mode! "
+                    "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                )
+            
+            if len(self.AUTH_SECRET_KEY) < 32:
+                raise ValueError(
+                    "CRITICAL: AUTH_SECRET_KEY is too short (< 32 chars). "
+                    "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                )
             
             if not self.DATABASE_URL:
                  raise ValueError("CRITICAL: DATABASE_URL is missing in PRODUCTION mode!")

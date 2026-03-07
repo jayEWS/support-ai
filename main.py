@@ -5,6 +5,7 @@ import uuid
 import asyncio
 import shutil
 from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from app.utils.security import safe_filename, safe_path, validate_url_or_raise, validate_knowledge_file, ALLOWED_KNOWLEDGE_EXTENSIONS
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -85,6 +86,13 @@ from app.middleware.usage import UsageTrackingMiddleware
 from app.middleware.plan_enforcement import PlanEnforcementMiddleware
 from app.routes.tenant_routes import router as tenant_router, plans_router
 from app.routes.ai_tools import router as ai_tools_router
+from app.routes.customer_routes import router as customer_router
+from app.routes.audit_routes import router as audit_router
+from app.routes.ticket_routes import router as ticket_router
+from app.routes.knowledge_routes import router as knowledge_router
+from app.routes.websocket_routes import router as websocket_router
+from app.routes.system_routes import router as system_router
+from app.routes.portal_routes import router as portal_router
 
 # Schemas
 from app.schemas.schemas import IntentType
@@ -143,6 +151,11 @@ async def get_current_agent(request: Request):
     agent = _require_db().get_agent(user_id)
     if not agent:
         raise HTTPException(status_code=401, detail="Agent not found")
+    return agent
+
+async def get_admin_agent(agent: Annotated[dict, Depends(get_current_agent)]):
+    if agent.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
     return agent
 
 def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
@@ -264,12 +277,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(title="Support Portal Edgeworks", lifespan=lifespan)
 
 # Add CORS Middleware - MUST be configured correctly for production
+# Security: reject wildcard "*" patterns — require explicit origins
+_cors_origins = settings.ALLOWED_ORIGINS if settings.ALLOWED_ORIGINS else []
+if _cors_origins == ["*"]:
+    logger.warning("[SECURITY] CORS ALLOWED_ORIGINS is ['*'] — this is insecure for production. Set explicit origins.")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS if settings.ALLOWED_ORIGINS else ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins if _cors_origins and _cors_origins != ["*"] else ["*"],
+    allow_credentials=True if _cors_origins and _cors_origins != ["*"] else False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-Tenant-ID"],
 )
 
 # GZip compression for all responses > 500 bytes (saves ~70% bandwidth for HTML/JSON)
@@ -285,8 +302,14 @@ if getattr(settings, 'MULTI_TENANT_ENABLED', False):
 
 # ── SaaS API Routes ──
 app.include_router(tenant_router)
-app.include_router(plans_router)
 app.include_router(ai_tools_router)
+app.include_router(customer_router)
+app.include_router(audit_router)
+app.include_router(ticket_router)
+app.include_router(knowledge_router)
+app.include_router(websocket_router)
+app.include_router(system_router)
+app.include_router(portal_router)
 
 # Add rate limiter to app
 app.state.limiter = limiter
@@ -531,9 +554,9 @@ async def google_oauth_callback(request: Request, code: str = None, state: str =
         db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
         db.log_action(agent["user_id"], "login_google", "agent", agent["user_id"])
 
-        # Redirect to login page so JS can store token and go to /admin
+        # Security Fix C9: Do NOT expose access_token in URL query string.
+        # Tokens are set via secure HTTP-only cookies instead.
         qs = _up.urlencode({
-            "access_token": access_token,
             "role": agent.get("role", "agent"),
             "name": agent.get("name", agent["user_id"]),
         })
@@ -745,969 +768,26 @@ async def verify_magic_link(token: str, email: str, request: Request):
 
 # ============ Management APIs ============
 
-@app.get("/api/tickets")
-async def get_tickets(agent: Annotated[dict, Depends(get_current_agent)], filter: str = 'all'):
-    return _require_db().get_all_tickets(filter_type=filter)
-
-@app.get("/api/tickets/counts")
-async def get_ticket_counts(agent: Annotated[dict, Depends(get_current_agent)]):
-    return _require_db().get_ticket_counts()
-
-@app.get("/api/tickets/{ticket_id}/history")
-async def get_ticket_history(ticket_id: int, agent: Annotated[dict, Depends(get_current_agent)]):
-    db = _require_db()
-    ticket = db.get_session().query(db.engine).get(ticket_id) if False else None
-    # Use db method directly instead of raw query
-    history = db.get_unified_history(None, ticket_id)
-    return {"history": history}
-
-from app.services.knowledge_extractor import KnowledgeExtractor
-
-# ... (inside lifespan or global scope) ...
-
-@app.patch("/api/tickets/{ticket_id}/status")
-async def update_ticket_status(ticket_id: int, data: dict, agent: Annotated[dict, Depends(get_current_agent)], background_tasks: BackgroundTasks):
-    status = data.get("status")
-    if status:
-        _require_db().update_ticket_status(ticket_id, status)
-        
-        # Self-Learning Pipeline: Extract knowledge if resolved/closed
-        if status in ("resolved", "closed"):
-            extractor = KnowledgeExtractor(app.state.rag_service)
-            background_tasks.add_task(extractor.extract_from_ticket, ticket_id)
-            
-    return {"status": "success"}
-
-# ============ Live Chat (Admin ↔ Customer Portal) ============
-
-@app.get("/api/livechat/sessions")
-async def get_livechat_sessions(agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get all active portal chat sessions for admin live chat view."""
-    db = _require_db()
-    return db.get_active_portal_chats()
-
-@app.get("/api/livechat/{user_id}/messages")
-async def get_livechat_messages(user_id: str, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get all portal messages for a specific user (live chat view)."""
-    db = _require_db()
-    messages = db.get_messages(user_id)
-    return {"messages": messages, "user_id": user_id}
-
-@app.post("/api/livechat/{user_id}/reply")
-async def livechat_agent_reply(user_id: str, request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Agent sends a reply to a customer's portal chat."""
-    data = await request.json()
-    content = data.get("message", "").strip()
-    if not content:
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
-    
-    db = _require_db()
-    # Save as 'assistant' role (same as AI bot replies) so it shows on user's portal
-    db.save_message(user_id, "assistant", content)
-    
-    # Broadcast via WebSocket to the user's portal if connected
-    from app.services.websocket_manager import portal_manager
-    await portal_manager.send_to_user(user_id, {
-        "event": "message",
-        "role": "assistant",
-        "content": content,
-        "sender_name": agent.get("name", "Agent"),
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    })
-    
-    return {"status": "sent", "message": content}
-
-@app.post("/api/livechat/{user_id}/close")
-async def livechat_close_session(user_id: str, request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Agent closes a live chat session — creates a ticket if requested."""
-    data = await request.json()
-    option = data.get("option", "close")  # "close" or "ticket"
-    
-    result = await app.state.chat_service.close_chat(user_id, option)
-    
-    # Notify customer via WebSocket
-    from app.services.websocket_manager import portal_manager
-    await portal_manager.send_to_user(user_id, {
-        "event": "session_closed",
-        "message": result.get("message", "Chat closed by agent"),
-        "ticket_created": result.get("ticket_created", False),
-        "ticket_id": result.get("ticket_id")
-    })
-    
-    return result
-
-@app.get("/api/analytics")
-async def get_analytics(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
-    # Mock/Actual Analytics integration
-    metrics = _require_db().get_ticket_metrics()
-    return {
-        "metrics": metrics,
-        "agent_performance": [],
-        "priority_distribution": {"High": 5, "Medium": 10, "Low": 2},
-        "volume_trends": [],
-        "ai_trends": "Tren AI sedang dianalisis..."
-    }
-
-@app.get("/api/agents")
-async def get_agents(agent: Annotated[dict, Depends(get_current_agent)]):
-    return _require_db().get_all_agents()
-
-@app.get("/api/admin/roles")
-async def get_roles(agent: Annotated[dict, Depends(get_current_agent)]):
-    return _require_db().get_all_roles()
-
-@app.get("/api/knowledge")
-async def get_knowledge(agent: Annotated[dict, Depends(get_current_agent)]):
-    return _require_db().get_all_knowledge()
-
-@app.post("/api/knowledge/upload")
-async def upload_knowledge(
-    agent: Annotated[dict, Depends(get_current_agent)],
-    background_tasks: BackgroundTasks,
-    files: List[UploadFile] = File(...)
-):
-    for file in files:
-        file_path = os.path.join(settings.KNOWLEDGE_DIR, file.filename)
-        with open(file_path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
-        _require_db().save_knowledge_metadata(filename=file.filename, file_path=file_path, uploaded_by=agent["user_id"])
-        
-        # Phase 2: Upload to GCS
-        try:
-            from app.services.gcs_service import get_gcs_service
-            gcs = get_gcs_service()
-            if gcs.enabled:
-                gcs.upload_file(file_path, file.filename)
-        except Exception as gcs_err:
-            logger.warning(f"[GCS] Upload sync failed for {file.filename}: {gcs_err}")
-    
-    # Trigger re-indexing
-    background_tasks.add_task(_reindex_knowledge)
-    return {"status": "success"}
-
-@app.post("/api/knowledge/paste")
-async def paste_knowledge(
-    request: Request,
-    agent: Annotated[dict, Depends(get_current_agent)],
-    background_tasks: BackgroundTasks
-):
-    """Create a KB document from pasted text. Returns 409 if filename already exists."""
-    try:
-        data = await request.json()
-        title = data.get("title", "").strip()
-        content = data.get("content", "").strip()
-        overwrite = data.get("overwrite", False)
-
-        if not title or not content:
-            return JSONResponse({"error": "Title and content are required"}, status_code=400)
-
-        # Sanitize filename
-        safe_title = re.sub(r'[^\w\s.-]', '', title).strip().replace(' ', '_')
-        if not safe_title:
-            safe_title = f"pasted_{int(datetime.now().timestamp())}"
-        filename = f"{safe_title}.txt"
-        file_path = os.path.join(settings.KNOWLEDGE_DIR, filename)
-
-        # Check if file already exists
-        existing = _require_db().get_knowledge_metadata(filename)
-        if existing and not overwrite:
-            return JSONResponse(
-                {"error": "exists", "filename": filename, "message": f"Knowledge base document '{filename}' already exists. Overwrite?"},
-                status_code=409
-            )
-
-        # Write content to file
-        os.makedirs(settings.KNOWLEDGE_DIR, exist_ok=True)
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-
-        _require_db().save_knowledge_metadata(
-            filename=filename, file_path=file_path,
-            uploaded_by=agent["user_id"], status="Processing"
-        )
-
-        # Upload to GCS
-        try:
-            from app.services.gcs_service import get_gcs_service
-            gcs = get_gcs_service()
-            if gcs.enabled:
-                gcs.upload_file(file_path, filename)
-        except Exception as gcs_err:
-            logger.warning(f"[GCS] Upload sync failed for {filename}: {gcs_err}")
-
-        background_tasks.add_task(_reindex_knowledge)
-        return {"status": "success", "filename": filename, "size": len(content)}
-    except Exception as e:
-        logger.error(f"Paste knowledge error: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-async def _reindex_knowledge():
-    """Re-index knowledge base: rebuild FAISS index and reinitialize hybrid search."""
-    try:
-        rag_engine = app.state.rag_engine
-        if rag_engine:
-            # Full re-ingestion: rebuild FAISS with current embeddings model
-            await rag_engine.ingest_documents()
-            logger.info(f"[OK] Knowledge base re-indexed via RAGEngine: {len(rag_engine.all_documents)} chunks")
-            
-            # Also update the rag_service's vector store
-            rag_svc = app.state.rag_service
-            if rag_svc:
-                rag_svc.vector_store = rag_svc._load_vector_store()
-                rag_svc._initialize_hybrid_search()
-                logger.info(f"[OK] RAGService vector store reloaded: {len(rag_svc.all_documents)} chunks")
-            
-            # Also refresh RAGServiceV2 (Shopify-grade)
-            rag_v2 = getattr(app.state, 'rag_service_v2', None)
-            if rag_v2:
-                rag_v2.refresh_stores()
-                logger.info(f"[OK] RAGServiceV2 stores refreshed: {len(rag_v2.all_documents)} chunks")
-            
-            # Update all knowledge statuses to 'Indexed'
-            all_kb = _require_db().get_all_knowledge()
-            for kb in all_kb:
-                _require_db().update_knowledge_status(kb['filename'], 'Indexed')
-    except Exception as e:
-        logger.error(f"Re-index failed: {e}")
-
-@app.post("/api/knowledge/reindex")
-async def reindex_knowledge(
-    agent: Annotated[dict, Depends(get_current_agent)],
-    background_tasks: BackgroundTasks
-):
-    """Manually trigger knowledge base re-indexing (Train AI)"""
-    background_tasks.add_task(_reindex_knowledge)
-    return {"status": "reindexing", "message": "Knowledge base re-indexing started. This may take a moment."}
-
-@app.get("/api/knowledge/stats")
-async def knowledge_stats(agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get knowledge base statistics"""
-    try:
-        all_kb = _require_db().get_all_knowledge()
-        rag_svc = app.state.rag_service
-        rag_v2 = getattr(app.state, 'rag_service_v2', None)
-        total_files = len(all_kb)
-        indexed_count = sum(1 for k in all_kb if k.get('status') == 'Indexed')
-        total_chunks = len(rag_svc.all_documents) if rag_svc and rag_svc.all_documents else 0
-        has_vector_store = bool(rag_svc and rag_svc.vector_store)
-        last_upload = all_kb[0]['upload_date'] if all_kb and all_kb[0].get('upload_date') else None
-        
-        # V2 stats
-        v2_chunks = len(rag_v2.all_documents) if rag_v2 and rag_v2.all_documents else 0
-        v2_ready = bool(rag_v2 and rag_v2.vector_store)
-        
-        return {
-            "total_files": total_files,
-            "indexed_files": indexed_count,
-            "total_chunks": total_chunks,
-            "vector_store_ready": has_vector_store,
-            "last_upload": last_upload,
-            "rag_v2": {
-                "active": v2_ready,
-                "total_chunks": v2_chunks,
-                "engine": "shopify_advanced_rag",
-                "features": ["query_understanding", "jit_instructions", "hyde", "multi_query", "cross_encoder_rerank", "rrf_fusion", "confidence_calibration"]
-            }
-        }
-    except Exception as e:
-        logger.error(f"Knowledge stats error: {e}")
-        return {"total_files": 0, "indexed_files": 0, "total_chunks": 0, "vector_store_ready": False}
-
-@app.post("/api/knowledge/ingest-url")
-async def ingest_knowledge_from_url(
-    agent: Annotated[dict, Depends(get_current_agent)],
-    request: Request
-):
-    """Ingest knowledge base from URL"""
-    try:
-        data = await request.json()
-        url = data.get("url")
-        
-        if not url:
-            return JSONResponse({"error": "URL is required"}, status_code=400)
-        
-        # Use RAG engine to ingest from URL
-        try:
-            rag_service = app.state.rag_service
-            if not rag_eng:
-                return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
-            
-            filename = await rag_eng.ingest_from_url(url, uploaded_by=agent["user_id"])
-            return JSONResponse({"status": "success", "filename": filename, "message": f"Content from {url} ingested successfully"})
-        except Exception as import_err:
-            logger.error(f"RAG engine import error: {str(import_err)}")
-            raise
-    except ValueError as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-    except Exception as e:
-        logger.error(f"URL ingestion error: {str(e)}")
-        return JSONResponse({"error": f"Failed to ingest from URL: {str(e)}"}, status_code=500)
-
-@app.delete("/api/knowledge/{filename}")
-async def delete_knowledge(
-    filename: str,
-    agent: Annotated[dict, Depends(get_current_agent)]
-):
-    try:
-        rag_service = app.state.rag_service
-        if not rag_eng:
-            return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
-        
-        rag_eng.delete_knowledge_document(filename)
-        return {"status": "success", "message": f"Deleted {filename}"}
-    except Exception as e:
-        logger.error(f"Error deleting knowledge: {str(e)}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.post("/api/knowledge/batch-delete")
-async def batch_delete_knowledge(
-    request: Request,
-    agent: Annotated[dict, Depends(get_current_agent)]
-):
-    try:
-        data = await request.json()
-        filenames = data.get("filenames", [])
-        
-        if not filenames:
-            return JSONResponse({"error": "No filenames provided"}, status_code=400)
-            
-        rag_service = app.state.rag_service
-        if not rag_eng:
-            return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
-            
-        rag_eng.delete_knowledge_documents(filenames)
-        return {"status": "success", "message": f"Deleted {len(filenames)} files"}
-    except Exception as e:
-        logger.error(f"Error batch deleting knowledge: {str(e)}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/knowledge/{filename}/content")
-async def get_knowledge_content(filename: str, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get content of a knowledge file (only for text-based files)"""
-    file_path = os.path.join(settings.KNOWLEDGE_DIR, filename)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    # Allow common text extensions
-    if not filename.lower().endswith(('.txt', '.md', '.text', '.json', '.csv', '.log')):
-        raise HTTPException(status_code=400, detail="Only text-based files can be edited")
-    
-    try:
-        # Detect if it's potentially huge, though KB files shouldn't be
-        stats = os.stat(file_path)
-        if stats.st_size > 5 * 1024 * 1024: # 5MB limit for editing
-             raise HTTPException(status_code=400, detail="File is too large to edit in browser")
-
-        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-            content = f.read()
-        return {"filename": filename, "content": content}
-    except Exception as e:
-        logger.error(f"Error reading knowledge: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Read error: {str(e)}")
-
-@app.post("/api/knowledge/{filename}/update")
-async def update_knowledge_content(
-    filename: str, 
-    req_data: dict, 
-    background_tasks: BackgroundTasks,
-    agent: Annotated[dict, Depends(get_current_agent)]
-):
-    """Update content of a text-based knowledge file and trigger re-index"""
-    content = req_data.get("content")
-    if content is None:
-        raise HTTPException(status_code=400, detail="Content is required")
-    
-    file_path = os.path.join(settings.KNOWLEDGE_DIR, filename)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-        
-    try:
-        # Save file
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-        
-        # Update metadata status to Processing
-        _require_db().update_knowledge_status(filename, 'Processing')
-        
-        # Trigger re-indexing (Train AI)
-        background_tasks.add_task(_reindex_knowledge)
-        
-        return {"status": "success", "message": f"Updated {filename} and triggered AI training"}
-    except Exception as e:
-        logger.error(f"Error updating knowledge: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Update error: {str(e)}")
-
-# ============ Customer Management APIs ============
-
-def _mask_phone(phone: str) -> str:
-    """Mask phone number: +6281234****90"""
-    if not phone or len(phone) < 6:
-        return phone
-    visible_start = min(5, len(phone) - 2)
-    visible_end = 2
-    masked_len = len(phone) - visible_start - visible_end
-    if masked_len <= 0:
-        return phone
-    return phone[:visible_start] + '*' * masked_len + phone[-visible_end:]
-
-def _mask_email(email: str) -> str:
-    """Mask email: jo***@gm***.com"""
-    if not email or '@' not in email:
-        return email
-    local, domain = email.rsplit('@', 1)
-    parts = domain.rsplit('.', 1)
-    domain_name = parts[0]
-    tld = '.' + parts[1] if len(parts) > 1 else ''
-    masked_local = local[:2] + '***' if len(local) > 2 else local[0] + '***'
-    masked_domain = domain_name[:2] + '***' if len(domain_name) > 2 else domain_name[0] + '***'
-    return f"{masked_local}@{masked_domain}{tld}"
-
-def _mask_customer(c: dict) -> dict:
-    """Mask sensitive fields (phone and email) in a customer dict."""
-    c = dict(c)
-    if c.get('mobile'):
-        c['mobile'] = _mask_phone(c['mobile'])
-    if c.get('email'):
-        c['email'] = _mask_email(c['email'])
-    return c
-
-@app.get("/api/customers")
-async def get_customers(agent: Annotated[dict, Depends(get_current_agent)], unmask: bool = False):
-    """List all customers. Phone/email masked unless admin requests unmask=true."""
-    is_admin = agent.get('role') == 'admin'
-    customers = _require_db().get_all_users()
-    if not (is_admin and unmask):
-        customers = [_mask_customer(c) for c in customers]
-    return customers
-
-@app.get("/api/customers/{identifier}")
-async def get_customer(identifier: str, agent: Annotated[dict, Depends(get_current_agent)], unmask: bool = False):
-    """Get single customer details. Phone/email masked unless admin requests unmask=true."""
-    is_admin = agent.get('role') == 'admin'
-    user = _require_db().get_user(identifier)
-    if not user:
-        return JSONResponse({"error": "Customer not found"}, status_code=404)
-    if not (is_admin and unmask):
-        user = _mask_customer(user)
-    return user
-
-@app.get("/api/customers/{identifier}/context")
-async def get_customer_context(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get full customer context: profile, ticket history, stats, recurring patterns."""
-    return _require_db().get_customer_context(identifier)
-
-@app.get("/api/customers/{identifier}/tickets")
-async def get_customer_tickets(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get all tickets for a customer."""
-    return _require_db().get_tickets_by_user(identifier)
-
-@app.post("/api/customers")
-async def create_customer(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Create or update a single customer."""
-    data = await request.json()
-    identifier = data.get("identifier") or data.get("phone") or data.get("id")
-    name = data.get("name")
-    company = data.get("company", "")
-    outlet = data.get("outlet") or data.get("outlet_pos") or company
-    position = data.get("position", "")
-    email = data.get("email", "")
-    mobile = data.get("mobile", "")
-    category = data.get("category", "")
-    outlet_address = data.get("outlet_address", "")
-    if not identifier or not name:
-        return JSONResponse({"error": "identifier and name are required"}, status_code=400)
-    _require_db().create_or_update_user(identifier, name=name, company=company, position=position, outlet_pos=outlet, state="complete", email=email, mobile=mobile, category=category, outlet_address=outlet_address)
-    return {"status": "success", "identifier": identifier, "name": name}
-
-@app.post("/api/customers/import")
-async def import_customers_api(
-    agent: Annotated[dict, Depends(get_current_agent)],
-    file: UploadFile = File(...)
-):
-    """Bulk import customers from Excel, CSV, JSON, PDF, or TXT file.
-    Supports:
-    - Auto country code detection for mobile numbers (default +65 SG)
-    - "Name @ Company" parsing from name fields
-    - Various column naming conventions
-    """
-    import csv
-    import io
-    import re
-    import tempfile
-
-    from scripts.import_customers import (
-        read_csv as _read_csv,
-        read_json as _read_json,
-        read_text as _read_text,
-        extract_fields,
-        normalize_phone,
-        parse_name_company,
-    )
-
-    filename = file.filename.lower()
-    content = await file.read()
-    rows = []
-
-    try:
-        if filename.endswith(".csv"):
-            text = content.decode("utf-8-sig")
-            reader = csv.DictReader(io.StringIO(text))
-            rows = list(reader)
-
-        elif filename.endswith((".xlsx", ".xls")):
-            # Save to temp file for pandas/openpyxl to read
-            import pandas as pd
-            with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1], delete=False) as tmp:
-                tmp.write(content)
-                tmp_path = tmp.name
-            try:
-                df = pd.read_excel(tmp_path)
-                df.columns = [str(c).strip() for c in df.columns]
-                rows = df.to_dict('records')
-            finally:
-                os.unlink(tmp_path)
-
-        elif filename.endswith(".json"):
-            text = content.decode("utf-8")
-            import json as _json
-            data = _json.loads(text)
-            if isinstance(data, list):
-                rows = data
-            elif isinstance(data, dict):
-                for key in ['data', 'customers', 'records', 'items', 'results']:
-                    if key in data and isinstance(data[key], list):
-                        rows = data[key]
-                        break
-                if not rows:
-                    rows = [data]
-
-        elif filename.endswith(".pdf"):
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-                tmp.write(content)
-                tmp_path = tmp.name
-            try:
-                from scripts.import_customers import read_pdf
-                rows = read_pdf(tmp_path)
-            finally:
-                os.unlink(tmp_path)
-
-        elif filename.endswith((".txt", ".text", ".tsv")):
-            text = content.decode("utf-8-sig")
-            lines = text.strip().split('\n')
-            if not lines:
-                return JSONResponse({"error": "File is empty"}, status_code=400)
-            # Detect delimiter
-            first_line = lines[0].strip()
-            delimiter = '\t' if '\t' in first_line else (',' if ',' in first_line else ('|' if '|' in first_line else None))
-            if delimiter:
-                headers_line = lines[0].strip().split(delimiter)
-                has_header = any(h.strip().lower() in ('name', 'nama', 'phone', 'mobile', 'company', 'email') for h in headers_line)
-                if has_header:
-                    headers = [h.strip().lower() for h in headers_line]
-                    for line in lines[1:]:
-                        parts = line.strip().split(delimiter)
-                        if parts:
-                            rows.append({headers[i]: parts[i].strip() for i in range(min(len(headers), len(parts)))})
-                else:
-                    for line in lines:
-                        parts = line.strip().split(delimiter)
-                        if parts:
-                            rows.append({'name': parts[0], 'phone': parts[1] if len(parts) > 1 else '', 'company': parts[2] if len(parts) > 2 else ''})
-            else:
-                for line in lines:
-                    if line.strip():
-                        rows.append({'name': line.strip()})
-        else:
-            return JSONResponse({"error": "Unsupported format. Supported: Excel (.xls/.xlsx), CSV, JSON, PDF, TXT"}, status_code=400)
-
-    except Exception as e:
-        return JSONResponse({"error": f"Failed to parse file: {str(e)}"}, status_code=400)
-
-    if not rows:
-        return JSONResponse({"error": "File is empty or has no data rows"}, status_code=400)
-
-    imported = 0
-    skipped = 0
-    errors_list = []
-
-    for i, row in enumerate(rows, 1):
-        try:
-            fields = extract_fields(row, default_country_code="65")
-            name = fields['name']
-            identifier = fields['identifier']
-
-            if not name and not identifier:
-                skipped += 1
-                continue
-
-            if not identifier:
-                identifier = f"imp_{i}"
-            if not name:
-                name = f"Customer {identifier[-6:]}"
-
-            _require_db().create_or_update_user(
-                identifier=identifier,
-                name=name,
-                email=fields['email'],
-                mobile=fields['mobile'],
-                company=fields['company'],
-                position=fields['position'],
-                outlet_pos=fields['outlet_pos'],
-                outlet_address=fields.get('outlet_address', ''),
-                category=fields.get('category', ''),
-                state="complete"
-            )
-            imported += 1
-        except Exception as e:
-            errors_list.append(f"Row {i}: {str(e)}")
-            skipped += 1
-
-    return {
-        "status": "success",
-        "imported": imported,
-        "skipped": skipped,
-        "total_rows": len(rows),
-        "errors": errors_list[:10]
-    }
-
-@app.delete("/api/customers/{identifier}")
-async def delete_customer(identifier: str, agent: Annotated[dict, Depends(get_current_agent)]):
-    """Delete a customer record."""
-    db = _require_db()
-    user = db.get_user(identifier)
-    if not user:
-        return JSONResponse({"error": "Customer not found"}, status_code=404)
-    try:
-        session = db.get_session()
-        from app.models.models import User
-        u = session.get(User, identifier)
-        if u:
-            session.delete(u)
-            session.commit()
-        return {"status": "success", "message": f"Deleted customer {identifier}"}
-    except Exception as e:
-        logger.error(f"Delete customer error: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-    finally:
-        db.Session.remove()
-
-# ============ GCS (Google Cloud Storage) APIs ============
-
-@app.get("/api/gcs/status")
-async def gcs_status(agent: Annotated[dict, Depends(get_current_agent)]):
-    """Get GCS service status and file count."""
-    try:
-        from app.services.gcs_service import get_gcs_service
-        gcs = get_gcs_service()
-        return gcs.get_status()
-    except Exception as e:
-        return {"enabled": False, "error": str(e)}
-
-@app.post("/api/gcs/sync")
-async def gcs_sync(agent: Annotated[dict, Depends(get_current_agent)]):
-    """Sync all local knowledge files to GCS bucket."""
-    try:
-        from app.services.gcs_service import get_gcs_service
-        gcs = get_gcs_service()
-        if not gcs.enabled:
-            return JSONResponse({"error": "GCS is not enabled. Set GCS_ENABLED=True in .env"}, status_code=400)
-        
-        results = await gcs.async_sync_local_to_gcs()
-        synced = sum(1 for v in results.values() if v != "FAILED" and not str(v).startswith("_"))
-        failed = sum(1 for v in results.values() if v == "FAILED")
-        return {
-            "status": "success",
-            "synced": synced,
-            "failed": failed,
-            "details": results
-        }
-    except Exception as e:
-        logger.error(f"GCS sync error: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/gcs/files")
-async def gcs_list_files(agent: Annotated[dict, Depends(get_current_agent)]):
-    """List all files in GCS knowledge bucket."""
-    try:
-        from app.services.gcs_service import get_gcs_service
-        gcs = get_gcs_service()
-        if not gcs.enabled:
-            return JSONResponse({"error": "GCS is not enabled"}, status_code=400)
-        
-        files = gcs.list_files()
-        return {"files": files, "count": len(files)}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/macros")
-async def get_macros(agent: Annotated[dict, Depends(get_current_agent)]):
-    return _require_db().get_macros()
-
-@app.post("/api/macros")
-async def create_macro(data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
-    name = data.get("name", "").strip()
-    content = data.get("content", "").strip()
-    category = data.get("category", "General").strip()
-    if not name or not content:
-        raise HTTPException(status_code=400, detail="name and content are required")
-    _require_db().create_macro(name, content, category)
-    return {"status": "ok"}
-
-@app.delete("/api/macros/{macro_id}")
-async def delete_macro(macro_id: int, agent: Annotated[dict, Depends(get_current_agent)]):
-    _require_db().delete_macro(macro_id)
-    return {"status": "ok"}
-
-@app.get("/api/audit-logs")
-async def get_audit_logs(agent: Annotated[dict, Depends(get_current_agent)]):
-    return _require_db().get_audit_logs()
-
-# ============ Public / Portal APIs ============
-
-@app.get("/api/history")
-@limiter.limit("30/minute")
-async def get_chat_history(request: Request, user_id: str = "web_portal_user", ticket_id: Optional[int] = None):
-    db = _require_db()
-    if ticket_id:
-        # Return unified history (portal messages + live chat) for this ticket
-        return {"history": db.get_unified_history(user_id, ticket_id)}
-    return {"history": db.get_messages(user_id)}
-
-@app.get("/api/history/sessions")
-@limiter.limit("30/minute")
-async def get_history_sessions(request: Request, user_id: str = "web_portal_user"):
-    """Return ticket-based sessions for user's history view."""
-    db = _require_db()
-    tickets = db.get_tickets_by_user(user_id, limit=50)
-    sessions = []
-    for t in tickets:
-        sessions.append({
-            "session_id": f"ticket_{t['id']}",
-            "ticket_id": t["id"],
-            "summary": t.get("summary", "Support request"),
-            "status": t.get("status", "open"),
-            "category": t.get("category", "Support"),
-            "timestamp": t.get("created_at", ""),
-            "agent_name": t.get("assigned_to") or "AI Assistant",
-            "priority": t.get("priority", "Medium")
-        })
-    return {"sessions": sessions}
-
-# ============ Screen Recording Upload ============
-@app.post("/api/chat/upload-recording")
-async def upload_screen_recording(
-    request: Request,
-    file: UploadFile = File(...),
-    user_id: str = Form("web_portal_user"),
-    session_id: str = Form("")
-):
-    """Upload a screen recording from the chat widget."""
-    set_trace_id()
-    
-    # Validate file type
-    allowed_video_ext = [".webm", ".mp4", ".mov"]
-    ext = os.path.splitext(file.filename or "recording.webm")[1].lower()
-    if ext not in allowed_video_ext:
-        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(allowed_video_ext)}")
-    
-    # Read file bytes
-    file_bytes = await file.read()
-    
-    # Max 50MB
-    if len(file_bytes) > 50 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large. Maximum 50MB.")
-    
-    # Save using file handler
-    from app.utils.file_handler import save_upload
-    metadata = save_upload(file_bytes, file.filename or "recording.webm", destination="chat")
-    
-    # Log the recording
-    logger.info(f"[SCREEN_RECORDING] User {user_id} uploaded recording: {metadata['stored_name']} ({metadata['size']} bytes)")
-    
-    # Save as chat message if we have a DB
-    try:
-        db = _require_db()
-        db.save_message(
-            user_id=user_id,
-            role="user",
-            content=f"📹 Screen Recording: {metadata['url']}"
-        )
-    except Exception as e:
-        logger.warning(f"Could not save recording to chat history: {e}")
-    
-    return {
-        "status": "ok",
-        "url": metadata["url"],
-        "filename": metadata["stored_name"],
-        "size": metadata["size"]
-    }
-
-# ============ Knowledge Base Internal Self-Service ============
-
-@app.post("/api/kb/query")
-@limiter.limit("30/minute")
-async def kb_internal_query(request: Request):
-    """Knowledge base query - available to both customers and agents. Sources only shown to authenticated agents."""
-    set_trace_id()
-    try:
-        # Optionally detect if caller is an authenticated agent
-        is_agent = False
-        try:
-            token = _extract_bearer_token(request) or request.cookies.get("access_token")
-            if token:
-                payload = decode_access_token(token)
-                if payload and _require_db().get_agent(payload.get("sub")):
-                    is_agent = True
-        except Exception:
-            pass
-
-        data = await request.json()
-        query = data.get("query", "").strip()
-        language = data.get("language", "en")
-        
-        if not query:
-            return JSONResponse({"error": "Query is required"}, status_code=400)
-        
-        if len(query) > 1000:
-            return JSONResponse({"error": "Query too long (max 1000 characters)"}, status_code=400)
-        
-        # Use Shopify-grade RAGServiceV2 with fallback to V1
-        rag_v2 = getattr(app.state, 'rag_service_v2', None)
-        rag_svc = app.state.rag_service
-        
-        if not rag_v2 and not rag_svc:
-            return JSONResponse({"error": "Knowledge base not initialized"}, status_code=503)
-        
-        # Prefer V2 (advanced pipeline), fallback to V1
-        async with AI_SEMAPHORE:
-            if rag_v2:
-                result = await rag_v2.query(text=query, threshold=0.3, use_hybrid=True, language=language)
-            else:
-                result = await rag_svc.query(text=query, threshold=0.3, use_hybrid=True, language=language)
-        
-        # Include chunk_ids for RFF feedback (V2 only)
-        chunk_ids = result.chunk_ids if hasattr(result, 'chunk_ids') else []
-        
-        # Only expose sources & chunk_ids to authenticated agents
-        answer = result.answer
-        if not is_agent:
-            # Remove 'Internal' and 'Source' references for customers
-            import re
-            
-            # Remove any variations of Internal
-            answer = re.sub(r"Internal[\s:]*", "", answer, flags=re.IGNORECASE)
-            
-            # Remove entire parenthesized source blocks like (Source: file.txt, file2.txt)
-            answer = re.sub(r"\([\s,]*Sources?:?[^)]*\)", "", answer, flags=re.IGNORECASE)
-            
-            # Remove "Sources:" or "Source:" followed by anything until end of line
-            answer = re.sub(r"\*?\*?Sources?:?\*?\*?\s*.*?(?=\n|$)", "", answer, flags=re.IGNORECASE)
-            
-            # Remove [1], [2], {1}, etc.
-            answer = re.sub(r"\[\d+\]", "", answer)
-            answer = re.sub(r"\{\d+\}", "", answer)
-            
-            # Remove filenames with common extensions
-            answer = re.sub(r"[\w_-]+\.(txt|pdf|docx|md|csv)", "", answer, flags=re.IGNORECASE)
-            
-            # Remove parentheses containing only commas, spaces, or nothing: (, ) (,) ( , ) ()
-            answer = re.sub(r"\(\s*[,\s]*\s*\)", "", answer)
-            answer = re.sub(r"\[\s*[,\s]*\s*\]", "", answer)
-            
-            # Clean up trailing/leading punctuation weirdness
-            answer = re.sub(r"\.\s*\.", ".", answer)      # double periods
-            answer = re.sub(r",\s*,", ",", answer)        # double commas
-            answer = re.sub(r",\s*\.", ".", answer)        # comma before period
-            answer = re.sub(r"\s{2,}", " ", answer)        # multiple spaces
-            answer = re.sub(r" +\.", ".", answer)           # space before period
-            answer = re.sub(r" +,", ",", answer)            # space before comma
-            
-            # Clean up trailing newlines
-            answer = answer.strip()
-        response_data = {
-            "answer": answer,
-            "confidence": result.confidence,
-            "retrieval_method": result.retrieval_method if hasattr(result, 'retrieval_method') else "unknown",
-            "query": query,
-        }
-        if is_agent:
-            response_data["sources"] = result.source_documents if result.source_documents else []
-            response_data["chunk_ids"] = chunk_ids
-        else:
-            response_data["sources"] = []
-            response_data["chunk_ids"] = []
-        
-        return response_data
-    except Exception as e:
-        logger.error(f"KB internal query error: {e}")
-        return JSONResponse({"error": f"Failed to query knowledge base: {str(e)}"}, status_code=500)
-
-# ============ RFF — Relevance Feedback Fusion ============
-
-@app.post("/api/rag/feedback")
-async def rag_feedback(request: Request):
-    """
-    Record user feedback (👍/👎) on AI answers to improve future retrieval.
-    Implements Relevance Feedback Fusion (RFF) — chunks that produce helpful
-    answers get boosted in future queries.
-
-    Body: {"chunk_ids": ["abc123", ...], "is_positive": true/false}
-    """
-    set_trace_id()
-    try:
-        data = await request.json()
-        chunk_ids = data.get("chunk_ids", [])
-        is_positive = data.get("is_positive", True)
-
-        if not chunk_ids:
-            return JSONResponse({"error": "chunk_ids required"}, status_code=400)
-
-        rff = get_rff_store()
-        rff.record(chunk_ids, is_positive)
-        logger.info(f"[RFF] Recorded {'👍' if is_positive else '👎'} for {len(chunk_ids)} chunks")
-
-        return {"status": "ok", "recorded": len(chunk_ids), "is_positive": is_positive}
-    except Exception as e:
-        logger.error(f"RFF feedback error: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.get("/api/rag/feedback/stats")
-async def rag_feedback_stats():
-    """Get RFF feedback statistics"""
-    rff = get_rff_store()
-    return rff.get_stats()
-
-@app.post("/api/chat")
-@limiter.limit("30/minute")
-async def chat_directly(
-    request: Request,
-    message: Optional[str] = Form(None),
-    user_id: Optional[str] = Form(None),
-    language: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None)
-):
-    set_trace_id()
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        try:
-            data = await request.json()
-            message, user_id, language = data.get("message"), data.get("user_id", "web_portal_user"), data.get("language")
-        except: return JSONResponse({"error": "Invalid JSON"}, status_code=400)
-    
-    # Limit concurrent AI calls to prevent Vertex AI quota exhaustion under load
-    async with AI_SEMAPHORE:
-        response_data, status_code = await app.state.chat_service.process_portal_message(
-            query=message, user_id=user_id or "web_portal_user", file=file, language=language
-        )
-    # Sanitize response to remove surrogate characters that break UTF-8 encoding
-    import json
-    safe_json = json.dumps(response_data, ensure_ascii=False, default=str).encode('utf-8', errors='replace').decode('utf-8')
-    return Response(content=safe_json, status_code=status_code, media_type="application/json")
+# Management and System APIs moved to app/routes/ticket_routes.py and system_routes.py
+# GCS and Macro APIs moved to app/routes/system_routes.py
+# Public/Portal APIs moved to app/routes/portal_routes.py
+
+# Knowledge Base and Portal APIs moved to app/routes/knowledge_routes.py and portal_routes.py
 
 @app.post("/api/close-session")
+@limiter.limit("10/minute")
 async def close_session(request: Request):
     data = await request.json()
     user_id = data.get("user_id", "web_portal_user")
     option = data.get("option", "close")  # "close" | "ticket" | "ticket_and_notify"
+    
+    # Security: Validate user_id format
+    if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
+        raise HTTPException(status_code=400, detail="Invalid user_id format")
+    
+    # Security: Validate option to prevent injection
+    if option not in ("close", "ticket", "ticket_and_notify", 1, "1", 2, "2"):
+        raise HTTPException(status_code=400, detail="Invalid option")
     
     # Support legacy numeric options
     if option == 1 or option == "1":
@@ -2187,90 +1267,16 @@ async def convert_whatsapp_to_ticket(data: dict, agent: Annotated[dict, Depends(
 
     return {"status": "success", "ticket_id": ticket.id, "summary": ticket.summary}
 
-# ============ WebSocket ============
-
-@app.websocket("/ws/chat/{session_id}")
-async def websocket_chat_endpoint(websocket: WebSocket, session_id: int, user_id: str, user_type: str):
-    try:
-        db = _require_db() if db_manager else None
-        if not db:
-            await websocket.close(code=1008)
-            return
-        session = db.get_chat_session(session_id)
-        if not session:
-            await websocket.close(code=1008)
-            return
-        await manager.connect(session_id, user_id, user_type, websocket)
-        while True:
-            data = await websocket.receive_text()
-            msg = json.loads(data)
-            if msg.get("event") == "message":
-                content = msg.get("content")
-                msg_id = db.save_chat_message(session_id, user_id, user_type, content)
-                await manager.broadcast(session_id, {"event": "message", "message_id": msg_id, "sender_id": user_id, "sender_type": user_type, "content": content, "sent_at": datetime.now(timezone.utc).isoformat()})
-    except: manager.disconnect(session_id, websocket)
-
-# Portal WebSocket: customer connects from index.html
-@app.websocket("/ws/portal/{user_id}")
-async def portal_websocket(websocket: WebSocket, user_id: str):
-    """WebSocket for portal users — receives real-time agent replies."""
-    from app.services.websocket_manager import portal_manager
-    heartbeat_task = None
-    try:
-        await portal_manager.connect_user(user_id, websocket)
-
-        # Background heartbeat to detect stale connections
-        async def _heartbeat():
-            try:
-                while True:
-                    await asyncio.sleep(30)
-                    await websocket.send_json({"event": "ping"})
-            except Exception:
-                pass  # Connection closed, heartbeat stops naturally
-
-        heartbeat_task = asyncio.create_task(_heartbeat())
-
-        while True:
-            data = await websocket.receive_text()
-            msg = json.loads(data)
-            # Ignore pong responses from client
-            if msg.get("event") == "pong":
-                continue
-            # Customer sends a message via WebSocket — save and broadcast to admin watchers
-            if msg.get("event") == "message":
-                content = msg.get("content", "").strip()
-                if content:
-                    db = _require_db()
-                    db.save_message(user_id, "user", content)
-                    await portal_manager.send_to_admins(user_id, {
-                        "event": "message",
-                        "role": "user",
-                        "content": content,
-                        "user_id": user_id,
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    })
-            elif msg.get("event") == "typing":
-                await portal_manager.send_to_admins(user_id, {
-                    "event": "typing",
-                    "user_id": user_id
-                })
-    except Exception:
-        if heartbeat_task:
-            heartbeat_task.cancel()
-        portal_manager.disconnect_user(user_id, websocket)
-
-# Portal WebSocket: admin watches a customer's chat
-@app.websocket("/ws/portal/admin/{user_id}")
-async def portal_admin_websocket(websocket: WebSocket, user_id: str):
-    """WebSocket for admin agents watching a customer portal chat."""
-    from app.services.websocket_manager import portal_manager
+# WebSockets moved to app/routes/websocket_routes.py
+    agent_name = agent.get("name", "Agent")
+    
     try:
         await portal_manager.connect_admin(user_id, websocket)
         while True:
             data = await websocket.receive_text()
             msg = json.loads(data)
             if msg.get("event") == "message":
-                content = msg.get("content", "").strip()
+                content = msg.get("content", "").strip()[:5000]  # Limit message size
                 if content:
                     db = _require_db()
                     db.save_message(user_id, "assistant", content)
@@ -2279,7 +1285,7 @@ async def portal_admin_websocket(websocket: WebSocket, user_id: str):
                         "event": "message",
                         "role": "assistant",
                         "content": content,
-                        "sender_name": msg.get("sender_name", "Agent"),
+                        "sender_name": agent_name,  # Use verified agent name
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     })
                     # Echo back to other admin watchers
@@ -2287,13 +1293,13 @@ async def portal_admin_websocket(websocket: WebSocket, user_id: str):
                         "event": "message",
                         "role": "assistant",
                         "content": content,
-                        "sender_name": msg.get("sender_name", "Agent"),
+                        "sender_name": agent_name,
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     })
             elif msg.get("event") == "typing":
                 await portal_manager.send_to_user(user_id, {
                     "event": "typing",
-                    "sender_name": msg.get("sender_name", "Agent")
+                    "sender_name": agent_name
                 })
     except Exception:
         portal_manager.disconnect_admin(user_id, websocket)

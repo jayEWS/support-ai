@@ -8,3 +8,22 @@ services:
     env_file:
       - .env
     restart: always
+    # Security Fix M3: Resource limits to prevent DoS
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    # Security: Read-only root filesystem where possible
+    read_only: false # Can't be true due to /tmp and data writes
+    # Security: Drop unnecessary Linux capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    # Security: No privilege escalation
+    security_opt:
+      - no-new-privileges:true
