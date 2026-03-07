@@ -902,14 +902,21 @@
             color: var(--text-primary);
         }
 
+        /* ═══════════ KB ANSWER FORMATTING ═══════════ */
+        .kb-answer {
+            font-size: 0.92rem;
+            line-height: 1.65;
+            color: var(--text-primary);
+        }
+
         .kb-answer .kb-header {
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 700;
             color: var(--text-primary);
-            margin: 1rem 0 0.5rem 0;
+            margin: 1.25rem 0 0.5rem 0;
             padding: 0;
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.2rem;
+            padding-bottom: 0.25rem;
             display: block;
         }
 
@@ -918,50 +925,30 @@
         }
 
         .kb-answer .kb-para {
-            margin: 0.5rem 0;
-            line-height: 1.62;
+            margin: 0.75rem 0;
+            line-height: 1.65;
         }
 
-                .kb-answer .kb-numbered {
-            margin: 0.6rem 0;
+        .kb-answer .kb-numbered {
+            margin: 0.8rem 0;
             padding-left: 0.1rem;
             display: flex;
             align-items: flex-start;
-            gap: 0.65rem;
+            gap: 0.75rem;
         }
 
         .kb-answer .kb-num {
-            font-weight: 700;
+            font-weight: 800;
             color: #2e6bff;
-            min-width: 1.5rem;
+            min-width: 1.75rem;
             flex-shrink: 0;
             text-align: left;
+            font-size: 1rem;
         }
 
         .kb-answer .kb-item-content {
             flex: 1;
-            line-height: 1.62;
-        }
-
-        .kb-answer .kb-para {
-            margin: 0.5rem 0;
-            line-height: 1.62;
-        }
-
-        .kb-answer .kb-numbered {
-            margin: 0.4rem 0;
-            padding-left: 0.1rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-
-        .kb-answer .kb-num {
-            font-weight: 700;
-            color: #2e6bff;
-            min-width: 1.4rem;
-            flex-shrink: 0;
-            text-align: right;
+            line-height: 1.65;
         }
 
         html.dark .kb-answer .kb-num {
@@ -971,12 +958,12 @@
         .kb-answer .kb-bullets {
             list-style: none;
             padding-left: 1.5rem;
-            margin: 0.4rem 0;
+            margin: 0.6rem 0;
         }
 
         .kb-answer .kb-bullets li {
             position: relative;
-            margin: 0.3rem 0;
+            margin: 0.4rem 0;
             padding-left: 0.75rem;
         }
 
@@ -992,17 +979,25 @@
             color: #5694ff;
         }
 
+        /* Highlighting clues/buttons/menu items as requested */
+        .kb-clue {
+            color: #ef4444;
+            /* Bright Red */
+            font-weight: 700;
+            padding: 0 1px;
+        }
+
         .kb-answer .h-2 {
             height: 0.5rem;
         }
 
         .kb-answer strong {
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .text-brand-600 {
             color: #1a4fff;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         html.dark .text-brand-600 {
@@ -2486,15 +2481,9 @@
                 .replace(/,\s*$/gm, '');
 
             // 2. STRUCTURAL ISOLATION
-            cleaned = cleaned.replace(/([^\n])\s*(\*?\*?(?:Prerequisites|Instructions|Step-by-step|Steps to|Troubleshooting|Note|What is|Conclusion|Summary):?\*?\*?)/gi, '$1
-
-$2');
-            cleaned = cleaned.replace(/([^\n])\s+(\d+\.\s+)/g, '$1
-
-$2');
-            cleaned = cleaned.replace(/([^\n])\s+([-•*])\s+(?!\*)/g, '$1
-
-$2');
+            cleaned = cleaned.replace(/([^\\n])\s*(\*\*?(?:Prerequisites|Instructions for|Steps to|Instructions|Note|What is|Conclusion|Summary|Post-Closing|Troubleshooting):?\*\*?)/gi, '$1\n\n$2');
+            cleaned = cleaned.replace(/([^\\n])\s+(\d+\.\s*)/g, '$1\n\n$2');
+            cleaned = cleaned.replace(/([^\\n])\s+([-•*])\s+(?!\*)/g, '$1\n\n$2');
 
             // 3. BLOCK PARSING
             const rawLines = cleaned.split('\n');
@@ -2515,7 +2504,7 @@ $2');
                     type = 'numbered';
                 } else if (match = line.match(/^([-•*])\s+(?!\*)(.*)/)) {
                     type = 'bullet';
-                } else if (line.match(/^###\s+/) || line.match(/^\*\*.*?\*\*:?$/) || (line.startsWith('**') && line.length < 60 && (line.endsWith('**') || line.endsWith('**:')))) {
+                } else if (line.match(/^###\s+/) || line.match(/^\*\*.*?\*\*:?$/) || (line.startsWith('**') && line.length < 80 && (line.endsWith('**') || line.endsWith('**:')))) {
                     type = 'header';
                 }
 
@@ -2536,6 +2525,10 @@ $2');
             blocks.forEach(block => {
                 let text = block.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                
+                // Highlight clue terms in red color (text within quotes or specific button patterns)
+                text = text.replace(/("|&quot;)(.*?)("|&quot;)/g, '<span class="kb-clue">$1$2$3</span>');
+                text = text.replace(/(')(.*?)(')/g, '<span class="kb-clue">$1$2$3</span>');
 
                 if (block.type === 'header') {
                     if (inList) { html += '</ul>'; inList = false; }
