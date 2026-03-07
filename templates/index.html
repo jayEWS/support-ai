@@ -897,17 +897,19 @@
 
         /* ═══════════ KB ANSWER FORMATTING ═══════════ */
         .kb-answer {
-            font-size: 0.875rem;
+            font-size: 0.9rem;
             line-height: 1.6;
             color: var(--text-primary);
         }
 
         .kb-answer .kb-header {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: var(--text-primary);
-            margin: 0.75rem 0 0.25rem 0;
+            margin: 0.85rem 0 0.35rem 0;
             padding: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.15rem;
         }
 
         .kb-answer .kb-header:first-child {
@@ -915,19 +917,23 @@
         }
 
         .kb-answer .kb-para {
-            margin: 0.2rem 0;
+            margin: 0.35rem 0;
             line-height: 1.6;
         }
 
         .kb-answer .kb-numbered {
-            margin: 0.15rem 0;
+            margin: 0.4rem 0;
             padding-left: 0.25rem;
+            display: flex;
+            align-items: flex-start;
         }
 
         .kb-answer .kb-num {
-            font-weight: 600;
+            font-weight: 700;
             color: #2e6bff;
-            margin-right: 0.25rem;
+            margin-right: 0.5rem;
+            min-width: 1.25rem;
+            flex-shrink: 0;
         }
 
         html.dark .kb-answer .kb-num {
@@ -936,13 +942,13 @@
 
         .kb-answer .kb-bullets {
             list-style: none;
-            padding-left: 1.25rem;
-            margin: 0.15rem 0;
+            padding-left: 1.4rem;
+            margin: 0.4rem 0;
         }
 
         .kb-answer .kb-bullets li {
             position: relative;
-            margin: 0.1rem 0;
+            margin: 0.25rem 0;
             padding-left: 0.75rem;
         }
 
@@ -959,11 +965,20 @@
         }
 
         .kb-answer .h-2 {
-            height: 0.35rem;
+            height: 0.5rem;
         }
 
         .kb-answer strong {
             font-weight: 600;
+        }
+
+        .text-brand-600 {
+            color: #1a4fff;
+            font-weight: 600;
+        }
+
+        html.dark .text-brand-600 {
+            color: #5694ff;
         }
     </style>
 </head>
@@ -2430,90 +2445,84 @@
 
         function formatKbAnswer(text) {
             if (!text) return '';
-            // Remove all 'Source #' and 'Source: ...' references for customers
-            let cleaned = text.replace(/Source\s*\d+/gi, '').replace(/Source\s*:\s*[^\n\r]*/gi, '');
-            // Remove "Sources:" lines completely
-            cleaned = cleaned.replace(/^\s*\*?\*?Sources?:?\*?\*?\s*.*$/gim, '');
-            // Remove filenames like file.txt, doc.pdf
-            cleaned = cleaned.replace(/[\w_-]+\.(txt|pdf|docx|md|csv)/gi, '');
-            // Remove stray empty parens/brackets and (,) patterns
-            cleaned = cleaned.replace(/\(\s*[,\s]*\s*\)/g, '');
-            cleaned = cleaned.replace(/\[\s*[,\s]*\s*\]/g, '');
-            // Remove trailing commas
-            cleaned = cleaned.replace(/,\s*,/g, ',').replace(/,\s*$/gm, '');
 
-            // === PRE-PROCESS: insert newlines before patterns so split works ===
-            // Before numbered items like "1. " "2. " when preceded by text
-            cleaned = cleaned.replace(/([.!?:)])\s+(\d+)\.\s+/g, '$1\n$2. ');
-            // Before bold headers like **Header:** when preceded by text
-            cleaned = cleaned.replace(/([.!?)])\s+\*\*([^*]+?):?\*\*:?\s*/g, '$1\n**$2:**\n');
-            // Before inline asterisk bullets "* text" when preceded by text (not **)
-            cleaned = cleaned.replace(/([.!?:)])\s+\*\s+(?!\*)/g, '$1\n* ');
+            // 1. Initial cleanup of source references and filenames
+            let cleaned = text
+                .replace(/Source\s*\d+/gi, '')
+                .replace(/Source\s*:\s*[^\n\r]*/gi, '')
+                .replace(/^\s*\*?\*?Sources?:?\*?\*?\s*.*$/gim, '')
+                .replace(/[\w_-]+\.(txt|pdf|docx|md|csv)/gi, '')
+                .replace(/\(\s*[,\s]*\s*\)/g, '')
+                .replace(/\[\s*[,\s]*\s*\]/g, '')
+                .replace(/,\s*,/g, ',')
+                .replace(/,\s*$/gm, '');
 
-            // Split into lines for processing
-            const lines = cleaned.split('\n');
+            // 2. PRE-PROCESS: Break "wall of text" into lines if AI returned one giant paragraph
+            // We look for patterns that SHOULD start a new line but don't have a newline before them
+
+            // Pattern: [Sentence End] [Space] [Number]. [Space]
+            cleaned = cleaned.replace(/([.!?:)])\s+(\d+\.\s+)/g, '$1\n$2');
+
+            // Pattern: [Sentence End] [Space] [Bold Header] 
+            // e.g. "...done. **Step 1:**" -> "...done.\n**Step 1:**"
+            cleaned = cleaned.replace(/([.!?:)])\s+(\*\*([^*]+?):?\*\*)/g, '$1\n$2');
+
+            // Pattern: [Sentence End] [Space] [Bullet]
+            // e.g. "...reasons. * Item 1" -> "...reasons.\n* Item 1"
+            cleaned = cleaned.replace(/([.!?:)])\s+([-•*]\s+(?!\*))/g, '$1\n$2');
+
+            // 3. Line-by-Line Processing
+            const rawLines = cleaned.split('\n');
             let html = '';
-            let inList = false;
+            let inBulletList = false;
 
-            for (const line of lines) {
-                let trimmed = line.trim();
-
-                // Skip empty lines — just add a small break
-                if (!trimmed) {
-                    if (inList) { html += '</ul>'; inList = false; }
+            for (let i = 0; i < rawLines.length; i++) {
+                let rawLine = rawLines[i].trim();
+                if (!rawLine) {
+                    if (inBulletList) { html += '</ul>'; inBulletList = false; }
                     html += '<div class="h-2"></div>';
                     continue;
                 }
 
                 // Escape HTML
-                trimmed = trimmed.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                let line = rawLine.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-                // Bold **text**
-                trimmed = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-                // Check if this line looks like a markdown header "### Header"
-                let headerMatch = trimmed.match(/^(#{1,3})\s+(.+)/);
-                if (headerMatch) {
-                    if (inList) { html += '</ul>'; inList = false; }
-                    html += '<h4 class="kb-header">' + headerMatch[2] + '</h4>';
-                    continue;
-                }
-
-                // Detect bold-only lines that act as headers (e.g. "**Prerequisites:**" or "<strong>Prerequisites:</strong>")
-                let boldHeaderMatch = trimmed.match(/^\s*<strong>(.+?):?<\/strong>:?\s*$/);
-                if (boldHeaderMatch) {
-                    if (inList) { html += '</ul>'; inList = false; }
-                    html += '<h4 class="kb-header">' + boldHeaderMatch[1] + '</h4>';
-                    continue;
-                }
-
-                // Numbered list item: "1. Something"
-                let numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
+                // Detect Numbered Item (Optionally containing a bold header)
+                // e.g. "1. **Header:** info"
+                let numberedMatch = line.match(/^(\d+)\.\s+(.+)/);
                 if (numberedMatch) {
-                    if (inList) { html += '</ul>'; inList = false; }
-                    html += '<div class="kb-numbered"><span class="kb-num">' + numberedMatch[1] + '.</span> ' + numberedMatch[2] + '</div>';
+                    if (inBulletList) { html += '</ul>'; inBulletList = false; }
+                    let content = numberedMatch[2]
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                    html += `<div class="kb-numbered"><span class="kb-num">${numberedMatch[1]}.</span> ${content}</div>`;
                     continue;
                 }
 
-                // Bullet item: "- Something" or "• Something" or "* Something" (not bold **)
-                let bulletMatch = trimmed.match(/^[-•]\s+(.+)/);
-                if (!bulletMatch) {
-                    // Also match single * bullet (but not ** bold)
-                    let starMatch = trimmed.match(/^\*\s+(?!\*)(.+)/);
-                    if (starMatch) bulletMatch = starMatch;
-                }
+                // Detect Bullet Point
+                let bulletMatch = line.match(/^([-•*])\s+(?!\*)(.+)/);
                 if (bulletMatch) {
-                    if (!inList) { html += '<ul class="kb-bullets">'; inList = true; }
-                    html += '<li>' + bulletMatch[1] + '</li>';
+                    if (!inBulletList) { html += '<ul class="kb-bullets">'; inBulletList = true; }
+                    let content = bulletMatch[2]
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                    html += `<li>${content}</li>`;
                     continue;
                 }
 
-                // Regular paragraph text
-                if (inList) { html += '</ul>'; inList = false; }
-                html += '<p class="kb-para">' + trimmed + '</p>';
+                // Detect Bold Header (on its own line)
+                if (line.startsWith('**') && (line.endsWith('**') || line.endsWith('**:') || line.endsWith(':'))) {
+                    if (inBulletList) { html += '</ul>'; inBulletList = false; }
+                    let headerText = line.replace(/\*\*/g, '').replace(/:$/, '');
+                    html += `<h4 class="kb-header">${headerText}</h4>`;
+                    continue;
+                }
+
+                // Regular Paragraph
+                if (inBulletList) { html += '</ul>'; inBulletList = false; }
+                let finalLine = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                html += `<p class="kb-para">${finalLine}</p>`;
             }
 
-            if (inList) html += '</ul>';
+            if (inBulletList) html += '</ul>';
             return html;
         }
 
