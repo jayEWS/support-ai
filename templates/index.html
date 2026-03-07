@@ -2466,10 +2466,10 @@
             }
         }
 
-                                function formatKbAnswer(text) {
+                                        function formatKbAnswer(text) {
             if (!text) return '';
 
-            // 1. CLEANUP (Keep newlines, just strip artifacts)
+            // 1. CLEANUP (Initial sanitization)
             let cleaned = text
                 .replace(/Source\s*\d+/gi, '')
                 .replace(/Source\s*:\s*[^\n\r]*/gi, '')
@@ -2478,10 +2478,11 @@
                 .replace(/\(\s*[,\s]*\s*\)/g, '')
                 .replace(/\[\s*[,\s]*\s*\]/g, '')
                 .replace(/,\s*,/g, ',')
+                .replace(/\* \* \* \*/g, '') // Strip trailing AI artifacts
                 .replace(/,\s*$/gm, '');
 
-            // 2. STRUCTURAL ISOLATION: Inject double newlines before major sections
-            // Ensure bullets have a space: "*Something" -> "* Something"
+            // 2. STRUCTURAL ISOLATION
+            // Ensure bullets have a space
             cleaned = cleaned.replace(/^([-•*])([A-Za-z])/gm, '$1 $2');
 
             const sections = [
@@ -2492,7 +2493,7 @@
             const sectionRegex = new RegExp('([^\\n])\\s*(\\*?\\*?(?:' + sections.join('|') + '):?\\*?\\*?)', 'gi');
             cleaned = cleaned.replace(sectionRegex, '$1\n\n$2');
             
-            // Isolate numbered and bullet items
+            // Isolate list items
             cleaned = cleaned.replace(/([^\\n])\\s*(\d+\.\s+)/g, '$1\n\n$2');
             cleaned = cleaned.replace(/([^\\n])\\s+([-•*])\\s+(?!\*)/g, '$1\n\n$2');
 
@@ -2503,12 +2504,13 @@
 
             for (let i = 0; i < rawLines.length; i++) {
                 let line = rawLines[i].trim();
+                // Strip random trailing AI stars from lines
+                line = line.replace(/\*+$/, '').trim();
                 if (!line) {
                     currentBlock = null;
                     continue;
                 }
 
-                // Detect Type
                 let type = 'para';
                 let match = null;
 
@@ -2551,7 +2553,7 @@
 
                 if (block.type === 'header') {
                     if (inList) { html += '</ul>'; inList = false; }
-                    let headerText = text.replace(/^(#{1,3}\s*|\*\*)/, '').replace(/(\*\*|:)$/, '').trim();
+                    let headerText = text.replace(/^(#{1,3}\s*|\*\*|<strong[^>]*>)/, '').replace(/(\*\*|<\/strong>|:)$/, '').trim();
                     html += `<h4 class="kb-header">${headerText}</h4>`;
                 } else if (block.type === 'numbered') {
                     if (inList) { html += '</ul>'; inList = false; }
@@ -2564,7 +2566,9 @@
                     html += `<li>${content}</li>`;
                 } else {
                     if (inList) { html += '</ul>'; inList = false; }
-                    html += `<p class="kb-para">${text}</p>`;
+                    // Strip leftover raw bullet symbols if they somehow got into a para block
+                    let finalPara = text.replace(/^([-•*])\s+/, '');
+                    html += `<p class="kb-para">${finalPara}</p>`;
                 }
             });
 
