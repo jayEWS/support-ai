@@ -4,7 +4,7 @@ import os
 # Gunicorn Production Configuration
 
 # Bind to 0.0.0.0 to allow external access (e.g., from Nginx/Load Balancer)
-bind = "0.0.0.0:8000"
+bind = "0.0.0.0:8001"
 
 # Workers: Formula is usually (2 x num_cores) + 1
 workers = multiprocessing.cpu_count() * 2 + 1

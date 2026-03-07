@@ -1027,7 +1027,7 @@ async def ingest_knowledge_from_url(
         
         # Use RAG engine to ingest from URL
         try:
-            rag_eng = app.state.rag_engine
+            rag_service = app.state.rag_service
             if not rag_eng:
                 return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
             
@@ -1048,7 +1048,7 @@ async def delete_knowledge(
     agent: Annotated[dict, Depends(get_current_agent)]
 ):
     try:
-        rag_eng = app.state.rag_engine
+        rag_service = app.state.rag_service
         if not rag_eng:
             return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
         
@@ -1070,7 +1070,7 @@ async def batch_delete_knowledge(
         if not filenames:
             return JSONResponse({"error": "No filenames provided"}, status_code=400)
             
-        rag_eng = app.state.rag_engine
+        rag_service = app.state.rag_service
         if not rag_eng:
             return JSONResponse({"error": "RAG Engine not initialized"}, status_code=500)
             

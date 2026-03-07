@@ -7,7 +7,6 @@ from langchain_community.vectorstores import FAISS
 from app.core.config import settings
 from app.core.logging import logger, LogLatency
 from app.schemas.schemas import RAGResponse
-from app.core.database import db_manager
 from app.services.advanced_retriever import AdvancedRetriever
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
