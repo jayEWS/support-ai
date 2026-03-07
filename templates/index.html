@@ -922,6 +922,32 @@
             line-height: 1.62;
         }
 
+                .kb-answer .kb-numbered {
+            margin: 0.6rem 0;
+            padding-left: 0.1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+        }
+
+        .kb-answer .kb-num {
+            font-weight: 700;
+            color: #2e6bff;
+            min-width: 1.5rem;
+            flex-shrink: 0;
+            text-align: left;
+        }
+
+        .kb-answer .kb-item-content {
+            flex: 1;
+            line-height: 1.62;
+        }
+
+        .kb-answer .kb-para {
+            margin: 0.5rem 0;
+            line-height: 1.62;
+        }
+
         .kb-answer .kb-numbered {
             margin: 0.4rem 0;
             padding-left: 0.1rem;
@@ -2445,10 +2471,10 @@
             }
         }
 
-        function formatKbAnswer(text) {
+                function formatKbAnswer(text) {
             if (!text) return '';
 
-            // 1. CLEANUP (Keep newlines, just strip artifacts)
+            // 1. CLEANUP
             let cleaned = text
                 .replace(/Source\s*\d+/gi, '')
                 .replace(/Source\s*:\s*[^\n\r]*/gi, '')
@@ -2459,56 +2485,76 @@
                 .replace(/,\s*,/g, ',')
                 .replace(/,\s*$/gm, '');
 
-            // 2. SMART PRE-PROCESS: Only insert newlines if they are missing
-            cleaned = cleaned.replace(/([.!?:)])\s+(\*?\*?(?:Prerequisites|Instructions|Step-by-step|Post-Closing|Troubleshooting):?\*?\*?)/gi, '$1\n$2');
-            cleaned = cleaned.replace(/([.!?:)])\s+(\d+\.\s+)/g, '$1\n$2');
-            cleaned = cleaned.replace(/([.!?:)])\s+([-•*])\s+(?!\*)/g, '$1\n$2');
+            // 2. STRUCTURAL ISOLATION
+            cleaned = cleaned.replace(/([^\n])\s*(\*?\*?(?:Prerequisites|Instructions|Step-by-step|Steps to|Troubleshooting|Note|What is|Conclusion|Summary):?\*?\*?)/gi, '$1
 
-            // 3. Line-by-Line Parsing
+$2');
+            cleaned = cleaned.replace(/([^\n])\s+(\d+\.\s+)/g, '$1
+
+$2');
+            cleaned = cleaned.replace(/([^\n])\s+([-•*])\s+(?!\*)/g, '$1
+
+$2');
+
+            // 3. BLOCK PARSING
             const rawLines = cleaned.split('\n');
+            let blocks = [];
+            let currentBlock = null;
+
+            for (let i = 0; i < rawLines.length; i++) {
+                let line = rawLines[i].trim();
+                if (!line) {
+                    currentBlock = null;
+                    continue;
+                }
+
+                let type = 'para';
+                let match = null;
+
+                if (match = line.match(/^(\d+)\.\s*(.*)/)) {
+                    type = 'numbered';
+                } else if (match = line.match(/^([-•*])\s+(?!\*)(.*)/)) {
+                    type = 'bullet';
+                } else if (line.match(/^###\s+/) || line.match(/^\*\*.*?\*\*:?$/) || (line.startsWith('**') && line.length < 60 && (line.endsWith('**') || line.endsWith('**:')))) {
+                    type = 'header';
+                }
+
+                if (type === 'para' && currentBlock && currentBlock.type === 'para') {
+                    currentBlock.content += ' ' + line;
+                } else if (type === 'para' && currentBlock && (currentBlock.type === 'numbered' || currentBlock.type === 'bullet')) {
+                    currentBlock.content += ' ' + line;
+                } else {
+                    currentBlock = { type, content: line, match: match };
+                    blocks.push(currentBlock);
+                }
+            }
+
+            // 4. RENDERING
             let html = '';
             let inList = false;
 
-            for (let i = 0; i < rawLines.length; i++) {
-                let rawLine = rawLines[i].trim();
-                if (!rawLine) {
+            blocks.forEach(block => {
+                let text = block.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+
+                if (block.type === 'header') {
                     if (inList) { html += '</ul>'; inList = false; }
-                    html += '<div class="h-2"></div>';
-                    continue;
-                }
-
-                let line = rawLine.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                let numMatch = line.match(/^(\d+)\.\s*(.*)/);
-                if (numMatch) {
-                    if (inList) { html += '</ul>'; inList = false; }
-                    let content = numMatch[2].replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
-                    html += `<div class="kb-numbered"><span class="kb-num">${numMatch[1]}.</span> ${content}</div>`;
-                    continue;
-                }
-
-                let bulletMatch = line.match(/^([-•*])\s+(?!\*)(.*)/);
-                if (bulletMatch) {
-                    if (!inList) { html += '<ul class="kb-bullets">'; inList = true; }
-                    let content = bulletMatch[2].replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
-                    html += `<li>${content}</li>`;
-                    continue;
-                }
-
-                let headerMatch = line.match(/^(\*\*|###)?\s*(Prerequisites|Instructions|Step-by-step|Steps to|Troubleshooting|Note|What is|Conclusion):?\s*(\*\*|:)?$/i);
-                const isShortBold = line.startsWith('**') && (line.endsWith('**') || line.endsWith('**:')) && line.length < 60;
-                
-                if (headerMatch || isShortBold) {
-                    if (inList) { html += '</ul>'; inList = false; }
-                    let headerText = line.replace(/^(#{1,3}\s*|\*\*)/, '').replace(/(\*\*|:)$/, '').trim();
+                    let headerText = text.replace(/^(#{1,3}\s*|\*\*)/, '').replace(/(\*\*|:)$/, '').trim();
                     html += `<h4 class="kb-header">${headerText}</h4>`;
-                    continue;
+                } else if (block.type === 'numbered') {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    let num = block.match[1];
+                    let rem = text.replace(/^\d+\.\s*/, '');
+                    html += `<div class="kb-numbered"><span class="kb-num">${num}.</span><div class="kb-item-content">${rem}</div></div>`;
+                } else if (block.type === 'bullet') {
+                    if (!inList) { html += '<ul class="kb-bullets">'; inList = true; }
+                    let content = text.replace(/^([-•*])\s+/, '');
+                    html += `<li>${content}</li>`;
+                } else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p class="kb-para">${text}</p>`;
                 }
-
-                if (inList) { html += '</ul>'; inList = false; }
-                let finalLine = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
-                html += `<p class="kb-para">${finalLine}</p>`;
-            }
+            });
 
             if (inList) html += '</ul>';
             return html;
