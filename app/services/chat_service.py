@@ -174,7 +174,14 @@ class ChatService:
 
             # 3. RAG Query (Advanced Retriever: Hybrid + Rerank)
             user_lang = language or self.get_user_language(user_id)
-            rag_res = await self.rag_service.query(query + f" (Context: {user_context['outlet']})", language=user_lang)
+            
+            # Smart context injection: Only append context if the message is long/technical
+            # Keep greetings "clean" so they hit the fast path in RAGService
+            query_to_send = query
+            if len(query.split()) > 3:
+                query_to_send += f" (Context: {user_context['outlet']})"
+                
+            rag_res = await self.rag_service.query(query_to_send, language=user_lang)
             
             # 4. LLM Completion (Mocked integration of system_msg here, in reality would use ChatOpenAI messages)
             answer = _sanitize_text(rag_res.answer)

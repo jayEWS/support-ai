@@ -261,22 +261,34 @@ class QueryEngine:
     # ── Stage 1: Greeting Detection ─────────────────────────────────
 
     def _detect_greeting(self, query: str, language: str) -> bool:
-        """Detect greetings and short conversational queries"""
+        """Detect greetings and short conversational queries (Improved for Power Mode)"""
         q = query.lower().strip()
-        words = set(q.split())
+        words = q.split()
+        word_set = set(words)
 
+        # Common greeting particles
         greetings = {
-            "en": {"hi", "hello", "hey", "thanks", "thank", "ok", "bye", "test", "good morning", "good afternoon"},
-            "id": {"halo", "hai", "selamat", "pagi", "siang", "sore", "malam", "terima", "kasih", "oke", "makasih"},
+            "en": {"hi", "hello", "hey", "thanks", "thank", "ok", "okey", "bye", "test", "good", "morning", "afternoon", "evening", "night", "pm", "am"},
+            "id": {"halo", "hai", "selamat", "pagi", "siang", "sore", "malam", "terima", "kasih", "oke", "makasih", "siap"},
             "zh": {"你好", "谢谢", "早上好", "晚上好", "嗨"},
         }
 
-        lang_greetings = greetings.get(language, greetings["en"])
+        # Multi-word greeting check (e.g., "good pm", "selamat pagi")
+        full_greetings = {"good pm", "good am", "good morning", "good afternoon", "good evening", "selamat pagi", "selamat siang", "selamat sore", "selamat malam", "terima kasih"}
+        
+        if q in full_greetings:
+            return True
+
+        # Check if query is very short and contains greeting words
         all_greetings = set()
         for g in greetings.values():
             all_greetings.update(g)
 
-        return len(words) <= 3 and bool(words.intersection(all_greetings))
+        # If it's 1-2 words and contains greeting words, it's a greeting
+        if len(words) <= 3 and bool(word_set.intersection(all_greetings)):
+            return True
+            
+        return False
 
     # ── Stage 2: Intent Classification ──────────────────────────────
 

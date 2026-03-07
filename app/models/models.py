@@ -57,7 +57,6 @@ class Role(Base):
 
 class Agent(Base):
     """The User Master (usermst) Table"""
-    """The User Master (usermst) Table"""
     __tablename__ = "Agents"
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
     agent_id = Column("AgentID", Integer, primary_key=True, autoincrement=True)
@@ -88,6 +87,7 @@ class AuthRefreshToken(Base):
     __tablename__ = "AuthRefreshTokens"
     __table_args__ = (
         Index("ix_refreshtoken_user_active", "Username", "RevokedAt"),  # Fast active-token lookup
+    )
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
     id = Column("TokenID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("Username", Unicode(100), index=True)
@@ -105,8 +105,6 @@ class AuthMagicLink(Base):
     token_hash = Column("TokenHash", Unicode(128), unique=True, index=True)
     expires_at = Column("ExpiresAt", DateTime)
     created_at = Column("CreatedAt", DateTime, server_default=func.now())
-
-# ... (rest of the models for Ticket, User, Message, etc. remain the same)
 
 class Outlet(Base):
     __tablename__ = "outlets"
@@ -204,6 +202,7 @@ class Message(Base):
     __table_args__ = (
         Index("ix_msg_user_time", "UserID", "Timestamp"),      # Fast chat history
         Index("ix_msg_user_role", "UserID", "Role"),            # Fast role-filtered queries
+    )
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
     id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("UserID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"), index=True)
@@ -219,6 +218,7 @@ class Ticket(Base):
         Index("ix_ticket_status_assigned", "Status", "AssignedToAgent"),  # Unassigned queries
         Index("ix_ticket_customer", "CustomerID", "CreatedDate"),         # Customer ticket history
         Index("ix_ticket_due_status", "DueAt", "Status"),                 # SLA/overdue checks
+    )
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
     id = Column("TicketID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("CustomerID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"), index=True)
@@ -237,6 +237,7 @@ class AuditLog(Base):
     __table_args__ = (
         Index("ix_audit_time", "LogDate"),         # Fast recent-first queries
         Index("ix_audit_agent", "AgentID"),         # Per-agent audit trail
+    )
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
     id = Column("LogID", Integer, primary_key=True, autoincrement=True)
     agent_id = Column("AgentID", Unicode(100))
@@ -333,6 +334,7 @@ class WhatsAppMessage(Base):
         Index("ix_wa_phone_created", "PhoneNumber", "CreatedAt"),   # Conversation thread
         Index("ix_wa_phone_direction", "PhoneNumber", "Direction"),  # Inbound/outbound filter
         Index("ix_wa_ticket", "TicketID"),                           # Linked ticket lookup
+    )
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
     id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
     external_message_id = Column("ExternalMessageID", Unicode(255), unique=True, nullable=True)

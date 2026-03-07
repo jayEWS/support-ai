@@ -1,6 +1,13 @@
 from sqlalchemy import create_engine, func, or_, desc, literal_column, case
 from sqlalchemy.orm import sessionmaker, scoped_session, joinedload
-from app.models.models import Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, AuthRefreshToken, AuthMagicLink, WhatsAppMessage, SystemSetting, IS_MSSQL, IS_POSTGRES, IS_SQLITE
+from app.models.models import (
+    Base, User, Message, Ticket, Agent, ChatSession, ChatMessage, 
+    AgentPresence, SLARule, TicketQueue, Macro, CSATSurvey, 
+    KnowledgeMetadata, AuditLog, Role, Permission, AuthMFAChallenge, 
+    AuthRefreshToken, AuthMagicLink, WhatsAppMessage, SystemSetting,
+    Outlet, POSDevice, POSTransaction, Voucher, Membership, 
+    InventoryItem, AIInteraction, IS_MSSQL, IS_POSTGRES, IS_SQLITE
+)
 from app.core.config import settings
 from app.core.logging import logger
 import json

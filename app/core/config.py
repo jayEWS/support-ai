@@ -96,11 +96,13 @@ class Settings(BaseSettings):
     AI_OBSERVABILITY_ENABLED: bool = True  # Track AI interactions
     AI_COST_TRACKING_ENABLED: bool = True  # Estimate and track AI costs
     
-    # ── Billing (Stripe) ──
+    # Billing (Stripe)
     STRIPE_SECRET_KEY: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
-    
+
+    DEBUG: bool = False  # Defaults to False (Production) if not set
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     def __init__(self, **kwargs):
