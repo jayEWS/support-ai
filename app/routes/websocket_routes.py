@@ -168,8 +168,35 @@ async def portal_admin_websocket(websocket: WebSocket, user_id: str):
         return
 
     await portal_manager.connect_admin(user_id, websocket)
+    agent_name = agent.get("name", "Agent")
     try:
         while True:
-            await websocket.receive_text() # Keep connection alive
-    except:
+            data = await websocket.receive_text()
+            msg = json.loads(data)
+            if msg.get("event") == "message":
+                content = msg.get("content", "").strip()[:5000]
+                if content:
+                    db_manager.save_message(user_id, "assistant", content)
+                    # Send to customer
+                    await portal_manager.send_to_user(user_id, {
+                        "event": "message",
+                        "role": "assistant",
+                        "content": content,
+                        "sender_name": agent_name,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    # Echo back to other admin watchers
+                    await portal_manager.send_to_admins(user_id, {
+                        "event": "message",
+                        "role": "assistant",
+                        "content": content,
+                        "sender_name": agent_name,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+            elif msg.get("event") == "typing":
+                await portal_manager.send_to_user(user_id, {
+                    "event": "typing",
+                    "sender_name": agent_name
+                })
+    except Exception:
         portal_manager.disconnect_admin(user_id, websocket)

@@ -864,13 +864,13 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     # Re-read language AFTER onboarding (may have been updated by language detection)
     user_lang = chat_svc.get_user_language(message.sender) if chat_svc else 'en'
     
+    ticket_id = None
     if onboarding_response:
         response_text = onboarding_response
     else:
         classification = await app.state.intent_service.classify(message.text)
         
         response_text = ""
-        ticket_id = None
         if classification.intent == IntentType.CRITICAL:
             response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message.text}", message.text, True)
         elif classification.intent == IntentType.ESCALATION:
@@ -1267,42 +1267,9 @@ async def convert_whatsapp_to_ticket(data: dict, agent: Annotated[dict, Depends(
 
     return {"status": "success", "ticket_id": ticket.id, "summary": ticket.summary}
 
+
 # WebSockets moved to app/routes/websocket_routes.py
-    agent_name = agent.get("name", "Agent")
-    
-    try:
-        await portal_manager.connect_admin(user_id, websocket)
-        while True:
-            data = await websocket.receive_text()
-            msg = json.loads(data)
-            if msg.get("event") == "message":
-                content = msg.get("content", "").strip()[:5000]  # Limit message size
-                if content:
-                    db = _require_db()
-                    db.save_message(user_id, "assistant", content)
-                    # Send to customer
-                    await portal_manager.send_to_user(user_id, {
-                        "event": "message",
-                        "role": "assistant",
-                        "content": content,
-                        "sender_name": agent_name,  # Use verified agent name
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    })
-                    # Echo back to other admin watchers
-                    await portal_manager.send_to_admins(user_id, {
-                        "event": "message",
-                        "role": "assistant",
-                        "content": content,
-                        "sender_name": agent_name,
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    })
-            elif msg.get("event") == "typing":
-                await portal_manager.send_to_user(user_id, {
-                    "event": "typing",
-                    "sender_name": agent_name
-                })
-    except Exception:
-        portal_manager.disconnect_admin(user_id, websocket)
+
 
 @app.get("/health")
 async def health():
