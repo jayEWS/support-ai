@@ -12,9 +12,9 @@ class DatabaseManager:
         # Build engine kwargs based on DB type
         engine_kwargs = {
             "pool_pre_ping": True,       # Auto-recover stale connections
-            "pool_size": 10,             # 5 per worker × 2 workers
-            "max_overflow": 20,          # Burst capacity for concurrent requests
-            "pool_recycle": 1800,         # Recycle connections every 30 min (Neon drops idle after ~5 min)
+            "pool_size": 20,             # Increased for production (was 10)
+            "max_overflow": 10,          # Burst capacity
+            "pool_recycle": 3600,        # Recycle connections every hour
         }
 
         if IS_MSSQL:
@@ -1363,6 +1363,60 @@ class DatabaseManager:
         except Exception as e:
             session.rollback()
             logger.error(f"Error linking WhatsApp messages to ticket: {e}")
+        finally:
+            self.Session.remove()
+
+    def execute_safe_query(self, table_name: str, filters: dict = None, limit: int = 10):
+        """
+        Executes a safe, read-only query on whitelisted tables for AI Tools.
+        Args:
+            table_name: Table name (tickets, users, etc)
+            filters: Dictionary of equality filters {column: value}
+            limit: Max rows to return
+        """
+        session = self.get_session()
+        try:
+            # Whitelist allowed tables to prevent arbitrary access
+            allowed_tables = {
+                "tickets": Ticket,
+                "users": User,
+                "messages": Message,
+                "audit_logs": AuditLog,
+                "whatsapp_messages": WhatsAppMessage,
+                "outlets": Outlet,
+                "pos_devices": POSDevice,
+                "pos_transactions": POSTransaction,
+                "vouchers": Voucher,
+                "memberships": Membership,
+                "inventory_items": InventoryItem
+            }
+            
+            if table_name not in allowed_tables:
+                raise ValueError(f"Table '{table_name}' is not accessible via AI tools.")
+            
+            model = allowed_tables[table_name]
+            query = session.query(model)
+            
+            if filters:
+                for col, val in filters.items():
+                    if hasattr(model, col):
+                        query = query.filter(getattr(model, col) == val)
+            
+            results = query.limit(limit).all()
+            
+            # Serialize results
+            serialized = []
+            for r in results:
+                # Convert model to dict, handling datetime
+                row_dict = {}
+                for col in r.__table__.columns:
+                    val = getattr(r, col.name)
+                    if isinstance(val, datetime):
+                        val = val.isoformat()
+                    row_dict[col.name] = val
+                serialized.append(row_dict)
+                
+            return serialized
         finally:
             self.Session.remove()
 

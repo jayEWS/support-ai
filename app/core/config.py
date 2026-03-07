@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+import os
 
 class Settings(BaseSettings):
     # AI Config
@@ -30,12 +31,12 @@ class Settings(BaseSettings):
     EMBEDDINGS_BASE_URL: Optional[str] = None
     
     # WhatsApp / Meta Cloud API Settings
-    WHATSAPP_API_TOKEN: str = ""  # Meta permanent access token
-    WHATSAPP_PHONE_NUMBER_ID: str = ""  # Phone Number ID from Meta dashboard
-    WHATSAPP_BUSINESS_ACCOUNT_ID: str = ""  # WhatsApp Business Account ID
-    WHATSAPP_VERIFY_TOKEN: str = "edgeworks_wa_verify_2024"  # Webhook verification token (you set this)
-    WHATSAPP_APP_SECRET: str = ""  # Meta App Secret for signature validation
-    WHATSAPP_TEST_MODE: bool = True  # Enable test mode (local chat without Meta API)
+    WHATSAPP_API_TOKEN: str = os.getenv("WHATSAPP_API_TOKEN", "")
+    WHATSAPP_PHONE_NUMBER_ID: str = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+    WHATSAPP_BUSINESS_ACCOUNT_ID: str = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
+    WHATSAPP_VERIFY_TOKEN: str = os.getenv("WHATSAPP_VERIFY_TOKEN", "edgeworks_wa_verify_2024")
+    WHATSAPP_APP_SECRET: str = os.getenv("WHATSAPP_APP_SECRET", "")
+    WHATSAPP_TEST_MODE: bool = os.getenv("WHATSAPP_TEST_MODE", "True").lower() == "true"
     
     # Email / Mailgun Settings
     MAILGUN_API_KEY: str = ""  # Set via environment variable
@@ -101,5 +102,18 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._validate_production_settings()
+
+    def _validate_production_settings(self):
+        """Ensure critical secrets are set in production."""
+        if not self.DEBUG:
+            if self.SECRET_KEY in ["", "changethis", "secret"]:
+                raise ValueError("CRITICAL: SECRET_KEY is weak or missing in PRODUCTION mode!")
+            
+            if not self.DATABASE_URL:
+                 raise ValueError("CRITICAL: DATABASE_URL is missing in PRODUCTION mode!")
 
 settings = Settings()

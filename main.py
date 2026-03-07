@@ -98,6 +98,7 @@ from app.middleware.tenant import TenantMiddleware
 from app.middleware.usage import UsageTrackingMiddleware
 from app.middleware.plan_enforcement import PlanEnforcementMiddleware
 from app.routes.tenant_routes import router as tenant_router, plans_router
+from app.routes.ai_tools import router as ai_tools_router
 
 # Schemas
 from app.schemas.schemas import IntentType
@@ -303,6 +304,7 @@ if getattr(settings, 'MULTI_TENANT_ENABLED', False):
 # ── SaaS API Routes ──
 app.include_router(tenant_router)
 app.include_router(plans_router)
+app.include_router(ai_tools_router)
 
 # Add rate limiter to app
 app.state.limiter = limiter
@@ -777,10 +779,21 @@ async def get_ticket_history(ticket_id: int, agent: Annotated[dict, Depends(get_
     history = db.get_unified_history(None, ticket_id)
     return {"history": history}
 
+from app.services.knowledge_extractor import KnowledgeExtractor
+
+# ... (inside lifespan or global scope) ...
+
 @app.patch("/api/tickets/{ticket_id}/status")
-async def update_ticket_status(ticket_id: int, data: dict, agent: Annotated[dict, Depends(get_current_agent)]):
-    if "status" in data:
-        _require_db().update_ticket_status(ticket_id, data["status"])
+async def update_ticket_status(ticket_id: int, data: dict, agent: Annotated[dict, Depends(get_current_agent)], background_tasks: BackgroundTasks):
+    status = data.get("status")
+    if status:
+        _require_db().update_ticket_status(ticket_id, status)
+        
+        # Self-Learning Pipeline: Extract knowledge if resolved/closed
+        if status in ("resolved", "closed"):
+            extractor = KnowledgeExtractor(app.state.rag_service)
+            background_tasks.add_task(extractor.extract_from_ticket, ticket_id)
+            
     return {"status": "success"}
 
 # ============ Live Chat (Admin ↔ Customer Portal) ============

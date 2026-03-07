@@ -63,6 +63,18 @@ class TicketRepository(BaseRepository):
             )
             return [self._ticket_to_dict(t) for t in tickets]
 
+    def get_active_ticket_for_user(self, user_id: str) -> Optional[dict]:
+        """Efficiently check if user has an open ticket (Status != CLOSED)."""
+        with self.session_scope() as session:
+            # Using the index 'ix_ticket_customer' implicitly via user_id filter
+            ticket = (
+                session.query(Ticket)
+                .filter(Ticket.user_id == user_id, Ticket.status != "CLOSED")
+                .order_by(desc(Ticket.created_at))
+                .first()
+            )
+            return self._ticket_to_dict(ticket) if ticket else None
+
     def update_ticket_status(self, ticket_id: int, status: str):
         """Update ticket status."""
         with self.session_scope() as session:

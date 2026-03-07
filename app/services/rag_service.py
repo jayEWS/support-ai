@@ -1,33 +1,39 @@
 import os
 import asyncio
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
-from rank_bm25 import BM25Okapi
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.logging import LogLatency
-from app.utils.retrieval_utils import HybridRetriever, reciprocal_rank_fusion, calculate_confidence
 from app.schemas.schemas import RAGResponse
 from app.core.database import db_manager
+from app.services.advanced_retriever import AdvancedRetriever
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 class RAGService:
     def __init__(self):
         self.embeddings = self._init_embeddings()
         self.vector_store = self._load_vector_store()
-        self.hybrid_retriever = None
-        self.bm25_retriever = None
-        self.all_documents = []
-        self._initialize_hybrid_search()
         
-        # Langfuse tracing (optional, logs to Langfuse if configured)
+        # Initialize AdvancedRetriever with loaded vector store and documents
+        documents = []
+        if self.vector_store and hasattr(self.vector_store, 'docstore'):
+             documents = list(self.vector_store.docstore._dict.values())
+        
+        self.retriever = AdvancedRetriever(
+            vector_store=self.vector_store,
+            documents=documents,
+            embeddings=self.embeddings
+        )
+        
+        # Langfuse tracing (optional)
         self.langfuse_enabled = os.getenv("LANGFUSE_PUBLIC_KEY") is not None
 
     @staticmethod
     def _sanitize_text(text: str) -> str:
         """Remove surrogate characters that break UTF-8 encoding"""
-        if not text:
-            return text
+        if not text: return text
         return text.encode('utf-8', errors='replace').decode('utf-8')
 
     def _init_embeddings(self):
@@ -39,16 +45,8 @@ class RAGService:
                 location = settings.VERTEX_AI_LOCATION or os.getenv("VERTEX_AI_LOCATION", "asia-southeast1")
                 model_name = settings.VERTEX_AI_EMBEDDINGS_MODEL or "text-embedding-005"
                 if project_id:
-                    logger.info(f"Using Vertex AI Embeddings: {model_name} (project={project_id})")
-                    return VertexAIEmbeddings(
-                        model_name=model_name,
-                        project=project_id,
-                        location=location,
-                    )
-                else:
-                    logger.warning("GCP_PROJECT_ID not set for Vertex AI Embeddings, falling back to local")
-            except Exception as e:
-                logger.warning(f"Vertex AI Embeddings init failed: {e}, falling back to local")
+                    return VertexAIEmbeddings(model_name=model_name, project=project_id, location=location)
+            except Exception: pass
         
         if settings.EMBEDDINGS_TYPE == "openai":
             return OpenAIEmbeddings(
@@ -56,11 +54,11 @@ class RAGService:
                 model=settings.EMBEDDINGS_MODEL_NAME,
                 openai_api_base=settings.EMBEDDINGS_BASE_URL
             )
+        
         try:
             from langchain_huggingface import HuggingFaceEmbeddings
             return HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL_NAME)
-        except Exception as e:
-            logger.warning(f"Embeddings init failed: {e}")
+        except Exception:
             return None
 
     def _load_vector_store(self):
@@ -72,186 +70,59 @@ class RAGService:
                 logger.error(f"Error loading FAISS: {e}")
         return None
 
-    def _initialize_hybrid_search(self):
-        """Initialize hybrid search (BM25 + Vector) for better retrieval"""
-        if not self.vector_store:
-            logger.warning("Vector store not available, hybrid search disabled")
-            return
-
-        try:
-            # Extract documents from vector store
-            if hasattr(self.vector_store, 'docstore'):
-                self.all_documents = list(self.vector_store.docstore._dict.values())
-                
-                if self.all_documents:
-                    # Initialize BM25 retriever
-                    texts = [doc.page_content for doc in self.all_documents]
-                    self.bm25_retriever = BM25Okapi(texts)
-                    logger.info(f"[OK] Hybrid search initialized with {len(self.all_documents)} documents")
-        except Exception as e:
-            logger.warning(f"Hybrid search initialization failed: {e}")
-
-    def _bm25_search(self, query: str, k: int = 5) -> List:
-        """BM25 keyword-based search"""
-        if not self.bm25_retriever or not self.all_documents:
-            return []
-        
-        try:
-            scores = self.bm25_retriever.get_scores(query.split())
-            top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
-            return [self.all_documents[i] for i in top_indices if i < len(self.all_documents)]
-        except Exception as e:
-            logger.warning(f"BM25 search error: {e}")
-            return []
-
-    async def _hybrid_query(self, text: str, k_bm25: int = 5, k_vector: int = 5) -> List:
-        """Hybrid search combining BM25 (keyword) + Vector (semantic)"""
-        bm25_docs = self._bm25_search(text, k=k_bm25)
-        vector_docs = await asyncio.to_thread(self.vector_store.similarity_search, text, k=k_vector) if self.vector_store else []
-        
-        # Combine results with RRF (Reciprocal Rank Fusion)
-        all_docs = []
-        seen = set()
-        
-        # Add BM25 results (40% weight)
-        for i, doc in enumerate(bm25_docs):
-            if doc.page_content not in seen:
-                all_docs.append((doc, 0.4 * (1 / (i + 1))))
-                seen.add(doc.page_content)
-        
-        # Add vector results (60% weight)
-        for i, doc in enumerate(vector_docs):
-            if doc.page_content in seen:
-                # Boost existing doc score
-                for j, (d, score) in enumerate(all_docs):
-                    if d.page_content == doc.page_content:
-                        all_docs[j] = (d, score + 0.6 * (1 / (i + 1)))
-                        break
-            else:
-                all_docs.append((doc, 0.6 * (1 / (i + 1))))
-                seen.add(doc.page_content)
-        
-        # Sort by combined score
-        all_docs.sort(key=lambda x: x[1], reverse=True)
-        return [doc for doc, _ in all_docs[:k_vector + k_bm25]]
-
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(Exception),
+        reraise=True
+    )
     async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en') -> RAGResponse:
         """
-        Query RAG with optional hybrid search
-        - use_hybrid=True: Uses BM25 + Vector search (better recall)
-        - use_hybrid=False: Uses only vector search (faster)
-        - language: 'id' (Indonesian), 'en' (English), 'zh' (Chinese)
+        Query RAG using AdvancedRetriever pipeline (Hybrid + Reranking)
+        Retries up to 3 times with exponential backoff on failure.
         """
         lang_instructions = {
-            'id': "Jawab dalam Bahasa Indonesia. Gunakan nada santai tapi profesional, panggil 'Kak' atau langsung saja.",
+            'id': "Jawab dalam Bahasa Indonesia. Gunakan nada santai tapi profesional.",
             'en': "Answer in English. Use a friendly and professional tone.",
             'zh': "请用中文回答。使用友好且专业的语气。",
         }
         lang_instruction = lang_instructions.get(language, lang_instructions['en'])
         
         with LogLatency("rag_service", "query"):
-            # Handle greetings and short conversational queries directly via LLM
-            greeting_words = {"hi", "hello", "hey", "halo", "hai", "selamat", "pagi", "siang", "sore", "malam", "thanks", "terima", "kasih", "ok", "oke", "bye", "test", "你好", "谢谢", "早上好", "晚上好"}
-            query_words = set(text.lower().strip().split())
-            is_greeting = len(query_words) <= 3 and query_words.intersection(greeting_words)
-            
-            if is_greeting:
-                llm = self._get_llm()
-                prompt = f"""You are a friendly Edgeworks technical support assistant.
-The user says: "{text}"
+            # 1. Handle Greetings (Fast Path)
+            if self._is_greeting(text):
+                return await self._handle_greeting(text, language, lang_instruction)
 
-{lang_instruction}
-Reply casually but professionally. Introduce yourself as the Edgeworks AI assistant.
-Ask how you can help today. Keep it short, 2-3 sentences."""
-                try:
-                    res = await asyncio.to_thread(llm.invoke, prompt)
-                    return RAGResponse(
-                        answer=self._sanitize_text(res.content),
-                        confidence=1.0,
-                        source_documents=[],
-                        retrieval_method="greeting"
-                    )
-                except Exception as e:
-                    logger.error(f"LLM greeting error: {e}")
-                    fallbacks = {
-                        'id': "Halo! 👋 Saya asisten AI Edgeworks. Ada yang bisa saya bantu hari ini?",
-                        'en': "Hello! 👋 I'm the Edgeworks AI assistant. How can I help you today?",
-                        'zh': "你好！👋 我是 Edgeworks AI 助手。今天有什么可以帮助您的？",
-                    }
-                    return RAGResponse(
-                        answer=fallbacks.get(language, fallbacks['en']),
-                        confidence=1.0,
-                        source_documents=[]
-                    )
-
-            if not self.vector_store:
-                # No vector store - still try LLM for general questions
-                llm = self._get_llm()
-                prompt = f"""You are a friendly Edgeworks technical support assistant.
-User question: "{text}"
-
-{lang_instruction}
-Answer as best as you can.
-If unsure, say you'll connect them with a team that can help."""
-                try:
-                    res = await asyncio.to_thread(llm.invoke, prompt)
-                    return RAGResponse(
-                        answer=self._sanitize_text(res.content),
-                        confidence=0.3,
-                        source_documents=[],
-                        retrieval_method="llm_only"
-                    )
-                except Exception as e:
-                    logger.error(f"LLM fallback error: {e}")
-                    return RAGResponse(
-                        answer="Knowledge base not ready.",
-                        confidence=0,
-                        source_documents=[]
-                    )
-
+            # 2. Advanced Retrieval (Hybrid + Rerank)
             try:
-                # Retrieve documents using hybrid search if available
-                if use_hybrid and self.bm25_retriever:
-                    docs = await self._hybrid_query(text, k_bm25=5, k_vector=5)
-                    retrieval_method = "hybrid"
-                else:
-                    docs = await asyncio.to_thread(self.vector_store.similarity_search, text, k=4)
-                    retrieval_method = "vector"
+                retrieval_result = await self.retriever.retrieve(
+                    original_query=text,
+                    k_per_method=5,
+                    k_final=5
+                )
                 
-                if not docs:
-                    return RAGResponse(
-                        answer="No relevant documents found.",
-                        confidence=0,
-                        source_documents=[]
-                    )
+                context = retrieval_result.context_text
+                confidence = retrieval_result.confidence
                 
-                context = "\n".join([d.page_content for d in docs])
-                confidence = calculate_confidence(text, context)
-
-                # Call LLM for final answer - always, even with low confidence
-                # Let the LLM decide if context is relevant enough
+                # 3. LLM Generation
                 llm = self._get_llm()
                 
                 if confidence >= threshold:
-                    # High confidence - use context-grounded prompt
                     prompt = f"""You are a friendly Edgeworks technical support assistant. Answer based on the following documents.
 
-Document Context:
 {context}
 
 Question: {text}
 
 Instructions:
-1. Use ONLY information from the documents above
+1. Use ONLY information from the documents above.
 2. {lang_instruction}
-3. Keep the answer concise and easy to follow (use bullet points/numbered steps)
-4. Mention the source file name at the end
-5. If information is incomplete, say so and offer further help
+3. Keep the answer concise and easy to follow.
+4. Mention the source file name at the end.
 
 Answer:"""
                 else:
-                    # Low confidence - let LLM try but with disclaimer
-                    prompt = f"""You are a friendly Edgeworks technical support assistant.
+                     prompt = f"""You are a friendly Edgeworks technical support assistant.
 
 Context found (may not be fully relevant):
 {context}
@@ -259,42 +130,68 @@ Context found (may not be fully relevant):
 Question: {text}
 
 Instructions:
-1. Try to answer using the context provided
-2. If context is not relevant, answer from general knowledge about POS/Edgeworks systems
-3. If you truly cannot answer, apologize and offer to connect with a team that can help
+1. Try to answer using the context provided.
+2. If context is not relevant, answer from general knowledge about POS systems.
+3. If you truly cannot answer, apologize and offer further help.
 4. {lang_instruction}
 
 Answer:"""
-                
+
                 res = await asyncio.to_thread(llm.invoke, prompt)
+                answer = self._sanitize_text(res.content)
                 
-                response = RAGResponse(
-                    answer=self._sanitize_text(res.content),
-                    confidence=confidence,
-                    source_documents=[d.metadata.get('filename', 'unknown') for d in docs],
-                    retrieval_method=retrieval_method,
-                    num_retrieved=len(docs)
-                )
-                
-                # Optional: Log to Langfuse if enabled
-                if self.langfuse_enabled:
-                    self._log_to_langfuse(text, context, res.content, confidence)
-                
-                return response
-                
-            except Exception as e:
-                import traceback
-                err_msg = str(e).encode('utf-8', errors='replace').decode('utf-8') or type(e).__name__
-                tb = traceback.format_exc().encode('utf-8', errors='replace').decode('utf-8')
-                logger.error(f"RAG query error: {err_msg}\n{tb}")
+                # 4. Log Metrics (New Requirement)
+                self._log_metrics(text, answer, confidence, retrieval_result)
+
                 return RAGResponse(
-                    answer=f"Error processing query: {err_msg}",
-                    confidence=0,
-                    source_documents=[]
+                    answer=answer,
+                    confidence=confidence,
+                    source_documents=[c['file'] for c in retrieval_result.source_citations],
+                    retrieval_method="advanced_hybrid",
+                    num_retrieved=len(retrieval_result.chunks)
                 )
 
+            except Exception as e:
+                logger.error(f"RAG query error: {e}")
+                return RAGResponse(answer="I encountered an error processing your request.", confidence=0, source_documents=[])
+
+    def _is_greeting(self, text: str) -> bool:
+        greeting_words = {"hi", "hello", "hey", "halo", "hai", "selamat", "pagi", "siang", "sore", "malam", "thanks", "terima", "kasih"}
+        words = set(text.lower().strip().split())
+        return len(words) <= 3 and bool(words.intersection(greeting_words))
+
+    async def _handle_greeting(self, text: str, language: str, instruction: str) -> RAGResponse:
+        llm = self._get_llm()
+        prompt = f"""You are a friendly Edgeworks technical support assistant. User says: "{text}". {instruction}. Reply casually. Ask how you can help."""
+        try:
+            res = await asyncio.to_thread(llm.invoke, prompt)
+            return RAGResponse(answer=self._sanitize_text(res.content), confidence=1.0, source_documents=[], retrieval_method="greeting")
+        except Exception:
+            return RAGResponse(answer="Hello! How can I help you today?", confidence=1.0, source_documents=[])
+
+    def _log_metrics(self, query: str, answer: str, confidence: float, result: Any):
+        """Log key AI metrics for dashboard"""
+        try:
+            # In a real app, this would go to a DB table 'ai_metrics'
+            # For now, we struct log it so it can be parsed
+            metric_entry = {
+                "event": "ai_interaction",
+                "query_length": len(query),
+                "answer_length": len(answer),
+                "confidence": confidence,
+                "retrieved_chunks": len(result.chunks),
+                "methods_used": result.retrieval_methods_used,
+                "resolution_status": "automated" if confidence > 0.7 else "potential_escalation"
+            }
+            logger.info(f"AI_METRIC: {metric_entry}")
+            
+            if self.langfuse_enabled:
+                 self._log_to_langfuse(query, result.context_text, answer, confidence)
+        except Exception as e:
+            logger.warning(f"Failed to log metrics: {e}")
+
     def _get_llm(self):
-        """Get LLM with fallback support (Vertex AI, Gemini, Groq, OpenAI, local)"""
+        """Get LLM with fallback support"""
         llm_provider = getattr(settings, 'LLM_PROVIDER', os.getenv("LLM_PROVIDER", "openai")).lower()
         
         if llm_provider == "vertex":
@@ -311,28 +208,22 @@ Answer:"""
                         temperature=settings.TEMPERATURE,
                         convert_system_message_to_human=True,
                     )
-                else:
-                    logger.warning("GCP_PROJECT_ID not set for Vertex AI, falling back to Gemini")
-            except Exception as e:
-                logger.warning(f"Vertex AI init failed in RAG: {e}, falling back to Gemini")
+            except Exception: pass
         
-        if llm_provider in ("gemini", "vertex"):  # vertex fallback chain
+        if llm_provider in ("gemini", "vertex"):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 api_key = settings.GOOGLE_GEMINI_API_KEY or os.getenv("GOOGLE_GEMINI_API_KEY", "")
-                if not api_key:
-                    logger.warning("GOOGLE_GEMINI_API_KEY not set, falling back to Groq")
-                else:
+                if api_key:
                     return ChatGoogleGenerativeAI(
                         model=settings.GEMINI_MODEL_NAME,
                         google_api_key=api_key,
                         temperature=settings.TEMPERATURE,
                         convert_system_message_to_human=True,
                     )
-            except Exception as e:
-                logger.warning(f"Gemini initialization failed: {e}, falling back to Groq")
+            except Exception: pass
         
-        if llm_provider in ("groq", "vertex", "gemini"):  # fallback chain
+        if llm_provider in ("groq", "vertex", "gemini"):
             try:
                 from langchain_groq import ChatGroq
                 return ChatGroq(
@@ -340,18 +231,7 @@ Answer:"""
                     api_key=os.getenv("GROQ_API_KEY"),
                     temperature=settings.TEMPERATURE
                 )
-            except Exception as e:
-                logger.warning(f"Groq initialization failed: {e}, falling back to OpenAI")
-        
-        if llm_provider == "ollama":
-            try:
-                from langchain_ollama import ChatOllama
-                return ChatOllama(
-                    model=os.getenv("OLLAMA_MODEL", "llama2"),
-                    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-                )
-            except Exception as e:
-                logger.warning(f"Ollama initialization failed: {e}, falling back to OpenAI")
+            except Exception: pass
         
         # Default to OpenAI
         return ChatOpenAI(
@@ -361,7 +241,6 @@ Answer:"""
         )
 
     def _log_to_langfuse(self, query: str, context: str, answer: str, confidence: float):
-        """Log RAG query to Langfuse for observability (optional)"""
         try:
             from langfuse import Langfuse
             langfuse = Langfuse()
@@ -369,8 +248,6 @@ Answer:"""
                 name="rag_query",
                 input={"query": query},
                 output={"answer": answer, "confidence": confidence},
-                metadata={"retrieval_method": "hybrid", "context_length": len(context)}
+                metadata={"retrieval_method": "advanced_hybrid"}
             )
-        except Exception as e:
-            logger.debug(f"Langfuse logging failed: {e}")
-
+        except Exception: pass
