@@ -7,6 +7,8 @@ from fastapi import Request, HTTPException
 from app.utils.auth_utils import decode_access_token
 from app.core.database import db_manager
 from app.core.logging import logger
+from typing import Annotated
+from fastapi import Depends
 
 
 def _extract_bearer_token(request: Request) -> str | None:
@@ -42,6 +44,8 @@ async def require_agent(request: Request) -> dict:
 
     return agent
 
+get_current_agent = require_agent
+
 
 async def require_admin(request: Request) -> dict:
     """
@@ -54,3 +58,5 @@ async def require_admin(request: Request) -> dict:
     if agent.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return agent
+
+get_admin_agent = require_admin

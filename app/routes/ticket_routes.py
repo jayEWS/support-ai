@@ -6,7 +6,7 @@ Implements tenant-level isolation to prevent cross-tenant IDOR (P1).
 """
 
 from typing import Annotated, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from app.core.database import db_manager
 from app.core.auth_deps import get_current_agent
 from app.repositories.ticket_repo import TicketRepository
