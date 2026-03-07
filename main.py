@@ -1085,6 +1085,62 @@ async def batch_delete_knowledge(
         logger.error(f"Error batch deleting knowledge: {str(e)}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
+@app.get("/api/knowledge/{filename}/content")
+async def get_knowledge_content(filename: str, agent: Annotated[dict, Depends(get_current_agent)]):
+    """Get content of a knowledge file (only for text-based files)"""
+    file_path = os.path.join(settings.KNOWLEDGE_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Allow common text extensions
+    if not filename.lower().endswith(('.txt', '.md', '.text', '.json', '.csv', '.log')):
+        raise HTTPException(status_code=400, detail="Only text-based files can be edited")
+    
+    try:
+        # Detect if it's potentially huge, though KB files shouldn't be
+        stats = os.stat(file_path)
+        if stats.st_size > 5 * 1024 * 1024: # 5MB limit for editing
+             raise HTTPException(status_code=400, detail="File is too large to edit in browser")
+
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        return {"filename": filename, "content": content}
+    except Exception as e:
+        logger.error(f"Error reading knowledge: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Read error: {str(e)}")
+
+@app.post("/api/knowledge/{filename}/update")
+async def update_knowledge_content(
+    filename: str, 
+    req_data: dict, 
+    background_tasks: BackgroundTasks,
+    agent: Annotated[dict, Depends(get_current_agent)]
+):
+    """Update content of a text-based knowledge file and trigger re-index"""
+    content = req_data.get("content")
+    if content is None:
+        raise HTTPException(status_code=400, detail="Content is required")
+    
+    file_path = os.path.join(settings.KNOWLEDGE_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    try:
+        # Save file
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        
+        # Update metadata status to Processing
+        _require_db().update_knowledge_status(filename, 'Processing')
+        
+        # Trigger re-indexing (Train AI)
+        background_tasks.add_task(_reindex_knowledge)
+        
+        return {"status": "success", "message": f"Updated {filename} and triggered AI training"}
+    except Exception as e:
+        logger.error(f"Error updating knowledge: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Update error: {str(e)}")
+
 # ============ Customer Management APIs ============
 
 def _mask_phone(phone: str) -> str:
