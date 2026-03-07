@@ -2448,7 +2448,7 @@
         function formatKbAnswer(text) {
             if (!text) return '';
 
-            // 1. Initial cleanup of source references, filenames, and stray punctuation
+            // 1. CLEANUP (Keep newlines, just strip artifacts)
             let cleaned = text
                 .replace(/Source\s*\d+/gi, '')
                 .replace(/Source\s*:\s*[^\n\r]*/gi, '')
@@ -2457,89 +2457,60 @@
                 .replace(/\(\s*[,\s]*\s*\)/g, '')
                 .replace(/\[\s*[,\s]*\s*\]/g, '')
                 .replace(/,\s*,/g, ',')
-                .replace(/\s+/g, ' ') // Collapse multiple spaces to single
-                .trim();
+                .replace(/,\s*$/gm, '');
 
-            // 2. AGGRESSIVE PRE-PROCESS: Force newlines before patterns that are often clumped
+            // 2. SMART PRE-PROCESS: Only insert newlines if they are missing
+            cleaned = cleaned.replace(/([.!?:)])\s+(\*?\*?(?:Prerequisites|Instructions|Step-by-step|Post-Closing|Troubleshooting):?\*?\*?)/gi, '$1\n$2');
+            cleaned = cleaned.replace(/([.!?:)])\s+(\d+\.\s+)/g, '$1\n$2');
+            cleaned = cleaned.replace(/([.!?:)])\s+([-•*])\s+(?!\*)/g, '$1\n$2');
 
-            // a) Before sections headers (case-insensitive for broad matching)
-            const sectionKeywords = ['Prerequisites', 'Instructions', 'Step-by-step', 'Post-Closing', 'Troubleshooting', 'Steps to', 'Note', 'Warning', 'Summary', 'Conclusion'];
-            sectionKeywords.forEach(word => {
-                const regex = new RegExp(`([^\\n])\\s*(\\*?\\*?${word}:?\\*?\\*?)`, 'gi');
-                cleaned = cleaned.replace(regex, '$1\n$2\n');
-            });
-
-            // b) Before numbers that look like list items: "...done. 1. Access..." -> "...done.\n1. Access..."
-            // We match a sentence end (or colon) followed by space and then "Number. "
-            cleaned = cleaned.replace(/([.!?:)])\s+(\d+\.)\s+/g, '$1\n$2 ');
-
-            // c) Before bullets mid-sentence
-            cleaned = cleaned.replace(/([.!?:)])\s+([-•*])\s+/g, '$1\n$2 ');
-
-            // d) Before specific question-like headers in mid-text
-            cleaned = cleaned.replace(/([.!?:)])\s+(\*\*What is.*?\*\*)/gi, '$1\n$2\n');
-
-            // 3. Line-by-Line Processing with Lookahead
-            const rawLines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            // 3. Line-by-Line Parsing
+            const rawLines = cleaned.split('\n');
             let html = '';
-            let inBulletList = false;
+            let inList = false;
 
             for (let i = 0; i < rawLines.length; i++) {
-                let line = rawLines[i];
-
-                // --- MERGE LOGIC: Handle fragmentation of Numbers ---
-                // If a line is just "1." or similar, or a very short "1. **Title:**", merge with next if it feels like part of the same step
-                if (line.match(/^\d+\.$/) && (i + 1 < rawLines.length)) {
-                    line = line + " " + rawLines[i + 1];
-                    i++;
-                }
-
-                // Escape HTML (but preserve our bold markers for now)
-                line = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                // --- CLASSIFICATION & RENDERING ---
-
-                // Numbered Item (Optionally with a bold sub-title)
-                // Pattern: "1. something" or "1. **Header:** something"
-                let numberedMatch = line.match(/^(\d+)\.\s*(.*)/);
-                if (numberedMatch) {
-                    if (inBulletList) { html += '</ul>'; inBulletList = false; }
-                    let num = numberedMatch[1];
-                    let content = (numberedMatch[2] || "").trim();
-                    // Style the content: make **text** stand out
-                    content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
-                    html += `<div class="kb-numbered"><span class="kb-num">${num}.</span> ${content}</div>`;
+                let rawLine = rawLines[i].trim();
+                if (!rawLine) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<div class="h-2"></div>';
                     continue;
                 }
 
-                // Bullet Point
+                let line = rawLine.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                let numMatch = line.match(/^(\d+)\.\s*(.*)/);
+                if (numMatch) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    let content = numMatch[2].replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                    html += `<div class="kb-numbered"><span class="kb-num">${numMatch[1]}.</span> ${content}</div>`;
+                    continue;
+                }
+
                 let bulletMatch = line.match(/^([-•*])\s+(?!\*)(.*)/);
                 if (bulletMatch) {
-                    if (!inBulletList) { html += '<ul class="kb-bullets">'; inBulletList = true; }
-                    let content = (bulletMatch[2] || "").trim();
-                    content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                    if (!inList) { html += '<ul class="kb-bullets">'; inList = true; }
+                    let content = bulletMatch[2].replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
                     html += `<li>${content}</li>`;
                     continue;
                 }
 
-                // Standalone Header (e.g., "**Section:**" or "### Section")
-                const isMarkdownHeader = line.startsWith('###');
-                const isBoldOnlyHeader = line.startsWith('**') && (line.endsWith('**') || line.endsWith('**:') || line.endsWith(':'));
-
-                if (isMarkdownHeader || isBoldOnlyHeader) {
-                    if (inBulletList) { html += '</ul>'; inBulletList = false; }
-                    let headerText = line.replace(/^(###\s*|\*\*)/, '').replace(/(\*\*|:?)$/, '');
+                let headerMatch = line.match(/^(\*\*|###)?\s*(Prerequisites|Instructions|Step-by-step|Steps to|Troubleshooting|Note|What is|Conclusion):?\s*(\*\*|:)?$/i);
+                const isShortBold = line.startsWith('**') && (line.endsWith('**') || line.endsWith('**:')) && line.length < 60;
+                
+                if (headerMatch || isShortBold) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    let headerText = line.replace(/^(#{1,3}\s*|\*\*)/, '').replace(/(\*\*|:)$/, '').trim();
                     html += `<h4 class="kb-header">${headerText}</h4>`;
                     continue;
                 }
 
-                // Default Paragraph
-                if (inBulletList) { html += '</ul>'; inBulletList = false; }
+                if (inList) { html += '</ul>'; inList = false; }
                 let finalLine = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
                 html += `<p class="kb-para">${finalLine}</p>`;
             }
 
-            if (inBulletList) html += '</ul>';
+            if (inList) html += '</ul>';
             return html;
         }
 
