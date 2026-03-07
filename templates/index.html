@@ -2436,59 +2436,72 @@
             cleaned = cleaned.replace(/^\s*\*?\*?Sources?:?\*?\*?\s*.*$/gim, '');
             // Remove filenames like file.txt, doc.pdf
             cleaned = cleaned.replace(/[\w_-]+\.(txt|pdf|docx|md|csv)/gi, '');
-            // Remove stray empty parens/brackets
-            cleaned = cleaned.replace(/\(\s*\)/g, '').replace(/\[\s*\]/g, '');
-            // Remove trailing commas left from source removal
+            // Remove stray empty parens/brackets and (,) patterns
+            cleaned = cleaned.replace(/\(\s*[,\s]*\s*\)/g, '');
+            cleaned = cleaned.replace(/\[\s*[,\s]*\s*\]/g, '');
+            // Remove trailing commas
             cleaned = cleaned.replace(/,\s*,/g, ',').replace(/,\s*$/gm, '');
+
+            // === PRE-PROCESS: insert newlines before patterns so split works ===
+            // Before numbered items like "1. " "2. " when preceded by text
+            cleaned = cleaned.replace(/([.!?:)])\s+(\d+)\.\s+/g, '$1\n$2. ');
+            // Before bold headers like **Header:** when preceded by text
+            cleaned = cleaned.replace(/([.!?)])\s+\*\*([^*]+?):?\*\*:?\s*/g, '$1\n**$2:**\n');
+            // Before inline asterisk bullets "* text" when preceded by text (not **)
+            cleaned = cleaned.replace(/([.!?:)])\s+\*\s+(?!\*)/g, '$1\n* ');
 
             // Split into lines for processing
             const lines = cleaned.split('\n');
             let html = '';
             let inList = false;
 
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i];
+            for (const line of lines) {
+                let trimmed = line.trim();
 
                 // Skip empty lines — just add a small break
-                if (!line.trim()) {
+                if (!trimmed) {
                     if (inList) { html += '</ul>'; inList = false; }
                     html += '<div class="h-2"></div>';
                     continue;
                 }
 
                 // Escape HTML
-                line = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                trimmed = trimmed.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
                 // Bold **text**
-                line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                trimmed = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-                // Check if this line looks like a header/section title
-                // Pattern: "Header:" or "### Header" at start of line with no other content after colon
-                let headerMatch = line.match(/^(#{1,3})\s+(.+)/);
+                // Check if this line looks like a markdown header "### Header"
+                let headerMatch = trimmed.match(/^(#{1,3})\s+(.+)/);
                 if (headerMatch) {
                     if (inList) { html += '</ul>'; inList = false; }
                     html += '<h4 class="kb-header">' + headerMatch[2] + '</h4>';
                     continue;
                 }
 
-                // Detect bold-only lines that end with colon as headers (e.g. "**Prerequisites:**")
-                let boldHeaderMatch = line.match(/^\s*<strong>(.+?):?<\/strong>:?\s*$/);
+                // Detect bold-only lines that act as headers (e.g. "**Prerequisites:**" or "<strong>Prerequisites:</strong>")
+                let boldHeaderMatch = trimmed.match(/^\s*<strong>(.+?):?<\/strong>:?\s*$/);
                 if (boldHeaderMatch) {
                     if (inList) { html += '</ul>'; inList = false; }
                     html += '<h4 class="kb-header">' + boldHeaderMatch[1] + '</h4>';
                     continue;
                 }
 
-                // Numbered list item: "1. Something" or "  1. Something"
-                let numberedMatch = line.match(/^\s*(\d+)\.\s+(.+)/);
+                // Numbered list item: "1. Something"
+                let numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
                 if (numberedMatch) {
                     if (inList) { html += '</ul>'; inList = false; }
                     html += '<div class="kb-numbered"><span class="kb-num">' + numberedMatch[1] + '.</span> ' + numberedMatch[2] + '</div>';
                     continue;
                 }
 
-                // Bullet item: "- Something" or "* Something" or "• Something"
-                let bulletMatch = line.match(/^\s*[-•*]\s+(.+)/);
+                // Bullet item: "- Something" or "• Something" or "* Something" (not bold **)
+                let bulletMatch = trimmed.match(/^[-•]\s+(.+)/);
+                if (!bulletMatch) {
+                    // Also match single * bullet (but not ** bold)
+                    let starMatch = trimmed.match(/^\*\s+(?!\*)(.+)/);
+                    if (starMatch) bulletMatch = starMatch;
+                }
                 if (bulletMatch) {
                     if (!inList) { html += '<ul class="kb-bullets">'; inList = true; }
                     html += '<li>' + bulletMatch[1] + '</li>';
@@ -2497,7 +2510,7 @@
 
                 // Regular paragraph text
                 if (inList) { html += '</ul>'; inList = false; }
-                html += '<p class="kb-para">' + line + '</p>';
+                html += '<p class="kb-para">' + trimmed + '</p>';
             }
 
             if (inList) html += '</ul>';
