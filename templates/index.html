@@ -2457,58 +2457,49 @@
                 .replace(/,\s*,/g, ',')
                 .replace(/,\s*$/gm, '');
 
-            // 2. PRE-PROCESS: Break "wall of text" into lines if AI returned one giant paragraph
-            // We look for patterns that SHOULD start a new line but don't have a newline before them
-
-            // Pattern: [Sentence End] [Space] [Number]. [Space]
-            cleaned = cleaned.replace(/([.!?:)])\s+(\d+\.\s+)/g, '$1\n$2');
-
-            // Pattern: [Sentence End] [Space] [Bold Header] 
-            // e.g. "...done. **Step 1:**" -> "...done.\n**Step 1:**"
-            cleaned = cleaned.replace(/([.!?:)])\s+(\*\*([^*]+?):?\*\*)/g, '$1\n$2');
-
-            // Pattern: [Sentence End] [Space] [Bullet]
-            // e.g. "...reasons. * Item 1" -> "...reasons.\n* Item 1"
-            cleaned = cleaned.replace(/([.!?:)])\s+([-•*]\s+(?!\*))/g, '$1\n$2');
+            // 2. Pre-processing for line breaks
+            cleaned = cleaned.replace(/(Prerequisites|Instructions|Step-by-step|Post-Closing|Troubleshooting):/gi, '\n**$1:**\n');
+            cleaned = cleaned.replace(/([.!?:)])\s+(\d+\.)\s+/g, '$1\n$2 ');
+            cleaned = cleaned.replace(/([.!?:)])\s+([-•*])\s+/g, '$1\n$2 ');
 
             // 3. Line-by-Line Processing
-            const rawLines = cleaned.split('\n');
+            const processedLines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             let html = '';
             let inBulletList = false;
 
-            for (let i = 0; i < rawLines.length; i++) {
-                let rawLine = rawLines[i].trim();
-                if (!rawLine) {
-                    if (inBulletList) { html += '</ul>'; inBulletList = false; }
-                    html += '<div class="h-2"></div>';
-                    continue;
+            for (let i = 0; i < processedLines.length; i++) {
+                let line = processedLines[i];
+
+                // Merge fragmentation: lone number + following header
+                if (line.match(/^\d+\.$/) && i + 1 < processedLines.length) {
+                    line = line + " " + processedLines[i + 1];
+                    i++;
                 }
 
-                // Escape HTML
-                let line = rawLine.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                line = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-                // Detect Numbered Item (Optionally containing a bold header)
-                // e.g. "1. **Header:** info"
-                let numberedMatch = line.match(/^(\d+)\.\s+(.+)/);
+                // Numbered Item detection
+                let numberedMatch = line.match(/^(\d+)\.\s*(.*)/);
                 if (numberedMatch) {
                     if (inBulletList) { html += '</ul>'; inBulletList = false; }
-                    let content = numberedMatch[2]
-                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
-                    html += `<div class="kb-numbered"><span class="kb-num">${numberedMatch[1]}.</span> ${content}</div>`;
+                    let num = numberedMatch[1];
+                    let content = (numberedMatch[2] || "").trim();
+                    content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                    html += `<div class="kb-numbered"><span class="kb-num">${num}.</span> ${content}</div>`;
                     continue;
                 }
 
-                // Detect Bullet Point
-                let bulletMatch = line.match(/^([-•*])\s+(?!\*)(.+)/);
+                // Bullet Point detection
+                let bulletMatch = line.match(/^([-•*])\s+(?!\*)(.*)/);
                 if (bulletMatch) {
                     if (!inBulletList) { html += '<ul class="kb-bullets">'; inBulletList = true; }
-                    let content = bulletMatch[2]
-                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
+                    let content = (bulletMatch[2] || "").trim();
+                    content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
                     html += `<li>${content}</li>`;
                     continue;
                 }
 
-                // Detect Bold Header (on its own line)
+                // Bold Header detection
                 if (line.startsWith('**') && (line.endsWith('**') || line.endsWith('**:') || line.endsWith(':'))) {
                     if (inBulletList) { html += '</ul>'; inBulletList = false; }
                     let headerText = line.replace(/\*\*/g, '').replace(/:$/, '');
@@ -2516,10 +2507,11 @@
                     continue;
                 }
 
-                // Regular Paragraph
+                // Default Paragraph
                 if (inBulletList) { html += '</ul>'; inBulletList = false; }
                 let finalLine = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
                 html += `<p class="kb-para">${finalLine}</p>`;
+
             }
 
             if (inBulletList) html += '</ul>';
