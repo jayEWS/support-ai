@@ -6,12 +6,12 @@ import os
 # Bind to 0.0.0.0 to allow external access (e.g., from Nginx/Load Balancer)
 bind = "0.0.0.0:8001"
 
-# Workers: Formula is usually (2 x num_cores) + 1
-workers = multiprocessing.cpu_count() * 2 + 1
+# Workers: Reduced to 1 for small VM stability (prevents RAM freeze)
+workers = 1
 worker_class = "uvicorn.workers.UvicornWorker"
 
-# Threads per worker (for I/O bound tasks)
-threads = 4
+# Threads: 2 is enough for small instances
+threads = 2
 
 # Timeout: Increase for long-running AI tasks (e.g., RAG + LLM generation)
 timeout = 120
