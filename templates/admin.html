@@ -8,20 +8,36 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
+        :root {
+            --brand-primary: #2563eb;
+            --brand-secondary: #4f46e5;
+            --brand-accent: #f59e0b;
+            --bg-main: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --card-shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-main);
+        }
+
         .sidebar-link.active {
-            background-color: #f3f4f6;
+            background-color: #f0f7ff;
             color: #2563eb;
-            border-right: 4px solid #2563eb;
+            font-weight: 700;
         }
 
         .status-badge {
-            padding: 2px 8px;
-            border-radius: 9999px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            font-weight: 600;
         }
 
         .status-open {
@@ -291,11 +307,10 @@
         .cdt-table thead th {
             cursor: pointer;
             user-select: none;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #94a3b8;
-            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 0.02em;
+            color: #64748b;
+            font-weight: 600;
         }
 
         .cdt-table thead th:hover {
@@ -425,27 +440,36 @@
 
 <body class="bg-gray-50 h-screen flex overflow-hidden">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white border-r flex flex-col z-20">
-        <div class="p-6 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800">Support <span class="text-blue-600">Edgeworks</span> !!</h1>
-            <i class="fas fa-grip-vertical text-gray-300 text-xs"></i>
+    <aside
+        class="w-72 bg-white/90 backdrop-blur-xl border-r border-gray-100/50 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        <div class="p-8 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <div
+                    class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/30">
+                    <i class="fas fa-headset text-white text-xs"></i>
+                </div>
+                <span class="tracking-tight">Support <span class="text-blue-600">Portal</span></span>
+            </h1>
         </div>
 
         <nav id="sidebar-nav" class="flex-1 px-4 space-y-1 overflow-y-auto">
             <!-- Menus will be rendered by JS to support persistent sorting -->
         </nav>
 
-        <div class="p-4 border-t bg-gray-50">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold"
+        <div class="px-4 py-6 mt-auto border-t bg-gray-50/80 backdrop-blur-sm">
+            <div class="flex items-center gap-3 mb-4 p-2 rounded-2xl hover:bg-white/60 transition-colors duration-300">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-500/20"
                     id="profile-initials">--</div>
-                <div>
-                    <p class="text-sm font-bold text-gray-800 truncate w-32" id="profile-name">Loading...</p>
-                    <p class="text-[10px] text-gray-500 uppercase font-bold" id="profile-role">...</p>
+                <div class="overflow-hidden">
+                    <p class="text-sm font-bold text-gray-800 truncate" id="profile-name">Loading...</p>
+                    <p class="text-[11px] text-blue-500 font-bold tracking-wide" id="profile-role">...</p>
                 </div>
-            </div><button onclick="logout()"
-                class="w-full text-left text-xs font-bold text-red-500 p-2 hover:bg-red-50 rounded-lg transition text-center border border-red-100 uppercase tracking-widest">Sign
-                Out</button>
+            </div>
+            <button onclick="logout()"
+                class="w-full group flex items-center justify-center gap-2 text-xs font-bold text-red-500 p-3 hover:bg-red-50 rounded-xl transition-all duration-300 border border-red-100/50 hover:border-red-200 shadow-sm hover:shadow-red-500/10 tracking-wide">
+                <i class="fas fa-sign-out-alt group-hover:-translate-x-1 transition-transform"></i>
+                Sign Out
+            </button>
         </div>
     </aside>
 
@@ -453,43 +477,93 @@
     <main class="flex-1 flex flex-col overflow-hidden">
 
         <!-- View: Overview -->
-        <section id="overview-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight">Performance Command Center</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="overview-stats"></div>
+        <section id="overview-view" class="p-10 overflow-y-auto flex-1 hidden">
+            <div class="mb-10">
+                <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Performance Command Center</h2>
+                <p class="text-gray-500 mt-1">Real-time analytics and strategic insights for your support ecosystem.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10" id="overview-stats"></div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <i class="fas fa-chart-line text-blue-600"></i> Conversation Volume
+                <div
+                    class="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100/50 hover:shadow-md transition-shadow duration-300">
+                    <h3 class="font-bold text-gray-800 mb-8 flex items-center gap-2 text-sm tracking-wide">
+                        <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-blue-600"></i>
+                        </div>
+                        Conversation Volume
                     </h3><canvas id="volumeChart" height="150"></canvas>
                 </div>
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <i class="fas fa-chart-pie text-blue-600"></i> Priorities
+                <div
+                    class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100/50 hover:shadow-md transition-shadow duration-300">
+                    <h3 class="font-bold text-gray-800 mb-8 flex items-center gap-2 text-sm tracking-wide">
+                        <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-pie text-indigo-600"></i>
+                        </div>
+                        Priorities
                     </h3><canvas id="priorityChart"></canvas>
                 </div>
             </div>
+            </div>
+
+            <!-- Frequent Inquiries Section -->
+            <div class="mb-8">
+                <div
+                    class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="font-bold text-gray-800 flex items-center gap-2 text-sm tracking-wide">
+                            <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-fire text-purple-600"></i>
+                            </div>
+                            Frequent Customer Inquiries
+                        </h3>
+                        <span
+                            class="text-[10px] font-bold text-purple-500 bg-purple-50 px-2 py-1 rounded-full uppercase tracking-widest">Real-time
+                            Summary</span>
+                    </div>
+                    <div id="freq-topics" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <i class="fas fa-trophy text-amber-500"></i> Leaderboard
+                <div
+                    class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100/50 hover:shadow-md transition-shadow duration-300">
+                    <h3 class="font-bold text-gray-800 mb-8 flex items-center gap-2 text-sm tracking-wide">
+                        <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-trophy text-amber-500"></i>
+                        </div>
+                        Leaderboard
                     </h3>
                     <div class="overflow-hidden">
                         <table class="min-w-full">
-                            <thead class="bg-gray-50">
+                            <thead class="bg-gray-50/50">
                                 <tr>
-                                    <th class="px-4 py-2 text-left text-[10px] uppercase text-gray-400">Agent</th>
-                                    <th class="px-4 py-2 text-center text-[10px] uppercase text-gray-400">Tickets</th>
-                                    <th class="px-4 py-2 text-right text-[10px] uppercase text-gray-400">CSAT</th>
+                                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-gray-400">Agent</th>
+                                    <th class="px-4 py-3 text-center text-[11px] font-semibold text-gray-400">Tickets
+                                    </th>
+                                    <th class="px-4 py-3 text-right text-[11px] font-semibold text-gray-400">CSAT</th>
                                 </tr>
                             </thead>
                             <tbody id="agent-leaderboard" class="divide-y divide-gray-100"></tbody>
                         </table>
                     </div>
                 </div>
-                <div class="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-16 -mt-16"></div>
-                    <h3 class="font-bold mb-6 flex items-center gap-2 relative z-10 uppercase text-xs tracking-widest">
-                        <i class="fas fa-brain text-blue-400"></i> AI Strategic Insights
+                <div class="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                    <div
+                        class="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-blue-600/20 transition-colors duration-500">
+                    </div>
+                    <div
+                        class="absolute bottom-0 left-0 w-32 h-32 bg-indigo-600/10 rounded-full -ml-16 -mb-16 blur-2xl">
+                    </div>
+
+                    <h3 class="font-bold mb-8 flex items-center gap-3 relative z-10 text-sm tracking-wide">
+                        <div
+                            class="w-10 h-10 bg-blue-500/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/10">
+                            <i class="fas fa-brain text-blue-400"></i>
+                        </div>
+                        AI Strategic Insights
                     </h3>
                     <div id="ai-trends"
                         class="text-sm text-blue-100/80 leading-relaxed whitespace-pre-wrap relative z-10">Analyzing...
@@ -510,16 +584,16 @@
                 <header class="bg-white border-b p-4 flex justify-between items-center h-16 shrink-0">
                     <div class="flex items-center gap-3">
                         <div id="active-avatar"
-                            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">
+                            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                             ?</div>
                         <div>
                             <h3 id="active-name" class="font-bold text-sm">Select a ticket</h3>
-                            <p id="active-meta" class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">
+                            <p id="active-meta" class="text-[11px] text-gray-400 font-medium tracking-tight">
                                 No active session</p>
                         </div>
                     </div>
                     <div id="chat-actions" class="hidden"><button onclick="resolveCurrentTicket()"
-                            class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm uppercase tracking-widest">Resolve</button>
+                            class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm tracking-wide">Resolve</button>
                     </div>
                 </header>
                 <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
@@ -536,7 +610,7 @@
             <aside class="w-72 bg-white border-l overflow-y-auto hidden lg:block">
                 <div class="p-6 border-b text-center">
                     <div id="sidebar-avatar"
-                        class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20 uppercase">
+                        class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20">
                         ?</div>
                     <h3 id="sidebar-name" class="font-bold text-lg">Contact Name</h3>
                     <p id="sidebar-company" class="text-sm text-gray-500 italic">--</p>
@@ -544,13 +618,13 @@
                 <div class="p-6 space-y-6">
                     <!-- Ticket Info -->
                     <div>
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Current Ticket
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-3">Current Ticket
                         </h4>
                         <div class="space-y-3 text-xs">
                             <p class="flex justify-between"><strong>Priority:</strong> <span id="sidebar-priority"
-                                    class="uppercase font-bold">--</span></p>
+                                    class="font-bold">--</span></p>
                             <p class="flex justify-between"><strong>Status:</strong> <span id="sidebar-status"
-                                    class="uppercase">--</span></p>
+                                    class="font-medium">--</span></p>
                             <p class="flex justify-between"><strong>Ticket ID:</strong> <span id="sidebar-id">--</span>
                             </p>
                         </div>
@@ -558,24 +632,24 @@
 
                     <!-- Customer Stats -->
                     <div id="sidebar-customer-stats" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-3">Customer History
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="bg-blue-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-blue-600" id="sidebar-total-tickets">0</p>
-                                <p class="text-[8px] text-blue-400 font-bold uppercase">Total Tickets</p>
+                                <p class="text-[11px] text-blue-400 font-bold">Total Tickets</p>
                             </div>
                             <div class="bg-green-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-green-600" id="sidebar-resolved-tickets">0</p>
-                                <p class="text-[8px] text-green-400 font-bold uppercase">Resolved</p>
+                                <p class="text-[9px] text-green-400 font-bold">Resolved</p>
                             </div>
                             <div class="bg-amber-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-amber-600" id="sidebar-open-tickets">0</p>
-                                <p class="text-[8px] text-amber-400 font-bold uppercase">Open</p>
+                                <p class="text-[11px] text-amber-400 font-bold">Open</p>
                             </div>
                             <div class="bg-purple-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-purple-600" id="sidebar-total-messages">0</p>
-                                <p class="text-[8px] text-purple-400 font-bold uppercase">Messages</p>
+                                <p class="text-[11px] text-purple-400 font-bold">Messages</p>
                             </div>
                         </div>
                     </div>
@@ -585,7 +659,7 @@
                         <div class="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-2">
                             <span class="text-red-500 text-lg">🔄</span>
                             <div>
-                                <p class="text-[10px] font-black text-red-600 uppercase">Recurring Customer</p>
+                                <p class="text-[11px] font-bold text-red-600">Recurring Customer</p>
                                 <p class="text-[9px] text-red-400">Has multiple past tickets</p>
                             </div>
                         </div>
@@ -593,13 +667,13 @@
 
                     <!-- Top Issue Categories -->
                     <div id="sidebar-categories" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Top Issues</h4>
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-3">Top Issues</h4>
                         <div id="sidebar-categories-list" class="space-y-1"></div>
                     </div>
 
                     <!-- Past Tickets -->
                     <div id="sidebar-past-tickets" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Recent Tickets
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-3">Recent Tickets
                         </h4>
                         <div id="sidebar-tickets-list" class="space-y-2"></div>
                     </div>
@@ -607,11 +681,11 @@
                     <!-- Member Since -->
                     <div id="sidebar-member-info" class="hidden">
                         <div class="text-[10px] text-gray-400">
-                            <span class="font-bold uppercase tracking-widest">Member since:</span>
+                            <span class="font-bold tracking-wide">Member since:</span>
                             <span id="sidebar-member-since" class="ml-1">--</span>
                         </div>
                         <div class="text-[10px] text-gray-400 mt-1">
-                            <span class="font-bold uppercase tracking-widest">Position:</span>
+                            <span class="font-bold tracking-wide">Position:</span>
                             <span id="sidebar-position" class="ml-1">--</span>
                         </div>
                     </div>
@@ -638,15 +712,15 @@
                 <div class="grid grid-cols-3 text-center border-b bg-blue-50 py-2">
                     <div>
                         <p class="text-sm font-black text-blue-700" id="lc-stat-total">0</p>
-                        <p class="text-[8px] text-blue-400 font-bold uppercase">Active</p>
+                        <p class="text-[10px] text-blue-400 font-bold">Active</p>
                     </div>
                     <div>
                         <p class="text-sm font-black text-amber-600" id="lc-stat-waiting">0</p>
-                        <p class="text-[8px] text-amber-400 font-bold uppercase">Waiting</p>
+                        <p class="text-[10px] text-amber-400 font-bold">Waiting</p>
                     </div>
                     <div>
                         <p class="text-sm font-black text-green-600" id="lc-stat-replied">0</p>
-                        <p class="text-[8px] text-green-400 font-bold uppercase">Replied</p>
+                        <p class="text-[10px] text-green-400 font-bold">Replied</p>
                     </div>
                 </div>
                 <div id="lc-conversation-list" class="flex-1 overflow-y-auto conversation-list">
@@ -659,12 +733,12 @@
                 <header class="bg-white border-b p-4 flex justify-between items-center h-16 shrink-0">
                     <div class="flex items-center gap-3">
                         <div id="lc-avatar"
-                            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold uppercase">
+                            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                             ?</div>
                         <div>
                             <h3 id="lc-active-name" class="font-bold text-sm">Select a chat</h3>
-                            <p id="lc-active-meta"
-                                class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">No active session
+                            <p id="lc-active-meta" class="text-[11px] text-gray-400 font-bold tracking-tight">No active
+                                session
                             </p>
                         </div>
                     </div>
@@ -672,17 +746,17 @@
                         <span id="lc-typing-indicator" class="text-xs text-gray-400 italic hidden">Customer is
                             typing...</span>
                         <button onclick="lcCreateTicket()"
-                            class="px-4 py-1.5 bg-amber-500 text-white rounded-lg text-[10px] font-bold hover:bg-amber-600 transition uppercase tracking-widest flex items-center gap-1"><i
+                            class="px-4 py-1.5 bg-amber-500 text-white rounded-lg text-[11px] font-bold hover:bg-amber-600 transition tracking-wide flex items-center gap-1"><i
                                 class="fas fa-ticket-alt"></i> Create Ticket</button>
                         <button onclick="lcCloseChat('close')"
-                            class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition uppercase tracking-widest flex items-center gap-1"><i
+                            class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-[11px] font-bold hover:bg-green-700 transition tracking-wide flex items-center gap-1"><i
                                 class="fas fa-check"></i> Resolve</button>
                     </div>
                 </header>
                 <div id="lc-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
                     <div class="flex flex-col items-center justify-center h-full opacity-30">
                         <i class="fas fa-headset text-6xl text-gray-300 mb-4"></i>
-                        <p class="text-gray-400 font-bold text-sm uppercase tracking-widest">Select a chat to start</p>
+                        <p class="text-gray-400 font-bold text-sm tracking-wide">Select a chat to start</p>
                     </div>
                 </div>
                 <footer class="p-4 bg-white border-t" id="lc-reply-area">
@@ -701,7 +775,7 @@
             <aside class="w-72 bg-white border-l overflow-y-auto hidden lg:block">
                 <div class="p-6 border-b text-center">
                     <div id="lc-sidebar-avatar"
-                        class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20 uppercase">
+                        class="w-20 h-20 rounded-2xl bg-blue-600 mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-blue-600/20">
                         ?</div>
                     <h3 id="lc-sidebar-name" class="font-bold text-lg">Customer</h3>
                     <p id="lc-sidebar-company" class="text-sm text-gray-500 italic">--</p>
@@ -709,27 +783,27 @@
                 </div>
                 <div class="p-6 space-y-6">
                     <div>
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Session Info</h4>
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-3">Session Info</h4>
                         <div class="space-y-3 text-xs">
                             <p class="flex justify-between"><strong>Messages:</strong> <span
                                     id="lc-sidebar-msgcount">--</span></p>
                             <p class="flex justify-between"><strong>Status:</strong> <span id="lc-sidebar-status"
-                                    class="uppercase font-bold">--</span></p>
+                                    class="font-bold">--</span></p>
                             <p class="flex justify-between"><strong>Last Activity:</strong> <span
                                     id="lc-sidebar-lastactivity">--</span></p>
                         </div>
                     </div>
                     <div id="lc-sidebar-stats" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Customer History
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-3">Customer History
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="bg-blue-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-blue-600" id="lc-total-tickets">0</p>
-                                <p class="text-[8px] text-blue-400 font-bold uppercase">Total Tickets</p>
+                                <p class="text-[11px] text-blue-400 font-bold">Total Tickets</p>
                             </div>
                             <div class="bg-green-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-green-600" id="lc-resolved-tickets">0</p>
-                                <p class="text-[8px] text-green-400 font-bold uppercase">Resolved</p>
+                                <p class="text-[9px] text-green-400 font-bold">Resolved</p>
                             </div>
                         </div>
                     </div>
@@ -740,9 +814,9 @@
         <!-- View: Team -->
         <section id="team-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-bold uppercase tracking-tight">Team: <span id="current-dept-label"
-                        class="text-blue-600">All</span></h2><span
-                    class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-widest"
+                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Team Insights: <span
+                        id="current-dept-label" class="text-blue-600">All</span></h2><span
+                    class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-bold tracking-wide"
                     id="member-count">0 Members</span>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6" id="team-list"></div>
@@ -752,11 +826,16 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Summary</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-400 tracking-wide">Customer
+                            </th>
+                            <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-400 tracking-wide">Summary
+                            </th>
+                            <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-400 tracking-wide">Priority
+                            </th>
+                            <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-400 tracking-wide">Status
+                            </th>
+                            <th class="px-6 py-3 text-right text-[11px] font-bold text-gray-400 tracking-wide">Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="tickets-list" class="bg-white divide-y divide-gray-200"></tbody>
@@ -794,19 +873,19 @@
                 <div class="grid grid-cols-4 text-center border-b bg-green-50 py-2">
                     <div>
                         <p class="text-sm font-black text-green-700" id="wa-stat-total">0</p>
-                        <p class="text-[8px] text-green-500 font-bold uppercase">Total</p>
+                        <p class="text-[11px] text-green-500 font-bold tracking-wide">Total</p>
                     </div>
                     <div>
                         <p class="text-sm font-black text-blue-600" id="wa-stat-inbound">0</p>
-                        <p class="text-[8px] text-blue-400 font-bold uppercase">In</p>
+                        <p class="text-[11px] text-blue-400 font-bold tracking-wide">In</p>
                     </div>
                     <div>
                         <p class="text-sm font-black text-purple-600" id="wa-stat-outbound">0</p>
-                        <p class="text-[8px] text-purple-400 font-bold uppercase">Out</p>
+                        <p class="text-[11px] text-purple-400 font-bold tracking-wide">Out</p>
                     </div>
                     <div>
                         <p class="text-sm font-black text-orange-600" id="wa-stat-contacts">0</p>
-                        <p class="text-[8px] text-orange-400 font-bold uppercase">Contacts</p>
+                        <p class="text-[11px] text-orange-400 font-bold tracking-wide">Contacts</p>
                     </div>
                 </div>
                 <div id="wa-conversation-list" class="flex-1 overflow-y-auto conversation-list">
@@ -826,13 +905,13 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-sm text-gray-800" id="wa-thread-name">Select a conversation</h3>
-                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter"
-                                id="wa-thread-phone">Click a contact on the left</p>
+                            <p class="text-[11px] text-gray-400 font-bold tracking-tight" id="wa-thread-phone">Click a
+                                contact on the left</p>
                         </div>
                     </div>
                     <div id="wa-thread-actions" class="hidden flex items-center gap-2">
                         <button onclick="openTicketModal()"
-                            class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition uppercase tracking-widest flex items-center gap-1">
+                            class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-bold hover:bg-blue-700 transition tracking-wide flex items-center gap-1">
                             <i class="fas fa-ticket-alt"></i> Create Ticket
                         </button>
                     </div>
@@ -875,22 +954,20 @@
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Conversation
-                            Stats</h4>
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-3">Conversation Stats</h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="bg-blue-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-blue-600" id="wa-sidebar-inbound">0</p>
-                                <p class="text-[8px] text-blue-400 font-bold uppercase">Inbound</p>
+                                <p class="text-[11px] text-blue-400 font-bold tracking-wide">Inbound</p>
                             </div>
                             <div class="bg-purple-50 p-3 rounded-xl text-center">
                                 <p class="text-lg font-black text-purple-600" id="wa-sidebar-outbound">0</p>
-                                <p class="text-[8px] text-purple-400 font-bold uppercase">Outbound</p>
+                                <p class="text-[11px] text-purple-400 font-bold tracking-wide">Outbound</p>
                             </div>
                         </div>
                     </div>
                     <div id="wa-sidebar-ticket-info" class="hidden">
-                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Linked Ticket
-                        </h4>
+                        <h4 class="text-[11px] font-bold text-gray-400 tracking-wide mb-2">Linked Ticket</h4>
                         <div class="bg-orange-50 border border-orange-100 rounded-xl p-3">
                             <p class="text-sm font-bold text-orange-700" id="wa-sidebar-ticket-id">--</p>
                         </div>
@@ -910,14 +987,12 @@
                 </div>
                 <div class="space-y-4">
                     <div>
-                        <label
-                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Title</label>
+                        <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-1">Title</label>
                         <input id="wa-ticket-title" type="text" class="w-full border rounded-lg px-3 py-2 text-sm"
                             placeholder="e.g. Customer needs help with POS setup">
                     </div>
                     <div>
-                        <label
-                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Priority</label>
+                        <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-1">Priority</label>
                         <select id="wa-ticket-priority" class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="Low">Low</option>
                             <option value="Medium" selected>Medium</option>
@@ -928,7 +1003,7 @@
                     <p class="text-xs text-gray-400">The full WhatsApp transcript will be attached to the ticket. The
                         customer will be notified via WhatsApp.</p>
                     <button onclick="convertToTicket()" id="wa-ticket-submit-btn"
-                        class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                        class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm tracking-wide hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
                         <i class="fas fa-check"></i> Create Ticket & Notify Customer
                     </button>
                 </div>
@@ -939,7 +1014,7 @@
             <!-- Header -->
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Macros</h2>
+                    <h2 class="text-2xl font-bold tracking-tight text-gray-800">Macros</h2>
                     <p class="text-xs text-gray-400 mt-1">Quick responses & templates — type <code
                             class="bg-gray-100 px-1 rounded">/</code> in reply box to search</p>
                 </div>
@@ -1006,9 +1081,8 @@
                             <i class="fas fa-brain text-purple-600 text-lg"></i>
                         </div>
                         <div>
-                            <h3 class="text-sm font-black text-gray-800 uppercase tracking-tight">Edgeworks Knowledge
-                                Base</h3>
-                            <p class="text-[10px] text-gray-400">Edgeworks Self-Service • Search documentation with AI •
+                            <h3 class="text-[11px] font-bold text-gray-400 tracking-wide">Edgeworks Knowledge Base</h3>
+                            <p class="text-[11px] text-gray-400">Edgeworks Self-Service • Search documentation with AI •
                                 Sources visible</p>
                         </div>
                     </div>
@@ -1050,21 +1124,25 @@
                     </div>
                     <div id="admin-kb-results" class="space-y-3"><!-- AI results injected here --></div>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Documents</p>
-                    <p class="text-2xl font-black text-blue-600" id="kb-stat-files">--</p>
+                <div
+                    class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Total Documents</p>
+                    <p class="text-3xl font-extrabold text-blue-600" id="kb-stat-files">--</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Indexed</p>
-                    <p class="text-2xl font-black text-green-600" id="kb-stat-indexed">--</p>
+                <div
+                    class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Indexed</p>
+                    <p class="text-3xl font-extrabold text-green-600" id="kb-stat-indexed">--</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">AI Chunks</p>
-                    <p class="text-2xl font-black text-purple-600" id="kb-stat-chunks">--</p>
+                <div
+                    class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">AI Chunks</p>
+                    <p class="text-3xl font-extrabold text-purple-600" id="kb-stat-chunks">--</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Vector Store</p>
-                    <p class="text-2xl font-black" id="kb-stat-vector">--</p>
+                <div
+                    class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Vector Store</p>
+                    <p class="text-3xl font-extrabold text-slate-800" id="kb-stat-vector">--</p>
                 </div>
             </div>
 
@@ -1098,7 +1176,7 @@
                         <input type="text" id="kb-url-input" placeholder="https://docs.example.com/guide"
                             class="flex-1 px-4 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100">
                         <button onclick="handleURLCrawl()"
-                            class="bg-green-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-green-700 transition flex items-center gap-2">
+                            class="bg-green-600 text-white px-5 py-2.5 rounded-xl text-[11px] font-black hover:bg-green-700 transition flex items-center gap-2">
                             <i class="fas fa-download"></i> Fetch
                         </button>
                     </div>
@@ -1125,7 +1203,7 @@
                             <i class="fas fa-paste text-amber-600 text-lg"></i>
                         </div>
                         <div>
-                            <h3 class="text-sm font-black text-gray-800 uppercase tracking-tight">Create KB from Text
+                            <h3 class="text-base font-extrabold text-gray-800 tracking-tight">Create KB from Text
                             </h3>
                             <p class="text-[10px] text-gray-400">Paste or type content below. It will be saved as a
                                 document and indexed by AI.</p>
@@ -1148,7 +1226,7 @@ Step 3: Select NETS and enter terminal ID..."
                     <div class="flex items-center justify-between">
                         <p class="text-[10px] text-gray-400"><span id="kb-paste-charcount">0</span> characters</p>
                         <button onclick="submitPasteKB()" id="kb-paste-submit-btn"
-                            class="bg-amber-500 text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
+                            class="bg-amber-500 text-white px-6 py-2.5 rounded-xl font-bold text-xs tracking-wide hover:bg-amber-600 transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
                             <i class="fas fa-save"></i> Save to Knowledge Base
                         </button>
                     </div>
@@ -1162,16 +1240,16 @@ Step 3: Select NETS and enter terminal ID..."
                         <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <i class="fas fa-exclamation-triangle text-amber-500 text-2xl"></i>
                         </div>
-                        <h3 class="text-lg font-black text-gray-800 uppercase tracking-tight">Document Already Exists
+                        <h3 class="text-lg font-bold text-gray-800 tracking-tight">Document Already Exists
                         </h3>
                         <p class="text-sm text-gray-500 mt-2" id="kb-exists-message">A knowledge base document with this
                             name already exists.</p>
                     </div>
                     <div class="flex gap-3">
                         <button onclick="closeKbExistsModal()"
-                            class="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
+                            class="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs tracking-wide hover:bg-gray-200 transition">Cancel</button>
                         <button onclick="overwriteKB()"
-                            class="flex-1 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition shadow-lg shadow-amber-500/20"><i
+                            class="flex-1 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold text-xs tracking-wide hover:bg-amber-600 transition shadow-lg shadow-amber-500/20"><i
                                 class="fas fa-sync-alt mr-1"></i> Overwrite</button>
                     </div>
                 </div>
@@ -1186,9 +1264,9 @@ Step 3: Select NETS and enter terminal ID..."
                                 <i class="fas fa-edit text-blue-600 text-xl"></i>
                             </div>
                             <div>
-                                <h3 class="text-lg font-black text-gray-800 uppercase tracking-tight">Edit Knowledge
+                                <h3 class="text-lg font-black text-gray-800 tracking-tight">Edit Knowledge
                                     Base</h3>
-                                <p class="text-[10px] text-gray-400" id="kb-edit-filename">--</p>
+                                <p class="text-[11px] text-gray-400" id="kb-edit-filename">--</p>
                             </div>
                         </div>
                         <button onclick="closeKbEditModal()" class="text-gray-400 hover:text-gray-600 transition">
@@ -1200,9 +1278,9 @@ Step 3: Select NETS and enter terminal ID..."
                             class="w-full px-4 py-3 text-sm border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-y font-mono"></textarea>
                         <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-50">
                             <button onclick="closeKbEditModal()"
-                                class="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
+                                class="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-xs tracking-wide hover:bg-gray-200 transition">Cancel</button>
                             <button onclick="saveKnowledgeEdit()" id="kb-edit-save-btn"
-                                class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-600/20">
+                                class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold text-xs tracking-wide hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-600/20">
                                 <i class="fas fa-save"></i> Save & Train AI
                             </button>
                         </div>
@@ -1213,7 +1291,7 @@ Step 3: Select NETS and enter terminal ID..."
             <!-- Progress Bar -->
             <div id="upload-status-box" class="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-2xl hidden">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-blue-600 uppercase tracking-widest"
+                    <span class="text-[11px] font-bold text-blue-600 tracking-wide"
                         id="upload-status-text">Uploading...</span>
                     <span class="text-xs font-black text-blue-600" id="upload-percent">0%</span>
                 </div>
@@ -1228,42 +1306,35 @@ Step 3: Select NETS and enter terminal ID..."
                 <div class="flex items-center gap-3">
                     <div class="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full">
                     </div>
-                    <span class="text-xs font-bold text-purple-600 uppercase tracking-widest"
-                        id="train-status-text">Training AI... Re-indexing knowledge base</span>
+                    <span class="text-[11px] font-bold text-purple-600 tracking-wide" id="train-status-text">Training
+                        AI... Re-indexing knowledge base</span>
                 </div>
             </div>
 
             <!-- Documents Table -->
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="flex justify-between items-center px-6 py-4 border-b border-gray-50">
-                    <h3 class="text-xs font-black text-gray-500 uppercase tracking-widest">Documents</h3>
+                    <h3 class="text-[11px] font-bold text-gray-500 tracking-wide">Documents</h3>
                     <button id="bulk-delete-btn" onclick="deleteSelectedKnowledge()"
-                        class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-[10px] disabled:opacity-30 uppercase tracking-widest transition-all hover:bg-red-100"
+                        class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-bold text-[10px] disabled:opacity-30 tracking-wide transition-all hover:bg-red-100"
                         disabled>Delete Selected</button>
                 </div>
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/50">
                         <tr>
-                            <th class="px-6 py-3 text-left w-10"><input type="checkbox"
-                                    onchange="toggleAllKnowledge(this)" class="rounded border-gray-300"></th>
-                            <th
-                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Document Name</th>
-                            <th
-                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Source</th>
-                            <th
-                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Uploaded By</th>
-                            <th
-                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Date</th>
-                            <th
-                                class="px-6 py-3 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Status</th>
-                            <th
-                                class="px-6 py-3 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Actions</th>
+                            <th class="px-6 py-4 text-left w-10"><input type="checkbox"
+                                    onchange="toggleAllKnowledge(this)" class="rounded-md border-gray-300"></th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wider">Document
+                                Name</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wider">Source
+                            </th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wider">Uploaded
+                                By</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wider">Date</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wider">Status
+                            </th>
+                            <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 tracking-wider">Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="knowledge-list" class="divide-y divide-gray-50"></tbody>
@@ -1275,48 +1346,51 @@ Step 3: Select NETS and enter terminal ID..."
         <section id="customers-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h2 class="text-2xl font-bold uppercase tracking-tight text-gray-800">Customer Data</h2>
-                    <p class="text-xs text-gray-400 mt-1">Manage customer profiles. Import existing customers so AI
-                        recognizes them automatically.</p>
+                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Customer Intelligence</h2>
+                    <p class="text-sm text-gray-500 mt-1">Unified view of your customer base and their interaction
+                        history.</p>
                 </div>
                 <div class="flex gap-3">
                     <button id="cdt-unmask-btn" onclick="toggleUnmask()"
-                        class="hidden bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition flex items-center gap-2"
+                        class="hidden bg-gray-100 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide hover:bg-gray-200 transition flex items-center gap-2"
                         title="Show/Hide sensitive data">
                         <i class="fas fa-eye-slash" id="cdt-unmask-icon"></i> <span id="cdt-unmask-label">Show</span>
                     </button>
                     <button onclick="document.getElementById('customer-import-input').click()"
-                        class="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-green-600/20 hover:bg-green-700 transition flex items-center gap-2">
+                        class="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide shadow-lg shadow-green-600/20 hover:bg-green-700 transition flex items-center gap-2">
                         <i class="fas fa-file-import"></i> Import
                     </button>
                     <input type="file" id="customer-import-input" class="hidden"
                         accept=".csv,.xlsx,.xls,.json,.pdf,.txt,.text,.tsv" onchange="handleCustomerImport(this)">
                     <button onclick="showAddCustomerModal()"
-                        class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center gap-2">
+                        class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition flex items-center gap-2">
                         <i class="fas fa-user-plus"></i> Add Customer
                     </button>
                 </div>
             </div>
 
             <!-- Stats Row -->
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Customers</p>
-                    <p class="text-2xl font-black text-blue-600" id="cust-stat-total">--</p>
+            <div class="grid grid-cols-3 gap-6 mb-10">
+                <div
+                    class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Total Customers</p>
+                    <p class="text-3xl font-extrabold text-blue-600" id="cust-stat-total">--</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Onboarded</p>
-                    <p class="text-2xl font-black text-green-600" id="cust-stat-onboarded">--</p>
+                <div
+                    class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Onboarded</p>
+                    <p class="text-3xl font-extrabold text-green-600" id="cust-stat-onboarded">--</p>
                 </div>
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Pending Onboard</p>
-                    <p class="text-2xl font-black text-amber-500" id="cust-stat-pending">--</p>
+                <div
+                    class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                    <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Pending Onboard</p>
+                    <p class="text-3xl font-extrabold text-amber-500" id="cust-stat-pending">--</p>
                 </div>
             </div>
 
             <!-- Import Status -->
             <div id="customer-import-status" class="mb-6 bg-green-50 border border-green-100 p-4 rounded-2xl hidden">
-                <span class="text-xs font-bold text-green-600 uppercase tracking-widest"
+                <span class="text-[11px] font-bold text-green-600 tracking-wide"
                     id="customer-import-text">Importing...</span>
             </div>
 
@@ -1327,25 +1401,25 @@ Step 3: Select NETS and enter terminal ID..."
         <!-- Add/Edit Customer Modal -->
         <div id="customer-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
-                <h3 class="text-lg font-bold text-gray-800 mb-6 uppercase tracking-tight" id="customer-modal-title">Add
+                <h3 class="text-lg font-extrabold text-gray-800 mb-6 tracking-tight" id="customer-modal-title">Add
                     Customer</h3>
                 <div class="space-y-4">
                     <div id="cust-account-id-row" class="hidden">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Account
+                        <label class="text-[11px] font-bold text-gray-400 tracking-wide block mb-1">Account
                             ID</label>
                         <input type="text" id="cust-account-id"
                             class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-500 font-mono"
                             readonly>
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Name
+                        <label class="text-[11px] font-bold text-gray-400 tracking-wide block mb-1">Name
                             *</label>
                         <input type="text" id="cust-name"
                             class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
                             placeholder="Customer name">
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Company
+                        <label class="text-[11px] font-bold text-gray-400 tracking-wide block mb-1">Company
                             / Outlet</label>
                         <input type="text" id="cust-company"
                             class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
@@ -1368,33 +1442,26 @@ Step 3: Select NETS and enter terminal ID..."
                 </div>
                 <div class="flex gap-3 mt-6">
                     <button onclick="saveCustomer()"
-                        class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition">Save</button>
+                        class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-xs tracking-wide hover:bg-blue-700 transition">Save</button>
                     <button onclick="closeCustomerModal()"
-                        class="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200 transition">Cancel</button>
+                        class="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-xs tracking-wide hover:bg-gray-200 transition">Cancel</button>
                 </div>
             </div>
         </div>
 
         <!-- User Master View -->
         <section id="usermst-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight text-gray-800">User Master (Agent Management)
-            </h2>
+            <h2 class="text-3xl font-extrabold mb-8 tracking-tight text-gray-900">User Master</h2>
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/50">
                         <tr>
-                            <th
-                                class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Agent</th>
-                            <th
-                                class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Email</th>
-                            <th
-                                class="px-6 py-4 text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Roles (Groups)</th>
-                            <th
-                                class="px-6 py-4 text-right text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                                Actions</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Agent</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Email</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Roles
+                                (Groups)</th>
+                            <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 tracking-wide">Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="usermst-list" class="divide-y divide-gray-50"></tbody>
@@ -1404,13 +1471,13 @@ Step 3: Select NETS and enter terminal ID..."
 
         <!-- Group Privileges View -->
         <section id="groupperms-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight text-gray-800">Role & Group Privileges</h2>
+            <h2 class="text-3xl font-extrabold mb-8 tracking-tight text-gray-900">Role & Group Privileges</h2>
             <div id="roles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
         <!-- Privilege Setup View -->
         <section id="privsetup-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight text-gray-800">System Privilege Setup</h2>
+            <h2 class="text-3xl font-extrabold mb-8 tracking-tight text-gray-900">System Privilege Setup</h2>
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
                 <div class="space-y-8" id="perms-category-list"></div>
             </div>
@@ -1429,19 +1496,19 @@ Step 3: Select NETS and enter terminal ID..."
                     <p class="text-xs text-gray-500">Simulate a customer sending a WhatsApp message. It will be
                         processed through the full AI pipeline (intent classification → RAG → response).</p>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone
+                        <label class="text-[11px] font-bold text-gray-400 tracking-wide">Phone
                             Number</label>
                         <input type="text" id="sim-phone" placeholder="+628199887766"
                             class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none" />
                     </div>
                     <div>
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Customer
+                        <label class="text-[11px] font-bold text-gray-400 tracking-wide">Customer
                             Message</label>
                         <textarea id="sim-message" rows="3" placeholder="e.g. Bagaimana cara closing di V5?"
                             class="w-full mt-1 px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-green-400 focus:outline-none resize-none"></textarea>
                     </div>
                     <div id="sim-result" class="hidden bg-green-50 border border-green-200 rounded-xl p-4">
-                        <p class="text-[10px] font-bold text-green-600 uppercase mb-1">AI Response:</p>
+                        <p class="text-[11px] font-bold text-green-600 mb-1">AI Response:</p>
                         <p id="sim-result-text" class="text-sm text-gray-700 whitespace-pre-wrap"></p>
                     </div>
                     <button onclick="runSimulation()" id="sim-run-btn"
@@ -1453,13 +1520,13 @@ Step 3: Select NETS and enter terminal ID..."
         </div>
 
         <section id="settings-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-2xl font-bold mb-8 uppercase tracking-tight">System Settings</h2>
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">System Settings</h2>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- AI Preferences -->
                 <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
                     <div>
-                        <h3
-                            class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
                             <i class="fas fa-robot text-blue-600"></i> AI Preferences
                         </h3>
                         <div class="space-y-4">
@@ -1476,8 +1543,7 @@ Step 3: Select NETS and enter terminal ID..."
                 <!-- WhatsApp Settings -->
                 <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
                     <div>
-                        <h3
-                            class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
                             <i class="fab fa-whatsapp text-green-600"></i> WhatsApp Settings
                         </h3>
                         <div class="space-y-4">
@@ -1503,8 +1569,7 @@ Step 3: Select NETS and enter terminal ID..."
                 <!-- Ticket Email Notification -->
                 <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6 lg:col-span-2">
                     <div>
-                        <h3
-                            class="font-bold text-gray-800 mb-4 flex items-center gap-2 uppercase text-xs tracking-widest">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
                             <i class="fas fa-envelope text-indigo-600"></i> Ticket Email Notification
                         </h3>
                         <p class="text-xs text-gray-400 mb-6">When a customer ends a chat and creates a ticket, an email
@@ -1523,15 +1588,14 @@ Step 3: Select NETS and enter terminal ID..."
                                 </button>
                             </div>
                             <div>
-                                <label
-                                    class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Notify
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Notify
                                     To (Primary)</label>
                                 <input type="email" id="ticket-notify-email" value="jay@edgeworks.com.sg"
                                     placeholder="e.g. jay@edgeworks.com.sg"
                                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">CC
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">CC
                                     (Optional, comma-separated)</label>
                                 <input type="text" id="ticket-notify-cc" value=""
                                     placeholder="e.g. support@edgeworks.com.sg, admin@edgeworks.com.sg"
@@ -1539,11 +1603,11 @@ Step 3: Select NETS and enter terminal ID..."
                             </div>
                             <div class="flex items-center gap-3 pt-2">
                                 <button onclick="saveTicketNotifySettings()"
-                                    class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition shadow-sm">
+                                    class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs tracking-wide hover:bg-indigo-700 transition shadow-sm">
                                     <i class="fas fa-save mr-1"></i> Save
                                 </button>
                                 <button onclick="testTicketEmail()"
-                                    class="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition">
+                                    class="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs tracking-wide hover:bg-gray-50 transition">
                                     <i class="fas fa-paper-plane mr-1"></i> Send Test Email
                                 </button>
                                 <span id="ticket-notify-status" class="text-xs text-gray-400"></span>
@@ -1558,9 +1622,9 @@ Step 3: Select NETS and enter terminal ID..."
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-slate-900 text-white">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs uppercase font-bold tracking-widest">Time</th>
-                            <th class="px-6 py-3 text-left text-xs uppercase font-bold tracking-widest">Agent</th>
-                            <th class="px-6 py-3 text-left text-xs uppercase font-bold tracking-widest">Action</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold tracking-wide">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold tracking-wide">Agent</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold tracking-wide">Action</th>
                         </tr>
                     </thead>
                     <tbody id="audit-list"></tbody>
@@ -1574,25 +1638,25 @@ Step 3: Select NETS and enter terminal ID..."
             <div class="bg-blue-600 p-8 text-center relative"><button onclick="closeProfile()"
                     class="absolute top-4 right-4 text-white/60 hover:text-white"><i class="fas fa-times"></i></button>
                 <div id="modal-avatar"
-                    class="w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold border border-white/30 uppercase shadow-lg">
+                    class="w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold border border-white/30 shadow-lg">
                     ?</div>
-                <h3 id="modal-name" class="text-white font-bold text-xl uppercase tracking-tight">Agent Name</h3>
-                <p id="modal-role" class="text-blue-100 text-xs font-bold uppercase mt-1">Role</p>
+                <h3 id="modal-name" class="text-white font-bold text-xl tracking-tight">Agent Name</h3>
+                <p id="modal-role" class="text-blue-100 text-xs font-bold mt-1">Role</p>
             </div>
             <div class="p-8 space-y-6">
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i
                             class="fas fa-building"></i></div>
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Department</p>
-                        <p id="modal-dept" class="font-bold text-gray-800 text-sm uppercase">--</p>
+                        <p class="text-[11px] font-bold text-gray-400 tracking-wide">Department</p>
+                        <p id="modal-dept" class="font-bold text-gray-800 text-sm">--</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400"><i
                             class="fas fa-envelope"></i></div>
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email</p>
+                        <p class="text-[11px] font-bold text-gray-400 tracking-wide">Email</p>
                         <p id="modal-email" class="font-bold text-gray-800 text-sm">--</p>
                     </div>
                 </div>
@@ -1655,7 +1719,7 @@ Step 3: Select NETS and enter terminal ID..."
             currentUser = await res.json();
             document.getElementById('profile-name').innerText = currentUser.name;
             document.getElementById('profile-role').innerText = currentUser.role;
-            document.getElementById('profile-initials').innerText = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+            document.getElementById('profile-initials').innerText = currentUser.name.split(' ').map(n => n[0]).join('');
 
             renderSidebar();
             loadMacros();
@@ -1724,75 +1788,71 @@ Step 3: Select NETS and enter terminal ID..."
 
                 if (m.isDropdown) {
                     return `
-                    <div class="sidebar-item mb-1" data-id="${key}">
-                        <div class="flex items-center group">
-                            <i class="fas fa-grip-vertical drag-handle mr-2 text-gray-200"></i>
-                            <button onclick="toggleSubmenu('${m.id}')" class="flex-1 flex items-center justify-between px-4 py-3 text-gray-600 hover:bg-gray-50 transition rounded-lg text-sm font-bold uppercase tracking-tighter">
-                                <span class="flex items-center"><i class="fas ${m.icon} w-5 mr-3 text-blue-500"></i> ${m.label}</span>
-                                <i class="fas fa-chevron-down text-[10px] transition-transform" id="${m.id}-chevron"></i>
+                    <div class="sidebar-item mb-1 px-2" data-id="${key}">
+                        <div class="flex items-center group relative">
+                            <button onclick="toggleSubmenu('${m.id}')" class="flex-1 flex items-center justify-between px-4 py-2.5 text-gray-600 hover:bg-blue-50/50 hover:text-blue-600 transition-all duration-200 rounded-xl text-sm font-semibold">
+                                <span class="flex items-center"><i class="fas ${m.icon} w-5 mr-3 text-blue-500/80"></i> ${m.label}</span>
+                                <i class="fas fa-chevron-down text-[10px] transition-transform duration-300" id="${m.id}-chevron"></i>
                             </button>
-                            <button onclick="togglePin('${key}')" class="pin-btn px-2 ${isPinned ? 'pinned' : ''}"><i class="fas fa-thumbtack"></i></button>
+                            <button onclick="togglePin('${key}')" class="pin-btn px-2 ${isPinned ? 'pinned' : ''} text-gray-300 hover:text-blue-500 transition-colors"><i class="fas fa-thumbtack"></i></button>
                         </div>
-                        <div id="${m.id}-submenu" class="submenu pl-8 space-y-1 mt-1">${renderSubContent(m.id)}</div>
+                        <div id="${m.id}-submenu" class="submenu ml-8 space-y-1 mt-1 overflow-hidden transition-all duration-300 pl-4 border-transparent">${renderSubContent(m.id)}</div>
                     </div>`;
                 }
 
                 return `
-                <div class="sidebar-item flex items-center group mb-1" data-id="${key}">
-                    <i class="fas fa-grip-vertical drag-handle mr-2 text-gray-200"></i>
-                    <a href="#" onclick="${m.onClick}" id="tab-${key}" class="sidebar-link flex-1 flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 transition rounded-lg text-sm font-bold uppercase tracking-tighter">
-                        <i class="fas ${m.icon} w-5 mr-3 text-blue-500"></i> ${m.label}
-                    </a>
-                    <button onclick="togglePin('${key}')" class="pin-btn px-2 ${isPinned ? 'pinned' : ''}"><i class="fas fa-thumbtack"></i></button>
+                <div class="sidebar-item px-2" data-id="${key}">
+                    <div class="flex items-center group relative mb-1">
+                        <a href="#" onclick="${m.onClick}" id="tab-${key}" class="sidebar-link flex-1 flex items-center px-4 py-2.5 text-gray-600 hover:bg-blue-50/50 hover:text-blue-600 transition-all duration-200 rounded-xl text-sm font-semibold">
+                            <i class="fas ${m.icon} w-5 mr-3 text-blue-500/80"></i> ${m.label}
+                        </a>
+                        <button onclick="togglePin('${key}')" class="pin-btn px-2 ${isPinned ? 'pinned' : ''} text-gray-300 hover:text-blue-500 transition-colors"><i class="fas fa-thumbtack"></i></button>
+                    </div>
                 </div>`;
             }).join('');
         }
 
         function renderSubContent(id) {
             if (id === 'chat') return `
-                <a href="#" onclick="switchTab('livechat')" class="flex justify-between items-center px-4 py-2 text-xs text-blue-600 hover:text-blue-700 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fas fa-headset text-blue-500'></i> Live Chat</span> <span id='count-livechat' class='count-badge' style='background:#dbeafe;color:#2563eb'>0</span></a>
-                <a href="#" onclick="switchTab('inbox', 'all')" class="flex justify-between items-center px-4 py-2 text-xs text-gray-500 hover:text-blue-600 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fas fa-envelope text-blue-500'></i> Email</span> <span id="count-all" class="count-badge">0</span></a>
-                <a href="#" onclick="switchTab('whatsapp')" class="flex justify-between items-center px-4 py-2 text-xs text-green-600 hover:text-green-700 transition font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp'></i> WhatsApp</span> <span id='count-whatsapp' class='count-badge' style='background:#dcfce7;color:#16a34a'>0</span></a>
-                <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-instagram text-pink-400'></i> Instagram</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
-                <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-facebook-messenger text-blue-300'></i> Inbox</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
-                <a href="#" class="flex justify-between items-center px-4 py-2 text-xs text-gray-400 cursor-not-allowed font-bold uppercase tracking-tighter"><span class='flex items-center gap-1.5'><i class='fab fa-whatsapp text-green-300'></i> WA Group</span> <span class='text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>SOON</span></a>
+                <a href="#" onclick="switchTab('livechat')" class="flex justify-between items-center px-4 py-1.5 text-xs text-blue-600/80 hover:text-blue-700 hover:bg-blue-50/30 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-headset text-blue-400'></i> Live Chat</span> <span id='count-livechat' class='count-badge' style='background:#dbeafe;color:#2563eb'>0</span></a>
+                <a href="#" onclick="switchTab('inbox', 'all')" class="flex justify-between items-center px-4 py-1.5 text-xs text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-envelope text-blue-400'></i> Email</span> <span id="count-all" class="count-badge">0</span></a>
+                <a href="#" onclick="switchTab('whatsapp')" class="flex justify-between items-center px-4 py-1.5 text-xs text-green-600/80 hover:text-green-700 hover:bg-green-50/30 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fab fa-whatsapp text-green-500'></i> WhatsApp</span> <span id='count-whatsapp' class='count-badge' style='background:#dcfce7;color:#16a34a'>0</span></a>
+                <a href="#" class="flex justify-between items-center px-4 py-1.5 text-xs text-gray-400 cursor-not-allowed font-medium opacity-60"><span class='flex items-center gap-2'><i class='fab fa-instagram text-pink-300'></i> Instagram</span> <span class='text-[9px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>Soon</span></a>
+                <a href="#" class="flex justify-between items-center px-4 py-1.5 text-xs text-gray-400 cursor-not-allowed font-medium opacity-60"><span class='flex items-center gap-2'><i class='fab fa-facebook-messenger text-blue-300'></i> Inbox</span> <span class='text-[9px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>Soon</span></a>
+                <a href="#" class="flex justify-between items-center px-4 py-1.5 text-xs text-gray-400 cursor-not-allowed font-medium opacity-60"><span class='flex items-center gap-2'><i class='fab fa-whatsapp text-green-300'></i> Wa Group</span> <span class='text-[9px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full font-bold'>Soon</span></a>
             `;
             if (id === 'team') {
                 return `
-                <a href="#" onclick="switchTab('team', 'product_specialist')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-star text-yellow-400'></i> Product Specialist</span></a>
-                <a href="#" onclick="switchTab('team', 'product_manager')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-tie text-blue-400'></i> Product Manager</span></a>
-                <a href="#" onclick="switchTab('team', 'support')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-headset text-green-400'></i> Support</span></a>
-                <a href="#" onclick="switchTab('team', 'developer')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-code text-indigo-400'></i> Developer</span></a>
-                <a href="#" onclick="switchTab('team', 'integration')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-plug text-purple-400'></i> Integration</span></a>
-                <a href="#" onclick="switchTab('team', 'qa')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-check-circle text-teal-400'></i> QA</span></a>
-                <a href="#" onclick="switchTab('team', 'deployment')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-rocket text-orange-400'></i> Deployment</span></a>
-                <a href="#" onclick="switchTab('team', 'sales')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-chart-line text-green-400'></i> Sales</span></a>
-                <a href="#" onclick="switchTab('team', 'hr')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-users text-pink-400'></i> HR</span></a>
-                <a href="#" onclick="switchTab('team', 'intern')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-graduation-cap text-cyan-400'></i> Intern</span></a>
-                <a href="#" onclick="switchTab('team', 'managerial')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-crown text-gold-400'></i> Managerial</span></a>
+                <a href="#" onclick="switchTab('team', 'product_specialist')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-star text-yellow-400/80'></i> Product Specialist</span></a>
+                <a href="#" onclick="switchTab('team', 'product_manager')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-tie text-blue-400/80'></i> Product Manager</span></a>
+                <a href="#" onclick="switchTab('team', 'support')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-headset text-green-400/80'></i> Support</span></a>
+                <a href="#" onclick="switchTab('team', 'developer')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-code text-indigo-400/80'></i> Developer</span></a>
+                <a href="#" onclick="switchTab('team', 'integration')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-plug text-purple-400/80'></i> Integration</span></a>
+                <a href="#" onclick="switchTab('team', 'qa')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-check-circle text-teal-400/80'></i> QA</span></a>
+                <a href="#" onclick="switchTab('team', 'deployment')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-rocket text-orange-400/80'></i> Deployment</span></a>
                 `;
             }
             if (id === 'tickets') return `
-                <a href="#" onclick="switchTab('tickets', 'all')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-list text-blue-400'></i> All Tickets</span></a>
-                <a href="#" onclick="switchTab('tickets', 'unassigned')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-clock text-amber-400'></i> Unassigned</span></a>
-                <a href="#" onclick="switchTab('tickets', 'pending_investigator')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-search text-purple-400'></i> Pending Investigator</span></a>
-                <a href="#" onclick="switchTab('tickets', 'pending_programmer')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-code text-indigo-400'></i> Pending Programmer</span></a>
-                <a href="#" onclick="switchTab('tickets', 'closed')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-times-circle text-gray-400'></i> Closed</span></a>
-                <a href="#" onclick="switchTab('tickets', 'resolved')" class="flex justify-between items-center px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-check-circle text-green-400'></i> Resolved</span></a>
+                <a href="#" onclick="switchTab('tickets', 'all')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-list text-blue-400/80'></i> All Tickets</span></a>
+                <a href="#" onclick="switchTab('tickets', 'unassigned')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-clock text-amber-400/80'></i> Unassigned</span></a>
+                <a href="#" onclick="switchTab('tickets', 'pending_investigator')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-search text-purple-400/80'></i> Pending Investigator</span></a>
+                <a href="#" onclick="switchTab('tickets', 'pending_programmer')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-code text-indigo-400/80'></i> Pending Programmer</span></a>
+                <a href="#" onclick="switchTab('tickets', 'closed')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-times-circle text-gray-400/80'></i> Closed</span></a>
+                <a href="#" onclick="switchTab('tickets', 'resolved')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-check-circle text-green-400/80'></i> Resolved</span></a>
             `;
             if (id === 'settings') {
                 const isAdmin = currentUser?.role === 'admin';
                 return `
-                <a href="#" onclick="switchTab('settings')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-sliders-h text-gray-400'></i> General</span></a>
-                <a href="#" onclick="switchTab('settings', 'admin')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-shield text-red-400'></i> Admin</span></a>
-                <a href="#" onclick="switchTab('settings', 'support')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-headset text-green-400'></i> Support</span></a>
-                <a href="#" onclick="switchTab('settings', 'system_admin')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-server text-blue-400'></i> System Admin</span></a>
-                ${isAdmin ? `<a href="#" onclick="switchTab('usermst')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-user-shield text-blue-400'></i> User Master</span></a>
-                <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-users-cog text-blue-400'></i> Group Privileges</span></a>
-                <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-key text-blue-400'></i> Privilege Setup</span></a>` : ''}
-                <a href="#" onclick="switchTab('macros')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-bolt text-amber-400'></i> Macros</span></a>
-                <a href="#" onclick="switchTab('knowledge')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-brain text-purple-400'></i> Knowledge Base</span></a>
-                ${isAdmin ? `<a href="#" onclick="switchTab('audit')" class="block px-4 py-2 text-[10px] text-gray-400 hover:text-blue-600 transition font-bold uppercase tracking-widest"><span class='flex items-center gap-1.5'><i class='fas fa-shield-alt text-red-400'></i> Audit Logs</span></a>` : ''}
+                <a href="#" onclick="switchTab('settings')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-sliders-h text-gray-400/80'></i> General</span></a>
+                <a href="#" onclick="switchTab('settings', 'admin')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-shield text-red-400/80'></i> Admin</span></a>
+                <a href="#" onclick="switchTab('settings', 'support')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-headset text-green-400/80'></i> Support</span></a>
+                <a href="#" onclick="switchTab('settings', 'system_admin')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-server text-blue-400/80'></i> System Admin</span></a>
+                ${isAdmin ? `<a href="#" onclick="switchTab('usermst')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-shield text-blue-400/80'></i> User Master</span></a>
+                <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-users-cog text-blue-400/80'></i> Group Privileges</span></a>
+                <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-key text-blue-400/80'></i> Privilege Setup</span></a>` : ''}
+                <a href="#" onclick="switchTab('macros')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-bolt text-amber-400/80'></i> Macros</span></a>
+                <a href="#" onclick="switchTab('knowledge')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-brain text-purple-400/80'></i> Knowledge Base</span></a>
+                ${isAdmin ? `<a href="#" onclick="switchTab('audit')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-shield-alt text-red-400/80'></i> Audit Logs</span></a>` : ''}
                 `;
             }
             return '';
@@ -1896,7 +1956,7 @@ Step 3: Select NETS and enter terminal ID..."
                 { label: 'SLA Breach', val: data.metrics.overdue, color: 'text-red-600' },
                 { label: 'Avg CSAT', val: data.metrics.csat_avg.toFixed(1), color: 'text-amber-500' }
             ];
-            document.getElementById('overview-stats').innerHTML = metrics.map(m => `<div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">${m.label}</p><p class="${m.color} text-3xl font-black">${m.val}</p></div>`).join('');
+            document.getElementById('overview-stats').innerHTML = metrics.map(m => `<div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">${m.label}</p><p class="${m.color} text-3xl font-black">${m.val}</p></div>`).join('');
 
             const ctxVol = document.getElementById('volumeChart').getContext('2d');
             if (volumeChart) volumeChart.destroy();
@@ -1908,6 +1968,29 @@ Step 3: Select NETS and enter terminal ID..."
 
             document.getElementById('agent-leaderboard').innerHTML = data.agent_performance.map(a => `<tr class="text-sm"><td class="px-4 py-3 font-bold text-gray-700">${a.name}</td><td class="px-4 py-3 text-center text-gray-500">${a.tickets}</td><td class="px-4 py-3 text-right"><span class="font-black text-amber-600">${a.csat}</span><i class="fas fa-star text-[10px] text-amber-400 ml-1"></i></td></tr>`).join('');
             document.getElementById('ai-trends').innerText = data.ai_trends;
+
+            // Freq Topics rendering
+            const freqEl = document.getElementById('freq-topics');
+            if (freqEl && data.top_topics) {
+                freqEl.innerHTML = data.top_topics.map(t => {
+                    let trendIcon = '<i class="fas fa-minus text-gray-400"></i>';
+                    if (t.trend === 'up') trendIcon = '<i class="fas fa-arrow-up text-green-500"></i>';
+                    else if (t.trend === 'down') trendIcon = '<i class="fas fa-arrow-down text-red-500"></i>';
+
+                    return `
+                        <div class="p-5 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col justify-between hover:border-purple-200 transition-colors">
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="text-[11px] font-bold text-gray-400">Topic</span>
+                                ${trendIcon}
+                            </div>
+                            <div>
+                                <p class="text-[15px] font-bold text-gray-800 mb-1">${t.topic}</p>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">${t.count} Interactions</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         // ====== LIVE CHAT ======
@@ -1969,10 +2052,10 @@ Step 3: Select NETS and enter terminal ID..."
                 const isWaiting = c.status === 'waiting';
                 const timeAgo = c.last_activity ? getTimeAgo(new Date(c.last_activity)) : '';
                 return `
-                <div onclick="lcSelectChat('${c.user_id}')" class="p-4 border-b hover:bg-blue-50 cursor-pointer transition ${isActive ? 'bg-blue-50 border-l-4 border-blue-600' : ''}">
+                <div onclick="lcSelectChat('${c.user_id}')" class="p-4 border-b hover:bg-blue-50 cursor-pointer transition ${isActive ? 'bg-blue-50 rounded-xl mx-2' : ''}">
                     <div class="flex items-center gap-3">
                         <div class="relative">
-                            <div class="w-10 h-10 rounded-full ${isWaiting ? 'bg-amber-400' : 'bg-blue-400'} flex items-center justify-center text-white font-bold uppercase">${(c.name || 'A').charAt(0)}</div>
+                            <div class="w-10 h-10 rounded-full ${isWaiting ? 'bg-amber-400' : 'bg-blue-400'} flex items-center justify-center text-white font-bold">${(c.name || 'A').charAt(0)}</div>
                             ${isWaiting ? '<span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>' : ''}
                         </div>
                         <div class="flex-1 min-w-0">
@@ -1981,7 +2064,7 @@ Step 3: Select NETS and enter terminal ID..."
                         </div>
                     </div>
                     <div class="mt-2 flex justify-between items-center">
-                        <span class="text-[9px] font-bold uppercase tracking-widest ${isWaiting ? 'text-amber-600' : 'text-green-600'}">
+                        <span class="text-[11px] font-bold tracking-wide ${isWaiting ? 'text-amber-600' : 'text-green-600'}">
                             <i class="fas ${isWaiting ? 'fa-clock' : 'fa-check-circle'} mr-1"></i>${isWaiting ? 'Waiting' : 'Replied'}
                         </span>
                         <span class="text-[10px] text-gray-400 font-medium">${timeAgo}</span>
@@ -2021,14 +2104,14 @@ Step 3: Select NETS and enter terminal ID..."
             // Update header
             document.getElementById('lc-active-name').innerText = chatInfo.name || 'Anonymous';
             document.getElementById('lc-active-meta').innerText = `${chatInfo.company || 'Portal Chat'} • ${chatInfo.message_count || 0} messages`;
-            document.getElementById('lc-avatar').innerText = (chatInfo.name || 'A').charAt(0).toUpperCase();
+            document.getElementById('lc-avatar').innerText = (chatInfo.name || 'A').charAt(0);
             document.getElementById('lc-actions').classList.remove('hidden');
 
             // Update sidebar
             document.getElementById('lc-sidebar-name').innerText = chatInfo.name || 'Anonymous';
             document.getElementById('lc-sidebar-company').innerText = chatInfo.company || '--';
             document.getElementById('lc-sidebar-userid').innerText = userId;
-            document.getElementById('lc-sidebar-avatar').innerText = (chatInfo.name || 'A').charAt(0).toUpperCase();
+            document.getElementById('lc-sidebar-avatar').innerText = (chatInfo.name || 'A').charAt(0);
             document.getElementById('lc-sidebar-msgcount').innerText = chatInfo.message_count || '--';
             document.getElementById('lc-sidebar-status').innerText = chatInfo.status || '--';
             document.getElementById('lc-sidebar-lastactivity').innerText = chatInfo.last_activity ? new Date(chatInfo.last_activity).toLocaleString() : '--';
@@ -2053,7 +2136,7 @@ Step 3: Select NETS and enter terminal ID..."
             const area = document.getElementById('lc-messages');
 
             if (!data.messages || data.messages.length === 0) {
-                area.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs uppercase font-bold tracking-widest opacity-50">No messages yet</div>';
+                area.innerHTML = '<div class="text-center py-8 text-gray-400 text-[11px] font-bold tracking-wide opacity-50">No messages yet</div>';
             } else {
                 area.innerHTML = data.messages.map(m => {
                     const isAgent = m.role === 'assistant' || m.role === 'bot';
@@ -2236,11 +2319,10 @@ Step 3: Select NETS and enter terminal ID..."
             const res = await fetchWithAuth(`/api/tickets?filter=${filter}`);
             const data = await res.json();
             document.getElementById('conversation-list').innerHTML = data.map(t => `
-                <div onclick="selectTicket(${t.id})" class="p-4 border-b hover:bg-blue-50 cursor-pointer transition ${currentTicketId === t.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''}">
+                <div onclick="selectTicket(${t.id})" class="p-4 border-b hover:bg-blue-50 cursor-pointer transition ${currentTicketId === t.id ? 'bg-blue-50 rounded-xl mx-2' : ''}">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold uppercase">${(t.name || 'A').charAt(0)}</div>
-                        <div class="flex-1 min-w-0"><p class="font-bold text-sm text-gray-900 truncate uppercase tracking-tighter">${t.name || 'Anonymous'}</p><p class="text-xs text-gray-500 truncate">${t.summary}</p></div>
-                        <div class="text-[10px] text-gray-400 font-bold uppercase">${t.priority}</div>
+                        <div class="w-10 h-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold">${(t.name || 'A').charAt(0)}</div>
+                        <div class="text-[11px] text-gray-400 font-bold tracking-wide">${t.priority}</div>
                     </div>
                     <div class="mt-2 flex justify-between items-center"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span><span class="text-[10px] text-gray-400 font-medium">${new Date(t.created_at).toLocaleTimeString()}</span></div>
                 </div>`).join('');
@@ -2257,7 +2339,7 @@ Step 3: Select NETS and enter terminal ID..."
 
             document.getElementById('active-name').innerText = t.name || 'Anonymous';
             document.getElementById('active-meta').innerText = `Ticket #${t.id} • ${t.company || 'No Company'}`;
-            document.getElementById('active-avatar').innerText = (t.name || 'A').charAt(0).toUpperCase();
+            document.getElementById('active-avatar').innerText = (t.name || 'A').charAt(0);
             document.getElementById('chat-actions').classList.toggle('hidden', t.status === 'resolved');
 
             document.getElementById('sidebar-name').innerText = t.name || 'Anonymous';
@@ -2265,14 +2347,14 @@ Step 3: Select NETS and enter terminal ID..."
             document.getElementById('sidebar-priority').innerText = t.priority;
             document.getElementById('sidebar-status').innerText = t.status;
             document.getElementById('sidebar-id').innerText = t.id;
-            document.getElementById('sidebar-avatar').innerText = (t.name || 'A').charAt(0).toUpperCase();
+            document.getElementById('sidebar-avatar').innerText = (t.name || 'A').charAt(0);
 
             // Load full customer context
             loadCustomerContext(t.user_id);
 
             const area = document.getElementById('chat-messages');
             if (!data.history || data.history.length === 0) {
-                area.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs uppercase font-bold tracking-widest opacity-50">Empty Archive</div>';
+                area.innerHTML = '<div class="text-center py-8 text-gray-400 text-[11px] font-bold tracking-wide opacity-50">Empty Archive</div>';
             } else {
                 area.innerHTML = data.history.map(m => {
                     const isMe = m.role === 'agent' || m.role === 'bot';
@@ -2323,8 +2405,8 @@ Step 3: Select NETS and enter terminal ID..."
                     catList.innerHTML = ctx.top_categories.map((c, i) => {
                         const color = colors[i % colors.length];
                         return `<div class="flex justify-between items-center bg-${color}-50 px-3 py-1.5 rounded-lg">
-                            <span class="text-[10px] font-bold text-${color}-600 uppercase">${c.category}</span>
-                            <span class="text-[10px] font-black text-${color}-700">${c.count}x</span>
+                            <span class="text-[11px] font-bold text-${color}-600">${c.category}</span>
+                            <span class="text-[11px] font-black text-${color}-700">${c.count}x</span>
                         </div>`;
                     }).join('');
                 } else {
@@ -2341,8 +2423,8 @@ Step 3: Select NETS and enter terminal ID..."
                         const date = t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
                         return `<div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
                             <div class="flex justify-between items-start">
-                                <span class="text-[10px] font-black text-gray-600">#${t.id}</span>
-                                <span class="px-1.5 py-0.5 text-[8px] font-bold uppercase bg-${statusColor}-50 text-${statusColor}-600 rounded">${t.status}</span>
+                                <span class="text-[11px] font-black text-gray-600">#${t.id}</span>
+                                <span class="px-2 py-0.5 text-[10px] font-bold bg-${statusColor}-50 text-${statusColor}-600 rounded-full">${t.status}</span>
                             </div>
                             <p class="text-[10px] text-gray-500 mt-1 line-clamp-2">${t.summary || '--'}</p>
                             <p class="text-[8px] text-gray-400 mt-1">${date} • ${t.priority || 'Medium'}</p>
@@ -2413,7 +2495,7 @@ Step 3: Select NETS and enter terminal ID..."
             const res = await fetchWithAuth('/api/agents'); allAgents = await res.json();
             const filtered = group ? allAgents.filter(a => (a.role || '').toLowerCase() === group.toLowerCase()) : allAgents;
             document.getElementById('member-count').innerText = `${filtered.length} Members`;
-            document.getElementById('team-list').innerHTML = filtered.map(a => `<div onclick="showAgentProfile('${a.user_id}')" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center cursor-pointer hover:border-blue-300 transition group relative overflow-hidden"><div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-150 group-hover:bg-blue-600"></div><div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 text-blue-600 text-xl font-bold group-hover:bg-white transition-all uppercase relative z-10">${a.name.charAt(0)}</div><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 relative z-10 uppercase">${a.name}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4 relative z-10">${a.role || 'Agent'}</p><div class="flex justify-center gap-2 relative z-10"><span class="text-[10px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded-full uppercase tracking-tighter">${a.availability_status}</span></div></div>`).join('');
+            document.getElementById('team-list').innerHTML = filtered.map(a => `<div onclick="showAgentProfile('${a.user_id}')" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center cursor-pointer hover:border-blue-300 transition group relative overflow-hidden"><div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-150 group-hover:bg-blue-600"></div><div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto mb-4 text-blue-600 text-xl font-bold group-hover:bg-white transition-all relative z-10">${a.name.charAt(0)}</div><h4 class="font-bold text-gray-800 text-sm group-hover:text-blue-600 relative z-10">${a.name}</h4><p class="text-[11px] text-gray-400 font-bold tracking-wide mb-4 relative z-10">${a.role || 'Agent'}</p><div class="flex justify-center gap-2 relative z-10"><span class="text-[10px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded-full tracking-tighter">${a.availability_status}</span></div></div>`).join('');
         }
 
         function showAgentProfile(uid) {
@@ -2436,7 +2518,7 @@ Step 3: Select NETS and enter terminal ID..."
             const label = filterLabel[statusFilter] || 'All Tickets';
             document.getElementById('tickets-list').innerHTML = data.length === 0
                 ? `<tr><td colspan="5" class="px-6 py-12 text-center text-gray-400 text-sm"><i class="fas fa-ticket-alt text-4xl text-gray-200 mb-3 block"></i>No tickets found${statusFilter && statusFilter !== 'all' ? ' for ' + label : ''}</td></tr>`
-                : data.map(t => `<tr class="hover:bg-gray-50 border-b"><td class="px-6 py-4"><div class="text-sm font-bold text-gray-900 uppercase">${t.name || 'Anon'}</div><div class="text-[10px] text-gray-400">${t.company || '-'}</div></td><td class="px-6 py-4 text-xs text-gray-600 line-clamp-1">${t.summary}</td><td class="px-6 py-4 uppercase text-[10px] font-bold priority-${t.priority.toLowerCase()}">${t.priority}</td><td class="px-6 py-4"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span></td><td class="px-6 py-4 text-right"><button onclick="selectTicket(${t.id}); switchTab('inbox');" class="text-blue-600 font-bold text-xs uppercase tracking-tighter hover:underline">View</button></td></tr>`).join('');
+                : data.map(t => `<tr class="hover:bg-gray-50 border-b"><td class="px-6 py-4"><div class="text-sm font-bold text-gray-900">${t.name || 'Anon'}</div><div class="text-[10px] text-gray-400">${t.company || '-'}</div></td><td class="px-6 py-4 text-xs text-gray-600 line-clamp-1">${t.summary}</td><td class="px-6 py-4 text-[11px] font-bold priority-${t.priority.toLowerCase()}">${t.priority}</td><td class="px-6 py-4"><span class="status-badge status-${t.status.toLowerCase()}">${t.status}</span></td><td class="px-6 py-4 text-right"><button onclick="selectTicket(${t.id}); switchTab('inbox');" class="text-blue-600 font-bold text-[11px] tracking-wide hover:underline">View</button></td></tr>`).join('');
         }
 
         // ============ WhatsApp Functions ============
@@ -2533,12 +2615,12 @@ Step 3: Select NETS and enter terminal ID..."
                 }
                 list.innerHTML = data.conversations.map(c => {
                     const name = c.customer_name || c.phone_number;
-                    const initials = name.charAt(0).toUpperCase();
+                    const initials = name.charAt(0);
                     const timeAgo = c.last_message_at ? new Date(c.last_message_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
                     const dirIcon = c.last_direction === 'inbound' ? '↙️' : '↗️';
                     const isSelected = waSelectedPhone === c.phone_number;
                     return `<div onclick="loadWhatsAppThread('${c.phone_number}', '${(c.customer_name || '').replace(/'/g, "\\\\'")}')"
-                         class="p-4 cursor-pointer hover:bg-green-50 transition border-b ${isSelected ? 'bg-green-50 border-l-4 border-l-green-500' : ''}">
+                         class="p-4 cursor-pointer hover:bg-green-50 transition border-b ${isSelected ? 'bg-green-50 rounded-xl mx-2 shadow-sm' : ''}">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initials}</div>
                             <div class="flex-1 min-w-0">
@@ -2563,15 +2645,15 @@ Step 3: Select NETS and enter terminal ID..."
             waSelectedName = customerName || phone;
             document.getElementById('wa-thread-name').textContent = waSelectedName;
             document.getElementById('wa-thread-phone').textContent = phone;
-            document.getElementById('wa-avatar').textContent = waSelectedName.charAt(0).toUpperCase();
-            document.getElementById('wa-avatar').innerHTML = waSelectedName.charAt(0).toUpperCase();
+            document.getElementById('wa-avatar').textContent = waSelectedName.charAt(0);
+            document.getElementById('wa-avatar').innerHTML = waSelectedName.charAt(0);
             document.getElementById('wa-thread-actions').classList.remove('hidden');
             document.getElementById('wa-reply-footer').classList.remove('hidden');
 
             // Update sidebar
             document.getElementById('wa-sidebar-name').textContent = waSelectedName;
             document.getElementById('wa-sidebar-phone').textContent = phone;
-            document.getElementById('wa-sidebar-avatar').textContent = waSelectedName.charAt(0).toUpperCase();
+            document.getElementById('wa-sidebar-avatar').textContent = waSelectedName.charAt(0);
 
             // Refresh conversation list to show selection
             await loadWhatsAppConversations(document.getElementById('wa-search').value);
@@ -2979,33 +3061,41 @@ Step 3: Select NETS and enter terminal ID..."
         }
         async function saveMacro() { const n = document.getElementById('macro-name').value, c = document.getElementById('macro-content').value, cat = document.getElementById('macro-category').value; if (!n || !c) return alert('Name and content are required'); await fetchWithAuth('/api/macros', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, content: c, category: cat || 'General' }) }); document.getElementById('macro-name').value = ''; document.getElementById('macro-content').value = ''; document.getElementById('add-macro-panel').classList.add('hidden'); loadMacros(); }
         async function deleteMacro(id) { if (confirm('Delete this macro?')) { await fetchWithAuth(`/api/macros/${id}`, { method: 'DELETE' }); loadMacros(); } }
-        function setupMacroTriggers() { const b = document.getElementById('reply-box'), p = document.getElementById('macro-picker'); b.oninput = () => { b.style.height = 'auto'; b.style.height = b.scrollHeight + 'px'; if (b.value.startsWith('/')) { const q = b.value.substring(1).toLowerCase(), f = macros.filter(m => m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q)); if (f.length) { p.classList.remove('hidden'); p.innerHTML = f.map(m => `<div onclick="applyMacro('${m.content.replace(/'/g, "\\'")}')" class="p-3 border-b hover:bg-blue-50 cursor-pointer transition"><p class="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">${m.category}</p><p class="text-xs font-bold text-gray-800">${m.name}</p></div>`).join(''); } else p.classList.add('hidden'); } else p.classList.add('hidden'); }; b.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); } }; }
+        function setupMacroTriggers() {
+            const b = document.getElementById('reply-box'), p = document.getElementById('macro-picker'); b.oninput = () => {
+                b.style.height = 'auto'; b.style.height = b.scrollHeight + 'px'; if (b.value.startsWith('/')) {
+                    const q = b.value.substring(1).toLowerCase(), f = macros.filter(m => m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q)); if (f.length) {
+                        p.classList.remove('hidden'); p.innerHTML = f.map(m => `<div onclick="applyMacro('${m.content.replace(/'/g, "\\'")}')" class="p-3 border-b hover:bg-blue-50 cursor-pointer transition"><p class="text-[11px] font-bold text-blue-600">${m.category}</p><p class="text-xs font-bold text-gray-800">${m.name}</p></div>`).join('');
+                    } else p.classList.add('hidden');
+                } else p.classList.add('hidden');
+            }; b.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); } };
+        }
         function applyMacro(c) { const b = document.getElementById('reply-box'); b.value = c; document.getElementById('macro-picker').classList.add('hidden'); b.focus(); }
-        async function loadAuditLogs() { const res = await fetchWithAuth('/api/audit-logs'); const data = await res.json(); document.getElementById('audit-list').innerHTML = data.map(l => `<tr class="text-[10px] hover:bg-gray-50 border-b"><td class="px-6 py-4 text-gray-500">${new Date(l.timestamp).toLocaleString()}</td><td class="px-6 py-4 font-bold text-gray-700 uppercase">${l.agent_name || 'System'}</td><td class="px-6 py-4 text-blue-600 uppercase font-extrabold tracking-widest">${l.action}</td></tr>`).join(''); }
+        async function loadAuditLogs() { const res = await fetchWithAuth('/api/audit-logs'); const data = await res.json(); document.getElementById('audit-list').innerHTML = data.map(l => `<tr class="text-xs hover:bg-gray-50 border-b"><td class="px-6 py-4 text-gray-500">${new Date(l.timestamp).toLocaleString()}</td><td class="px-6 py-4 font-bold text-gray-700">${l.agent_name || 'System'}</td><td class="px-6 py-4 text-blue-600 font-extrabold">${l.action}</td></tr>`).join(''); }
         async function loadKnowledge() {
             const res = await fetchWithAuth('/api/knowledge');
             const data = await res.json();
             document.getElementById('knowledge-list').innerHTML = data.map(k => {
                 const isUrl = k.source_url || (k.filename && k.filename.startsWith('url_'));
                 const sourceHtml = isUrl
-                    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[8px] font-bold uppercase" title="${k.source_url || ''}"><i class="fas fa-globe"></i> URL</span>${k.source_url ? `<p class="text-[8px] text-gray-400 mt-0.5 truncate max-w-[150px]" title="${k.source_url}">${k.source_url}</p>` : ''}`
-                    : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[8px] font-bold uppercase"><i class="fas fa-upload"></i> Upload</span>`;
+                    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-bold" title="${k.source_url || ''}"><i class="fas fa-globe"></i> URL</span>${k.source_url ? `<p class="text-[10px] text-gray-400 mt-0.5 truncate max-w-[150px]" title="${k.source_url}">${k.source_url}</p>` : ''}`
+                    : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold"><i class="fas fa-upload"></i> Upload</span>`;
                 return `
                 <tr class="text-xs border-b hover:bg-gray-50 transition-colors">
                     <td class="px-6 py-4"><input type="checkbox" class="knowledge-checkbox" value="${k.filename}" onchange="updateBulkDeleteButton()"></td>
                     <td class="px-6 py-4 font-bold text-gray-900">${k.filename}</td>
                     <td class="px-6 py-4">${sourceHtml}</td>
-                    <td class="px-6 py-4 text-gray-500 uppercase font-black text-[9px]">${k.uploaded_by || 'System'}</td>
-                    <td class="px-6 py-4 text-gray-400 text-[9px]">${k.upload_date ? new Date(k.upload_date).toLocaleString() : '--'}</td>
+                    <td class="px-6 py-4 text-gray-500 font-black text-[11px]">${k.uploaded_by || 'System'}</td>
+                    <td class="px-6 py-4 text-gray-400 text-[11px]">${k.upload_date ? new Date(k.upload_date).toLocaleString() : '--'}</td>
                     <td class="px-6 py-4">
-                        <span class="px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ${k.status === 'Indexed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
+                        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${k.status === 'Indexed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
                             ${k.status}
                         </span>
                     </td>
                     <td class="px-6 py-4 text-right flex justify-end gap-3 items-center">
-                        <button onclick="trainIndividualAI('${k.filename}')" class="text-purple-600 font-bold uppercase tracking-widest transition hover:scale-105 active:scale-95 text-[9px]" title="Train AI specifically on this document"><i class="fas fa-brain mr-1"></i>Train AI</button>
-                        <button onclick="editKnowledge('${k.filename}')" class="text-blue-600 font-bold uppercase tracking-widest transition hover:scale-105 active:scale-95 text-[9px]"><i class="fas fa-edit mr-1"></i>Edit</button>
-                        <button onclick="deleteKnowledge('${k.filename}')" class="text-red-600 font-bold uppercase tracking-widest transition hover:scale-105 active:scale-95 text-[9px]"><i class="fas fa-trash mr-1"></i>Delete</button>
+                        <button onclick="trainIndividualAI('${k.filename}')" class="text-purple-600 font-bold tracking-wide transition hover:scale-105 active:scale-95 text-[11px]" title="Train AI specifically on this document"><i class="fas fa-brain mr-1"></i>Train AI</button>
+                        <button onclick="editKnowledge('${k.filename}')" class="text-blue-600 font-bold tracking-wide transition hover:scale-105 active:scale-95 text-[11px]"><i class="fas fa-edit mr-1"></i>Edit</button>
+                        <button onclick="deleteKnowledge('${k.filename}')" class="text-red-600 font-bold tracking-wide transition hover:scale-105 active:scale-95 text-[11px]"><i class="fas fa-trash mr-1"></i>Delete</button>
                     </td>
                 </tr>`;
             }).join('');
@@ -3076,15 +3166,15 @@ Step 3: Select NETS and enter terminal ID..."
             const data = await res.json();
             document.getElementById('usermst-list').innerHTML = data.map(a => `
                 <tr class="hover:bg-gray-50 border-b">
-                    <td class="px-6 py-4 font-bold text-gray-800 uppercase text-xs">${a.name}</td>
+                    <td class="px-6 py-4 font-bold text-gray-800 text-xs">${a.name}</td>
                     <td class="px-6 py-4 text-gray-500 text-xs">${a.email}</td>
                     <td class="px-6 py-4">
                         <div class="flex flex-wrap gap-1">
-                            ${a.roles.map(r => `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase">${r}</span>`).join('')}
+                            ${a.roles.map(r => `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[11px] font-bold">${r}</span>`).join('')}
                         </div>
                     </td>
                     <td class="px-6 py-4 text-right">
-                        <button onclick="editUserRoles('${a.user_id}', ${JSON.stringify(a.roles).replace(/"/g, '&quot;')})" class="text-blue-600 font-bold text-[10px] uppercase hover:underline">Groups</button>
+                        <button onclick="editUserRoles('${a.user_id}', ${JSON.stringify(a.roles).replace(/"/g, '&quot;')})" class="text-blue-600 font-bold text-[11px] hover:underline">Groups</button>
                     </td>
                 </tr>
             `).join('');
@@ -3109,12 +3199,12 @@ Step 3: Select NETS and enter terminal ID..."
             const roles = await res.json();
             document.getElementById('roles-grid').innerHTML = roles.map(r => `
                 <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:border-blue-300 transition-all">
-                    <h3 class="font-black text-gray-800 uppercase text-sm mb-2">${r.name}</h3>
+                    <h3 class="font-black text-gray-800 text-sm mb-2">${r.name}</h3>
                     <p class="text-xs text-gray-400 mb-4">${r.description || 'No description'}</p>
                     <div class="flex flex-wrap gap-1 mb-6">
-                        ${r.perms.map(p => `<span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-[9px] font-bold">${p}</span>`).join('')}
+                        ${r.perms.map(p => `<span class="px-2 py-0.5 bg-green-50 text-green-600 rounded text-[11px] font-bold">${p}</span>`).join('')}
                     </div>
-                    <button onclick="editRolePerms('${r.name}', ${JSON.stringify(r.perms).replace(/"/g, '&quot;')})" class="w-full py-2 bg-blue-600 text-white font-black text-[10px] uppercase rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition">Setup Privileges</button>
+                    <button onclick="editRolePerms('${r.name}', ${JSON.stringify(r.perms).replace(/"/g, '&quot;')})" class="w-full py-2 bg-blue-600 text-white font-black text-[11px] rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition">Setup Privileges</button>
                 </div>
             `).join('');
         }
@@ -3143,7 +3233,7 @@ Step 3: Select NETS and enter terminal ID..."
             });
             document.getElementById('perms-category-list').innerHTML = Object.keys(categories).map(cat => `
                 <div>
-                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 border-b pb-2">${cat} Privileges</h4>
+                    <h4 class="text-[11px] font-black text-gray-400 tracking-wide mb-4 border-b pb-2">${cat} Privileges</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${categories[cat].map(p => `
                             <div class="flex items-center justify-between p-4 bg-gray-50 border border-transparent hover:border-blue-100 hover:bg-white transition-all rounded-2xl group">
@@ -3182,12 +3272,12 @@ Step 3: Select NETS and enter terminal ID..."
             const percentText = document.getElementById('upload-percent');
             box.classList.remove('hidden', 'bg-blue-50', 'border-blue-100', 'bg-green-50', 'border-green-100', 'bg-red-50', 'border-red-100');
             box.classList.add(`bg-${color}-50`, `border-${color}-100`);
-            statusText.className = `text-xs font-bold ${color === 'green' ? 'text-green-600' : 'text-red-600'} uppercase tracking-widest`;
+            statusText.className = `text-[11px] font-bold ${color === 'green' ? 'text-green-600' : 'text-red-600'} tracking-wide`;
             statusText.id = 'upload-status-text';
             statusText.innerText = msg;
             bar.style.width = color === 'green' ? '100%' : '0%';
             percentText.innerText = '';
-            setTimeout(() => { box.classList.add('hidden'); box.classList.remove(`bg-${color}-50`, `border-${color}-100`); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.className = 'text-xs font-bold text-blue-600 uppercase tracking-widest'; statusText.id = 'upload-status-text'; }, 4000);
+            setTimeout(() => { box.classList.add('hidden'); box.classList.remove(`bg-${color}-50`, `border-${color}-100`); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.className = 'text-[11px] font-bold text-blue-600 tracking-wide'; statusText.id = 'upload-status-text'; }, 4000);
         }
 
         /* ═══ Admin KB AI Search (with sources) ═══ */
@@ -3197,7 +3287,7 @@ Step 3: Select NETS and enter terminal ID..."
             if (!query) return;
             const lang = document.getElementById('admin-kb-lang').value;
             const results = document.getElementById('admin-kb-results');
-            results.innerHTML = `<div class="flex items-center gap-3 p-4 bg-white rounded-xl border border-purple-100"><div class="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full"></div><span class="text-xs font-bold text-purple-600 uppercase tracking-widest">Searching knowledge base...</span></div>`;
+            results.innerHTML = `<div class="flex items-center gap-3 p-4 bg-white rounded-xl border border-purple-100"><div class="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full"></div><span class="text-[11px] font-bold text-purple-600 tracking-wide">Searching Knowledge Base...</span></div>`;
             try {
                 const res = await fetchWithAuth('/api/kb/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, language: lang }) });
                 const data = await res.json();
@@ -3213,12 +3303,12 @@ Step 3: Select NETS and enter terminal ID..."
                 results.innerHTML = `
                     <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
                         <div class="flex items-center gap-2 mb-3">
-                            <span class="text-[10px] font-black text-purple-600 uppercase tracking-widest">AI Answer</span>
-                            <span class="ml-auto px-2 py-0.5 rounded-full text-[9px] font-bold" style="background: ${confColor}15; color: ${confColor}; border: 1px solid ${confColor}30">${confLabel} (${Math.round(conf * 100)}%)</span>
+                            <span class="text-[11px] font-black text-purple-600 tracking-wide">AI Answer</span>
+                            <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold" style="background: ${confColor}15; color: ${confColor}; border: 1px solid ${confColor}30">${confLabel} (${Math.round(conf * 100)}%)</span>
                         </div>
                         <div class="text-sm text-gray-700 leading-relaxed mb-3 kb-admin-answer">${answer}</div>
                         <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
-                            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mr-2">Sources:</span>
+                            <span class="text-[10px] font-bold text-gray-400 tracking-wide mr-2">Sources:</span>
                             ${sources}
                         </div>
                         <div class="flex gap-2 mt-3">
@@ -3570,7 +3660,7 @@ Step 3: Select NETS and enter terminal ID..."
                 // Search
                 html += '<input type="text" id="cdt-search" placeholder="Search..." value="' + (this.searchQ ? this.searchQ.replace(/"/g, '&quot;') : '') + '" class="flex-1 min-w-[200px] px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">';
                 // Column toggle
-                html += '<div class="cdt-col-toggle"><button id="cdt-col-btn" class="px-4 py-2.5 text-xs font-bold uppercase tracking-wider border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-2"><i class="fas fa-columns"></i> Columns</button>';
+                html += '<div class="cdt-col-toggle"><button id="cdt-col-btn" class="px-4 py-2.5 text-xs font-bold tracking-wide border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-2"><i class="fas fa-columns"></i> Columns</button>';
                 html += '<div id="cdt-col-menu" class="cdt-col-menu">';
                 this.columns.forEach((col, i) => {
                     if (col.key === '_no' || col.key === '_actions') return;
@@ -3621,11 +3711,11 @@ Step 3: Select NETS and enter terminal ID..."
                             if (col.key === '_no') {
                                 html += `<td style="text-align:center;color:#94a3b8;font-family:monospace;">${globalIdx + 1}</td>`;
                             } else if (col.key === '_actions') {
-                                html += `<td style="text-align:right;"><button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase mr-3"><i class="fas fa-pen"></i></button><button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-xs font-bold uppercase"><i class="fas fa-trash"></i></button></td>`;
+                                html += `<td style="text-align:right;"><button onclick="editCustomer('${c.identifier}')" class="text-blue-500 hover:text-blue-700 text-[11px] font-bold mr-3"><i class="fas fa-pen"></i></button><button onclick="deleteCustomer('${c.identifier}')" class="text-red-400 hover:text-red-600 text-[11px] font-bold"><i class="fas fa-trash"></i></button></td>`;
                             } else if (col.key === 'accountId') {
                                 const v = col.getter(c, globalIdx);
                                 if (v) {
-                                    html += `<td><span class="px-2 py-1 text-[10px] font-bold font-mono uppercase rounded-lg bg-indigo-50 text-indigo-600">${v}</span></td>`;
+                                    html += `<td><span class="px-2 py-1 text-[11px] font-bold font-mono rounded-lg bg-indigo-50 text-indigo-600">${v}</span></td>`;
                                 } else {
                                     html += '<td style="color:#94a3b8;">--</td>';
                                 }
@@ -3633,7 +3723,7 @@ Step 3: Select NETS and enter terminal ID..."
                                 const v = col.getter(c, globalIdx);
                                 if (v) {
                                     const cls = v === 'FNB' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600';
-                                    html += `<td><span class="px-2 py-1 text-[10px] font-bold uppercase rounded-lg ${cls}">${v}</span></td>`;
+                                    html += `<td><span class="px-2 py-1 text-[11px] font-bold rounded-lg ${cls}">${v}</span></td>`;
                                 } else {
                                     html += '<td style="color:#94a3b8;">--</td>';
                                 }

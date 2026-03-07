@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edgeworks Support Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <script>
         tailwind.config = {
@@ -40,8 +40,11 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             margin: 0;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
         }
 
         /* ═══════════ THEME VARIABLES ═══════════ */
@@ -109,11 +112,6 @@
             --mesh-color-3: rgba(14, 165, 233, 0.02);
         }
 
-        body {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            transition: background-color 0.3s, color 0.3s;
-        }
 
         /* ═══════════ PARTICLE CANVAS ═══════════ */
         #particle-canvas {
@@ -975,7 +973,7 @@
                     <h1 class="text-lg font-bold tracking-tight" style="color: var(--text-primary)">
                         <span class="brand-gradient">Edgeworks</span>
                     </h1>
-                    <p class="text-[9px] font-semibold tracking-[0.15em]" style="color: var(--text-tertiary)">
+                    <p class="text-[11px] font-semibold tracking-tight text-blue-500/80">
                         Support Portal</p>
                 </div>
             </div>
@@ -1029,7 +1027,7 @@
 
             <!-- Theme Switcher -->
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-semibold tracking-wider" style="color: var(--text-tertiary)">Theme</span>
+                <span class="text-[11px] font-bold tracking-wide text-gray-400">Theme</span>
                 <div class="theme-switcher">
                     <button class="theme-btn" data-theme="light" onclick="setTheme('light')" title="Light">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -1114,7 +1112,7 @@
                 <span id="rec-timer" class="font-mono">00:00</span>
             </div>
             <button onclick="stopRecording()"
-                class="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl transition text-white font-bold text-xs uppercase tracking-widest">⏹
+                class="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl transition text-white font-bold text-xs tracking-wide">⏹
                 Stop</button>
         </div>
 
@@ -1182,7 +1180,7 @@
                             <div id="end-chat-menu"
                                 class="hidden absolute bottom-full right-0 mb-2 w-72 rounded-2xl shadow-xl p-2 z-50"
                                 style="background: var(--bg-secondary); border: 1px solid var(--border-color)">
-                                <p class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest"
+                                <p class="px-3 py-2 text-[11px] font-bold text-gray-400 tracking-wide"
                                     style="color: var(--text-tertiary)">End Conversation</p>
                                 <button onclick="doEndChat('close')"
                                     class="w-full text-left px-4 py-3 rounded-xl hover:bg-green-500/10 transition flex items-center gap-3">
@@ -1207,7 +1205,7 @@
                                 </button>
                                 <div class="mt-1 pt-1" style="border-top: 1px solid var(--border-color)">
                                     <button onclick="document.getElementById('end-chat-menu').classList.add('hidden')"
-                                        class="w-full text-center px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition"
+                                        class="w-full text-center px-4 py-2 text-[11px] font-bold tracking-wide transition"
                                         style="color: var(--text-tertiary)">Cancel</button>
                                 </div>
                             </div>
@@ -1232,7 +1230,8 @@
                 </div>
                 <div>
                     <h2 class="font-bold text-[15px]" style="color: var(--text-primary)">Support History</h2>
-                    <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">
+                    <p class="text-[11px] font-semibold text-gray-400 tracking-tight"
+                        style="color: var(--text-tertiary)">
                         All past interactions</p>
                 </div>
             </div>
@@ -1261,7 +1260,8 @@
                 </div>
                 <div>
                     <h2 class="font-bold text-[15px]" style="color: var(--text-primary)">Edgeworks Knowledge Base</h2>
-                    <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-tertiary)">
+                    <p class="text-[11px] font-semibold text-gray-400 tracking-tight"
+                        style="color: var(--text-tertiary)">
                         Edgeworks Self-Service • Ask anything about POS</p>
                 </div>
             </div>
@@ -1698,7 +1698,7 @@
             list.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-20">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-4"></div>
-                    <p class="font-semibold text-xs uppercase tracking-widest" style="color: var(--text-tertiary)">Loading History...</p>
+                    <p class="font-bold text-[11px] tracking-wide" style="color: var(--text-tertiary)">Loading History...</p>
                 </div>
             `;
 
@@ -1722,10 +1722,10 @@
                     <div onclick="loadSession('${s.session_id}', ${s.ticket_id}, '${s.summary.replace(/'/g, "\\'")}')"
                          class="history-card p-5 rounded-2xl cursor-pointer animate-fade-in-up" style="animation-delay: ${i * 50}ms">
                         <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg" style="background: rgba(46,107,255,0.08); color: #2e6bff">Ticket #${s.ticket_id}</span>
-                                <span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg ${s.status === 'open' ? 'bg-green-500/10 text-green-600' : ''}" style="${s.status !== 'open' ? 'background: var(--bg-tertiary); color: var(--text-tertiary)' : ''}">${s.status}</span>
-                                <span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg" style="background: rgba(139,92,246,0.08); color: #8b5cf6">${s.category || 'Support'}</span>
+                             <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-1 text-[11px] font-bold rounded-lg" style="background: rgba(46,107,255,0.08); color: #2e6bff">Ticket #${s.ticket_id}</span>
+                                <span class="px-2.5 py-1 text-[11px] font-bold rounded-lg ${s.status === 'open' ? 'bg-green-500/10 text-green-600' : ''}" style="${s.status !== 'open' ? 'background: var(--bg-tertiary); color: var(--text-tertiary)' : ''}">${s.status}</span>
+                                <span class="px-2.5 py-1 text-[11px] font-bold rounded-lg" style="background: rgba(139,92,246,0.08); color: #8b5cf6">${s.category || 'Support'}</span>
                             </div>
                             <span class="text-[11px] font-medium" style="color: var(--text-tertiary)">${new Date(s.timestamp).toLocaleDateString()}</span>
                         </div>
@@ -1735,7 +1735,7 @@
                                 <div class="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold" style="background: var(--bg-tertiary); color: var(--text-tertiary)">A</div>
                                 <span class="text-xs font-medium" style="color: var(--text-secondary)">${s.agent_name}</span>
                             </div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider" style="color: #2e6bff">View →</span>
+                            <span class="text-[11px] font-bold tracking-wide" style="color: #2e6bff">View →</span>
                         </div>
                     </div>
                 `).join('');
@@ -1749,7 +1749,7 @@
             history.pushState({ view: 'historydetail', ticketId, summary }, '', '/historydetail');
             chatbox.innerHTML = `
                 <div class="flex flex-col items-center justify-center py-10 animate-fade-in-up">
-                    <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase mb-3" style="background: rgba(46,107,255,0.08); color: #2e6bff; border: 1px solid rgba(46,107,255,0.15)">History Mode (Read Only)</span>
+                    <span class="px-3 py-1 rounded-full text-[11px] font-bold mb-3" style="background: rgba(46,107,255,0.08); color: #2e6bff; border: 1px solid rgba(46,107,255,0.15)">History Mode (Read Only)</span>
                     <h3 class="font-bold text-lg" style="color: var(--text-primary)">${summary}</h3>
                     <p class="text-xs" style="color: var(--text-tertiary)">Case #${ticketId}</p>
                 </div>
@@ -1817,7 +1817,7 @@
                     customerProfile = { name: data.customer_name };
                     localStorage.setItem('ews_customer_profile', JSON.stringify(customerProfile));
                     document.getElementById('user-name-display').innerText = data.customer_name;
-                    document.getElementById('user-initial').innerText = data.customer_name.charAt(0).toUpperCase();
+                    document.getElementById('user-initial').innerText = data.customer_name.charAt(0);
                     document.getElementById('user-role-display').innerText = 'Customer';
                 }
                 if (data.onboarding === true) {
@@ -1909,13 +1909,13 @@
             cleaned = cleaned.replace(/^([-•*])([A-Za-z])/gm, '$1 $2');
 
             const sections = [
-                'Prerequisites', 'Instructions', 'Step-by-step', 'Steps to', 
-                'Troubleshooting', 'Note', 'What is', 'Conclusion', 'Summary', 
+                'Prerequisites', 'Instructions', 'Step-by-step', 'Steps to',
+                'Troubleshooting', 'Note', 'What is', 'Conclusion', 'Summary',
                 'Post-Closing', 'Reconciliation', 'Warning', 'Tip', 'How to', 'Instructions for'
             ];
             const sectionRegex = new RegExp('([^\\n])\\s*(\\*?\\*?(?:' + sections.join('|') + '):?\\*?\\*?)', 'gi');
             cleaned = cleaned.replace(sectionRegex, '$1\n\n$2');
-            
+
             // Isolate numbered and bullet items
             cleaned = cleaned.replace(/([^\\n])\\s*(\d+\.\s+)/g, '$1\n\n$2');
             cleaned = cleaned.replace(/([^\\n])\\s+([-•*])\\s+(?!\*)/g, '$1\n\n$2');
@@ -1964,12 +1964,12 @@
             blocks.forEach(block => {
                 let raw = block.content;
                 let text = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                
+
                 // HIGHLIGHTING
                 // 1. Clues (Quoted text in red color)
                 text = text.replace(/("|&quot;)(.*?)("|&quot;)/g, '<span class="kb-clue">$1$2$3</span>');
                 text = text.replace(/(')(.*?)(')/g, '<span class="kb-clue">$1$2$3</span>');
-                
+
                 // 2. Bold (Brand blue)
                 text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-600">$1</strong>');
 
@@ -2480,7 +2480,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                     </svg>
                                 </div>
-                                <span class="text-[11px] font-bold uppercase tracking-wider" style="color: #10b981">AI Answer</span>
+                                <span class="text-[11px] font-bold tracking-wide" style="color: #10b981">AI Answer</span>
                                 <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold" style="background: ${confColor}15; color: ${confColor}; border: 1px solid ${confColor}30">
                                     ${confLabel} Confidence (${Math.round(conf * 100)}%)
                                 </span>

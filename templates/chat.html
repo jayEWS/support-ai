@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,93 +8,250 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
-        .chat-bubble-received { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px 12px 12px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .chat-bubble-sent { background: #2563eb; color: white; border-radius: 12px 12px 0 12px; box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
+        .chat-bubble-received {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px 12px 12px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .chat-bubble-sent {
+            background: #2563eb;
+            color: white;
+            border-radius: 12px 12px 0 12px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
 
         /* AI formatted message styles */
-        .chat-bubble-received .msg-text p { margin: 0 0 0.5em 0; }
-        .chat-bubble-received .msg-text p:last-child { margin-bottom: 0; }
-        .chat-bubble-received .msg-text strong { font-weight: 700; }
-        .chat-bubble-received .msg-text em { font-style: italic; }
+        .chat-bubble-received .msg-text p {
+            margin: 0 0 0.5em 0;
+        }
+
+        .chat-bubble-received .msg-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-bubble-received .msg-text strong {
+            font-weight: 700;
+        }
+
+        .chat-bubble-received .msg-text em {
+            font-style: italic;
+        }
+
         .chat-bubble-received .msg-text ul,
-        .chat-bubble-received .msg-text ol { margin: 0.4em 0 0.4em 1.4em; padding: 0; }
-        .chat-bubble-received .msg-text li { margin-bottom: 0.25em; }
-        .chat-bubble-received .msg-text hr { border: none; border-top: 1px solid #e5e7eb; margin: 0.75em 0; }
-        .chat-bubble-received .msg-text code { background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
-        .chat-bubble-received .msg-text pre { background: #f1f5f9; padding: 0.75em; border-radius: 0.5rem; overflow-x: auto; margin: 0.5em 0; }
-        .chat-bubble-received .msg-text pre code { background: none; padding: 0; }
+        .chat-bubble-received .msg-text ol {
+            margin: 0.4em 0 0.4em 1.4em;
+            padding: 0;
+        }
+
+        .chat-bubble-received .msg-text li {
+            margin-bottom: 0.25em;
+        }
+
+        .chat-bubble-received .msg-text hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 0.75em 0;
+        }
+
+        .chat-bubble-received .msg-text code {
+            background: #f1f5f9;
+            padding: 0.1em 0.35em;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .chat-bubble-received .msg-text pre {
+            background: #f1f5f9;
+            padding: 0.75em;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5em 0;
+        }
+
+        .chat-bubble-received .msg-text pre code {
+            background: none;
+            padding: 0;
+        }
+
         .chat-bubble-received .msg-text h1,
         .chat-bubble-received .msg-text h2,
-        .chat-bubble-received .msg-text h3 { font-weight: 700; margin: 0.6em 0 0.3em 0; }
-        .chat-bubble-received .msg-text h1 { font-size: 1.15em; }
-        .chat-bubble-received .msg-text h2 { font-size: 1.08em; }
-        .chat-bubble-received .msg-text h3 { font-size: 1.02em; }
-        .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        
-        .widget-closed { transform: translateY(100%) scale(0.8); opacity: 0; pointer-events: none; }
-        .widget-open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
-        
+        .chat-bubble-received .msg-text h3 {
+            font-weight: 700;
+            margin: 0.6em 0 0.3em 0;
+        }
+
+        .chat-bubble-received .msg-text h1 {
+            font-size: 1.15em;
+        }
+
+        .chat-bubble-received .msg-text h2 {
+            font-size: 1.08em;
+        }
+
+        .chat-bubble-received .msg-text h3 {
+            font-size: 1.02em;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+
+        .widget-closed {
+            transform: translateY(100%) scale(0.8);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .widget-open {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: all;
+        }
+
         /* Screen Recording */
-        .rec-btn { transition: all 0.2s; }
-        .rec-btn:hover { background: #fee2e2; }
-        .rec-btn.recording { background: #fecaca !important; animation: recPulse 1s ease-in-out infinite; }
-        @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
-        .rec-bar { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .video-bubble video { border-radius: 12px; max-width: 100%; cursor: pointer; }
-        .video-bubble video:hover { opacity: 0.9; }
-        .upload-progress { height: 3px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
-        .upload-progress-bar { height: 100%; background: #2563eb; transition: width 0.3s; }
+        .rec-btn {
+            transition: all 0.2s;
+        }
+
+        .rec-btn:hover {
+            background: #fee2e2;
+        }
+
+        .rec-btn.recording {
+            background: #fecaca !important;
+            animation: recPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes recPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .rec-bar {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .video-bubble video {
+            border-radius: 12px;
+            max-width: 100%;
+            cursor: pointer;
+        }
+
+        .video-bubble video:hover {
+            opacity: 0.9;
+        }
+
+        .upload-progress {
+            height: 3px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: #2563eb;
+            transition: width 0.3s;
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans h-screen overflow-hidden">
+
+<body class="bg-gray-100 font-['Plus_Jakarta_Sans',sans-serif] h-screen overflow-hidden">
 
     <!-- Background Decoration -->
     <div class="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 z-0"></div>
 
     <!-- Floating Chat Widget Button -->
-    <button id="widget-trigger" class="fixed bottom-6 right-6 w-16 h-16 bg-blue-600 rounded-full shadow-2xl flex items-center justify-center text-white text-2xl hover:scale-110 transition-all active:scale-95 z-50">
+    <button id="widget-trigger"
+        class="fixed bottom-6 right-6 w-16 h-16 bg-blue-600 rounded-full shadow-2xl flex items-center justify-center text-white text-2xl hover:scale-110 transition-all active:scale-95 z-50">
         <i class="fas fa-comment-dots" id="trigger-icon"></i>
     </button>
 
     <!-- Main Widget Container -->
-    <div id="chat-widget" class="fixed bottom-24 right-6 w-96 h-[600px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 widget-closed z-50 border border-gray-100">
-        
+    <div id="chat-widget"
+        class="fixed bottom-24 right-6 w-96 h-[600px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 widget-closed z-50 border border-gray-100">
+
         <!-- Header -->
         <header class="bg-blue-600 p-6 text-white shrink-0 relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <div class="flex items-center gap-4 relative z-10">
-                <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-bold backdrop-blur-md">S</div>
+                <div
+                    class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-bold backdrop-blur-md">
+                    S</div>
                 <div>
                     <h2 id="widget-title" class="font-bold text-lg">Support Assistant</h2>
-                    <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-blue-100">
+                    <div class="flex items-center gap-2 text-[11px] font-bold text-blue-100 tracking-wide">
                         <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                         We typically reply in minutes
                     </div>
                 </div>
             </div>
             <div class="absolute top-6 right-6 flex items-center gap-3">
-                <button id="end-chat-btn" onclick="showEndChatMenu()" class="text-white/60 hover:text-white transition hidden" title="End Chat"><i class="fas fa-power-off text-sm"></i></button>
-                <button onclick="toggleWidget()" class="text-white/60 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
+                <button id="end-chat-btn" onclick="showEndChatMenu()"
+                    class="text-white/60 hover:text-white transition hidden" title="End Chat"><i
+                        class="fas fa-power-off text-sm"></i></button>
+                <button onclick="toggleWidget()" class="text-white/60 hover:text-white transition"><i
+                        class="fas fa-times text-lg"></i></button>
             </div>
         </header>
 
         <!-- End Chat Dropdown Menu -->
-        <div id="end-chat-menu" class="hidden absolute top-20 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 w-72 fade-in">
-            <p class="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-widest">End Conversation</p>
-            <button onclick="endChat('close')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-green-50 transition flex items-center gap-3 group">
-                <span class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-check"></i></span>
-                <div><p class="text-sm font-bold text-gray-800">Resolved ✅</p><p class="text-[10px] text-gray-400">Issue solved, close chat</p></div>
+        <div id="end-chat-menu"
+            class="hidden absolute top-20 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 w-72 fade-in">
+            <p class="px-3 py-2 text-[11px] font-bold text-gray-400 tracking-wide">End Conversation</p>
+            <button onclick="endChat('close')"
+                class="w-full text-left px-4 py-3 rounded-xl hover:bg-green-50 transition flex items-center gap-3 group">
+                <span
+                    class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition"><i
+                        class="fas fa-check"></i></span>
+                <div>
+                    <p class="text-sm font-bold text-gray-800">Resolved ✅</p>
+                    <p class="text-[10px] text-gray-400">Issue solved, close chat</p>
+                </div>
             </button>
-            <button onclick="endChat('ticket_and_notify')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-50 transition flex items-center gap-3 group">
-                <span class="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-ticket-alt"></i></span>
-                <div><p class="text-sm font-bold text-gray-800">Create Ticket 📝</p><p class="text-[10px] text-gray-400">Need follow-up from our team</p></div>
+            <button onclick="endChat('ticket_and_notify')"
+                class="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-50 transition flex items-center gap-3 group">
+                <span
+                    class="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition"><i
+                        class="fas fa-ticket-alt"></i></span>
+                <div>
+                    <p class="text-sm font-bold text-gray-800">Create Ticket 📝</p>
+                    <p class="text-[10px] text-gray-400">Need follow-up from our team</p>
+                </div>
             </button>
             <div class="border-t border-gray-100 mt-1 pt-1">
-                <button onclick="hideEndChatMenu()" class="w-full text-center px-4 py-2 text-xs text-gray-400 hover:text-gray-600 font-bold uppercase tracking-widest">Cancel</button>
+                <button onclick="hideEndChatMenu()"
+                    class="w-full text-center px-4 py-2 text-xs text-gray-400 hover:text-gray-600 font-bold tracking-wide">Cancel</button>
             </div>
         </div>
 
@@ -113,43 +271,58 @@
 
         <!-- Input Area -->
         <!-- Recording Banner -->
-        <div id="rec-banner" class="hidden rec-bar px-4 py-2 flex items-center justify-between text-white text-xs font-bold">
+        <div id="rec-banner"
+            class="hidden rec-bar px-4 py-2 flex items-center justify-between text-white text-xs font-bold">
             <div class="flex items-center gap-2">
                 <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                 <span>Recording screen...</span>
                 <span id="rec-timer">00:00</span>
             </div>
-            <button onclick="stopRecording()" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg transition text-white font-bold text-xs">⏹ Stop</button>
+            <button onclick="stopRecording()"
+                class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg transition text-white font-bold text-xs">⏹
+                Stop</button>
         </div>
 
         <footer class="p-4 bg-white border-t border-gray-100">
-            <div class="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-2 transition-all focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
-                <textarea id="chat-input" rows="1" placeholder="Type a message..." class="flex-1 bg-transparent border-none outline-none p-2 text-sm resize-none max-h-32 min-h-[40px]"></textarea>
-                <button id="rec-btn" onclick="toggleRecording()" class="rec-btn w-10 h-10 bg-gray-100 text-red-500 rounded-xl flex items-center justify-center transition active:scale-90" title="Record Screen">
+            <div
+                class="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-2 transition-all focus-within:border-blue-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+                <textarea id="chat-input" rows="1" placeholder="Type a message..."
+                    class="flex-1 bg-transparent border-none outline-none p-2 text-sm resize-none max-h-32 min-h-[40px]"></textarea>
+                <button id="rec-btn" onclick="toggleRecording()"
+                    class="rec-btn w-10 h-10 bg-gray-100 text-red-500 rounded-xl flex items-center justify-center transition active:scale-90"
+                    title="Record Screen">
                     <i class="fas fa-video text-sm" id="rec-icon"></i>
                 </button>
-                <button id="send-btn" class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 active:scale-90">
+                <button id="send-btn"
+                    class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 active:scale-90">
                     <i class="fas fa-paper-plane text-sm"></i>
                 </button>
             </div>
-            <div class="mt-3 flex items-center justify-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <div class="mt-3 flex items-center justify-center gap-4 text-[11px] font-bold text-gray-400 tracking-wide">
                 <span>⚡ Powered by Support Edgeworks</span>
             </div>
         </footer>
     </div>
 
     <!-- Language Selection Overlay -->
-    <div id="lang-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+    <div id="lang-overlay"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
         <div class="bg-white w-80 rounded-3xl p-8 shadow-2xl text-center">
-            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
+            <div
+                class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
                 <i class="fas fa-globe"></i>
             </div>
             <h3 class="font-bold text-xl mb-2">Choose Language</h3>
             <p class="text-sm text-gray-500 mb-8">Select your preferred language to start chatting.</p>
             <div class="space-y-3">
-                <button onclick="selectLanguage('en')" class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">English</button>
-                <button onclick="selectLanguage('id')" class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Bahasa Indonesia</button>
-                <button onclick="selectLanguage('zh')" class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Mandarin (中文)</button>
+                <button onclick="selectLanguage('en')"
+                    class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">English</button>
+                <button onclick="selectLanguage('id')"
+                    class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Bahasa
+                    Indonesia</button>
+                <button onclick="selectLanguage('zh')"
+                    class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Mandarin
+                    (中文)</button>
             </div>
         </div>
     </div>
@@ -158,7 +331,7 @@
         const API_URL = window.location.origin;
         let userId = localStorage.getItem('support_portal_user_id') || `cust_${Math.random().toString(36).substr(2, 9)}`;
         localStorage.setItem('support_portal_user_id', userId);
-        
+
         let selectedLang = localStorage.getItem('support_portal_lang');
         let isWidgetOpen = false;
         let isFirstTime = true;
@@ -176,7 +349,7 @@
             const widget = document.getElementById('chat-widget');
             const icon = document.getElementById('trigger-icon');
             isWidgetOpen = !isWidgetOpen;
-            
+
             widget.classList.toggle('widget-open', isWidgetOpen);
             widget.classList.toggle('widget-closed', !isWidgetOpen);
             icon.className = isWidgetOpen ? 'fas fa-chevron-down' : 'fas fa-comment-dots';
@@ -208,7 +381,7 @@
         async function startSession() {
             applyI18n();
             addMessageUI('received', i18n[selectedLang].welcome);
-            
+
             // Fetch bot history
             const hRes = await fetch(`${API_URL}/api/history?user_id=${userId}`);
             const hData = await hRes.json();
@@ -221,7 +394,7 @@
         /* ── Markdown-light formatter for AI messages ── */
         function formatMessage(raw) {
             if (!raw) return '';
-            let t = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            let t = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             t = t.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`);
             t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
             t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -309,7 +482,7 @@
             activeSessionId = sessionId;
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${protocol}//${window.location.host}/ws/chat/${sessionId}?user_id=${userId}&user_type=customer`);
-            
+
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.event === 'message') {
@@ -340,7 +513,7 @@
             }
 
             document.getElementById('typing-indicator').classList.remove('hidden');
-            
+
             try {
                 const res = await fetch(`${API_URL}/api/chat`, {
                     method: 'POST',
@@ -349,12 +522,12 @@
                 });
                 const data = await res.json();
                 document.getElementById('typing-indicator').classList.add('hidden');
-                
+
                 // If AI suggests opening a live session or it's a specific trigger
                 if (data.answer.includes("Live Session Started") || activeSessionId) {
                     // This logic would be triggered by rag_engine or session creation
                 }
-                
+
                 addMessageUI('received', data.answer, data.chunk_ids || []);
                 if (!chatStarted) showEndChatBtn();
             } catch (err) {
@@ -371,7 +544,7 @@
                 sendMessage();
             }
         };
-        document.getElementById('chat-input').oninput = function() {
+        document.getElementById('chat-input').oninput = function () {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         };
@@ -489,8 +662,8 @@
                 });
 
                 recordedChunks = [];
-                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
-                    ? 'video/webm;codecs=vp9' 
+                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                    ? 'video/webm;codecs=vp9'
                     : 'video/webm';
                 mediaRecorder = new MediaRecorder(mediaStream, { mimeType, videoBitsPerSecond: 1000000 });
 
@@ -653,4 +826,5 @@
         }
     </script>
 </body>
+
 </html>
