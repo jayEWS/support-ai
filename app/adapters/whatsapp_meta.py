@@ -1,6 +1,6 @@
 """
 WhatsApp Cloud API (Meta) Adapter
-Replaces Bird/MessageBird integration with direct Meta WhatsApp Business API.
+Direct Meta WhatsApp Business API connection.
 
 Docs: https://developers.facebook.com/docs/whatsapp/cloud-api/
 """
