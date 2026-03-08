@@ -7,9 +7,12 @@ Extracted from main.py. High throughput, rate-limited.
 
 import json
 import re
+import hashlib
 from typing import Annotated, Optional
 from fastapi import APIRouter, Request, Depends, HTTPException, Response, Form, UploadFile, File
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from app.core.database import db_manager
 from app.core.auth_deps import decode_access_token
 from app.core.config import settings
@@ -17,9 +20,28 @@ from app.core.logging import logger
 
 router = APIRouter(prefix="/api/portal", tags=["Portal"])
 
+# --- Security: Rate limiter for public endpoints ---
+limiter = Limiter(key_func=get_remote_address)
+
 # --- Security: AI Semaphore to prevent LLM quota exhaustion ---
 import asyncio
 AI_SEMAPHORE = asyncio.Semaphore(10) # Max 10 concurrent AI queries
+
+# --- Security: Max query length to prevent prompt injection / abuse ---
+MAX_PORTAL_QUERY_LENGTH = 500
+
+# --- Security: IP-to-user binding for lightweight IDOR prevention ---
+_user_ip_map: dict[str, str] = {}  # user_id -> hashed IP
+
+def _bind_user_ip(user_id: str, request: Request):
+    """Bind a user_id to the first IP that uses it, preventing IDOR enumeration."""
+    client_ip = get_remote_address(request) or "unknown"
+    ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
+    if user_id not in _user_ip_map:
+        _user_ip_map[user_id] = ip_hash
+    elif _user_ip_map[user_id] != ip_hash:
+        logger.warning(f"[SECURITY] IDOR attempt: user_id={user_id} accessed from different IP")
+        raise HTTPException(status_code=403, detail="Session mismatch. Please start a new chat.")
 
 def _require_rag(request: Request):
     rag = getattr(request.app.state, 'rag_service', None)
@@ -28,6 +50,7 @@ def _require_rag(request: Request):
     return rag
 
 @router.post("/kb/query")
+@limiter.limit("20/minute")
 async def portal_kb_query(request: Request):
     """Knowledge base query with RAG. Agent sources removed for portal users."""
     try:
@@ -77,6 +100,7 @@ async def portal_kb_query(request: Request):
         return JSONResponse({"error": "Failed to query knowledge"}, status_code=500)
 
 @router.post("/chat")
+@limiter.limit("10/minute")
 async def portal_chat(
     request: Request,
     message: Optional[str] = Form(None),
@@ -99,22 +123,29 @@ async def portal_chat(
     return Response(content=safe_json, status_code=status_code, media_type="application/json")
 
 @router.get("/history")
+@limiter.limit("30/minute")
 async def get_chat_history(request: Request, user_id: str = "web_portal_user", ticket_id: Optional[int] = None):
-    """Retrieve chat history for a portal user. IDOR protected by user_id format validation."""
+    """Retrieve chat history for a portal user. IDOR protected by IP binding."""
     if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
         raise HTTPException(status_code=400, detail="Invalid user_id format")
     
+    # Security: Bind user_id to the IP that first used it
+    _bind_user_ip(user_id, request)
+    
     db = db_manager
     if ticket_id:
-        # P1 Fix: history for a specific ticket (verify user_id owns ticket elsewhere or scope by user_id)
         return {"history": db.get_unified_history(user_id, ticket_id)}
     return {"history": db.get_messages(user_id)}
 
 @router.get("/history/sessions")
-async def get_history_sessions(user_id: str = "web_portal_user"):
+@limiter.limit("30/minute")
+async def get_history_sessions(request: Request, user_id: str = "web_portal_user"):
     """Return ticket-based sessions for user's history view."""
     if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
         raise HTTPException(status_code=400, detail="Invalid user_id format")
+    
+    # Security: Bind user_id to the IP that first used it
+    _bind_user_ip(user_id, request)
     
     db = db_manager
     tickets = db.get_tickets_by_user(user_id, limit=50)

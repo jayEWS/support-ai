@@ -108,10 +108,23 @@ async def websocket_chat_endpoint(
 
 @router.websocket("/portal/{user_id}")
 async def portal_websocket(websocket: WebSocket, user_id: str):
-    """Real-time push channel for portal users. Validates origins to prevent CSWH."""
+    """Real-time push channel for portal users. Validates origins and optional auth."""
     if not _validate_origin(websocket):
          await websocket.close(code=4003)
          return
+    
+    # Security: Validate user_id format to prevent abuse
+    import re
+    if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
+        await websocket.close(code=4003)
+        return
+    
+    # Security: Rate limit — max 5 WebSocket connections per user_id
+    existing = portal_manager.connections.get(user_id, set())
+    if len(existing) >= 5:
+        logger.warning(f"[SECURITY] WebSocket flood: {user_id} already has {len(existing)} connections")
+        await websocket.close(code=4008)
+        return
          
     await portal_manager.connect_user(user_id, websocket)
     heartbeat_task = None

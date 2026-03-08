@@ -19,10 +19,4 @@ services:
       gunicorn -w 3 -k uvicorn.workers.UvicornWorker main:app 
       --bind 0.0.0.0:8000 --timeout 120 --preload --graceful-timeout 30
 
-  # Free Secure Tunnel (Ganti Ngrok)
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    restart: always
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-    command: tunnel --no-autoupdate run
+  # Cloudflare Tunnel dihapus - sekarang menggunakan DuckDNS + Caddy untuk HTTPS
