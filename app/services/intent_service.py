@@ -1,17 +1,11 @@
 import json
 from app.schemas.schemas import IntentClassification, IntentType
 from app.core.config import settings
-from langchain_openai import ChatOpenAI
 from app.core.logging import logger, LogLatency
 
 class IntentService:
-    def __init__(self):
-        self.llm = ChatOpenAI(
-            model_name=settings.MODEL_NAME,
-            temperature=0,
-            openai_api_key=settings.OPENAI_API_KEY,
-            openai_api_base=settings.AI_BASE_URL
-        )
+    def __init__(self, llm_service=None):
+        self.llm_service = llm_service
 
     async def classify(self, text: str) -> IntentClassification:
         with LogLatency("intent_service", "classify"):
@@ -30,9 +24,20 @@ class IntentService:
             """
             
             try:
-                res = await self.llm.ainvoke(prompt)
-                data = json.loads(res.content.replace('```json','').replace('```','').strip())
-                return IntentClassification(**data)
+                if self.llm_service and self.llm_service.llm:
+                    res = await self.llm_service.llm.ainvoke(prompt)
+                    # Clean up JSON if LLM adds markdown
+                    content = res.content.strip()
+                    if content.startswith("```"):
+                        content = content.split("```")[1]
+                        if content.startswith("json"):
+                            content = content[4:].strip()
+                    
+                    data = json.loads(content)
+                    return IntentClassification(**data)
+                else:
+                    logger.warning("LLMService not available for IntentService, using fallback")
+                    return IntentClassification(intent=IntentType.SIMPLE, confidence=0.5, reason="LLM unavailable")
             except Exception as e:
                 logger.error(f"Intent classification failed: {e}")
                 return IntentClassification(intent=IntentType.SIMPLE, confidence=0.5, reason="Fallback due to error")

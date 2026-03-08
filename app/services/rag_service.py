@@ -3,7 +3,7 @@ import asyncio
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS, PGVector
 from app.core.config import settings
 from app.core.logging import logger, LogLatency
 from app.schemas.schemas import RAGResponse
@@ -21,8 +21,13 @@ class RAGService:
         
         # Initialize AdvancedRetriever
         documents = []
-        if self.vector_store and hasattr(self.vector_store, 'docstore'):
-             documents = list(self.vector_store.docstore._dict.values())
+        if self.vector_store:
+            if hasattr(self.vector_store, 'docstore'):
+                # FAISS path
+                documents = list(self.vector_store.docstore._dict.values())
+            else:
+                # PGVector path (documents are managed in DB)
+                documents = []
         
         self.retriever = AdvancedRetriever(
             vector_store=self.vector_store,
@@ -31,7 +36,7 @@ class RAGService:
         )
         
         self.langfuse_enabled = os.getenv("LANGFUSE_PUBLIC_KEY") is not None
-        logger.info("[RAGService] Initialized successfully")
+        logger.info(f"[RAGService] Initialized with {type(self.vector_store).__name__}")
 
     @staticmethod
     def _sanitize_text(text: str) -> str:
@@ -43,26 +48,73 @@ class RAGService:
             if settings.EMBEDDINGS_TYPE == "vertex":
                 from langchain_google_vertexai import VertexAIEmbeddings
                 return VertexAIEmbeddings(model_name="text-embedding-005", project=settings.GCP_PROJECT_ID)
-            if settings.EMBEDDINGS_TYPE == "openai":
+            if settings.EMBEDDINGS_TYPE == "openai" and settings.OPENAI_API_KEY:
                 return OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
-            from langchain_huggingface import HuggingFaceEmbeddings
-            return HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL_NAME)
+            
+            try:
+                from langchain_huggingface import HuggingFaceEmbeddings
+                return HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL_NAME)
+            except ImportError:
+                # Fallback to community version if new one not found
+                from langchain_community.embeddings import HuggingFaceEmbeddings
+                return HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL_NAME)
         except Exception as e:
             logger.error(f"Embedding init failed: {e}")
             return None
 
     def _load_vector_store(self):
-        if os.path.exists(settings.DB_DIR) and self.embeddings:
+        """
+        Load vector store based on database configuration.
+        If using PostgreSQL, use PGVector (centralized).
+        Otherwise, fall back to local FAISS index.
+        """
+        if not self.embeddings:
+            logger.warning("Embeddings not initialized, cannot load vector store.")
+            return None
+
+        # Check for PostgreSQL (centralized vector store)
+        db_url = settings.DATABASE_URL
+        if db_url.startswith("postgresql"):
             try:
-                return FAISS.load_local(settings.DB_DIR, self.embeddings, allow_dangerous_deserialization=True)
+                # Convert async/sync driver if necessary for PGVector
+                connection_string = db_url.replace("postgresql+asyncpg://", "postgresql://")
+                
+                logger.info("[VectorStore] Connecting to PGVector (Centralized)...")
+                store = PGVector(
+                    connection_string=connection_string,
+                    embedding_function=self.embeddings,
+                    collection_name="support_kb_v1",
+                    use_jsonb=True
+                )
+                return store
+            except Exception as e:
+                logger.error(f"PGVector connection failed: {e}. Falling back to FAISS.")
+
+        # Fallback to Local FAISS
+        if os.path.exists(settings.DB_DIR):
+            try:
+                index_path = os.path.join(settings.DB_DIR, "index.faiss")
+                if os.path.exists(index_path):
+                    return FAISS.load_local(settings.DB_DIR, self.embeddings, allow_dangerous_deserialization=True)
+                else:
+                    logger.warning(f"FAISS index not found at {index_path}. Starting with empty vector store.")
             except Exception as e:
                 logger.error(f"FAISS load error: {e}")
+        
         return None
 
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=4), reraise=True)
     async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en') -> RAGResponse:
         logger.info(f"RAG Query: {text[:50]}")
         try:
+            # 0. Empty/Media Message Check
+            if not text or text.strip() == "" or text.startswith("["):
+                # If it's just media like "[Image Received]", don't try to query RAG
+                ans = "I received your file/media. How can I help you with it?"
+                if language == 'id': ans = "Saya telah menerima file/media Anda. Ada yang bisa saya bantu terkait hal tersebut?"
+                elif language == 'zh': ans = "我收到了您的文件/媒体。有什么我可以帮您的吗？"
+                return RAGResponse(answer=ans, confidence=1.0, source_documents=[], retrieval_method="media_bypass")
+
             # 1. Greeting Check
             if self._is_greeting(text):
                 logger.info("Greeting detected")
@@ -79,13 +131,21 @@ class RAGService:
             context = retrieval_result.context_text
             confidence = retrieval_result.confidence
             
-            # 4. LLM
-            llm = self._get_llm()
+            # 4. LLM using centralized LLMService (Much faster)
+            from main import app
+            llm_svc = getattr(app.state, 'llm_service', None)
+            
             prompt = f"Context: {context}\n\nQuestion: {text}\n\nAnswer concisely in {language}:"
             
-            # Use wait_for to prevent infinite hang
-            res = await asyncio.wait_for(asyncio.to_thread(llm.invoke, prompt), timeout=15.0)
-            answer = self._sanitize_text(res.content)
+            if llm_svc:
+                # Use centralized instance which is already warmed up
+                res = await asyncio.wait_for(llm_svc.llm.ainvoke(prompt), timeout=15.0)
+                answer = self._sanitize_text(res.content)
+            else:
+                # Fallback if app state not ready
+                llm = self._get_llm()
+                res = await asyncio.wait_for(asyncio.to_thread(llm.invoke, prompt), timeout=15.0)
+                answer = self._sanitize_text(res.content)
             
             result = RAGResponse(
                 answer=answer, confidence=confidence, 

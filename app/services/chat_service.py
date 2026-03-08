@@ -201,6 +201,63 @@ class ChatService:
             return response_data, 200
 
     async def close_chat(self, user_id: str, option: str = "close") -> dict:
-        """Standard close chat logic (as seen in previous read)"""
-        # (Keeping the robust close_chat logic from previous version)
-        return {"status": "closed", "message": "Chat closed successfully"}
+        """
+        Close a portal chat session.
+        Options:
+          - "close": Resolved. Clear messages without creating a ticket.
+          - "ticket": Create a ticket and keep history there.
+          - "ticket_and_notify": Create a ticket and send notification.
+        """
+        try:
+            # 1. Get history for ticket creation if needed
+            # Support both Portal (Message) and WhatsApp (WhatsAppMessage) history
+            history_objs = db_manager.get_messages(user_id)
+            wa_history = db_manager.get_whatsapp_messages(user_id, per_page=100)
+            
+            transcript_parts = []
+            if history_objs:
+                transcript_parts.append("--- PORTAL HISTORY ---")
+                transcript_parts.append("\n".join([f"[{m['role'].upper()}] {m['content']}" for m in history_objs]))
+            
+            if wa_history.get("messages"):
+                transcript_parts.append("--- WHATSAPP HISTORY ---")
+                transcript_parts.append("\n".join([f"[{m['direction'].upper()}] {m['content']}" for m in wa_history["messages"]]))
+
+            transcript = "\n\n".join(transcript_parts)
+
+            # 2. Handle options
+            ticket_id = None
+            if option in ("ticket", "ticket_and_notify", 1, "1"):
+                from app.services.ticket_service import TicketService
+                # Create a summary from the last message
+                summary_source = history_objs if history_objs else wa_history.get("messages", [])
+                last_msg_content = "Chat Session"
+                if summary_source:
+                    last_msg = summary_source[-1]
+                    last_msg_content = last_msg.get('content', 'Chat Session') if isinstance(last_msg, dict) else getattr(last_msg, 'content', 'Chat Session')
+                
+                summary = f"[Support] {str(last_msg_content)[:100]}"
+                
+                ticket_res = await TicketService.create_ticket(user_id, summary, transcript)
+                ticket_id = ticket_res.id
+                
+                # Link WA messages to ticket if they exist
+                if wa_history.get("messages"):
+                    db_manager.link_whatsapp_messages_to_ticket(user_id, ticket_id)
+
+            # 3. ALWAYS Clear portal messages after closing
+            db_manager.clear_messages(user_id)
+            
+            # 4. Reset user state to idle
+            db_manager.create_or_update_user(user_id, state='idle')
+
+            return {
+                "status": "closed",
+                "option": option,
+                "ticket_id": ticket_id,
+                "ticket_created": bool(ticket_id),
+                "message": "Chat session ended successfully"
+            }
+        except Exception as e:
+            logger.error(f"Error closing chat for {user_id}: {e}")
+            return {"status": "error", "message": str(e)}

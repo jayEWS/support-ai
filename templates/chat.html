@@ -262,10 +262,16 @@
 
         <!-- Typing Indicator -->
         <div id="typing-indicator" class="px-6 py-2 hidden">
-            <div class="bg-white border border-gray-100 rounded-full px-4 py-2 w-fit shadow-sm flex gap-1">
-                <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce"></span>
-                <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce delay-100"></span>
-                <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce delay-200"></span>
+            <div class="flex flex-col gap-1">
+                <div class="bg-white border border-gray-100 rounded-2xl px-4 py-3 w-fit shadow-sm flex items-center gap-3">
+                    <div class="flex gap-1">
+                        <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></span>
+                        <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce delay-100"></span>
+                        <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce delay-200"></span>
+                    </div>
+                    <span id="typing-status" class="text-xs font-bold text-gray-500 tracking-wide">Searching knowledge base...</span>
+                    <span id="typing-timer" class="text-[10px] font-mono bg-gray-100 px-2 py-0.5 rounded-full text-blue-600">0.0s</span>
+                </div>
             </div>
         </div>
 
@@ -512,7 +518,23 @@
                 return;
             }
 
-            document.getElementById('typing-indicator').classList.remove('hidden');
+            // --- Show Typing Indicator with Timer ---
+            const indicator = document.getElementById('typing-indicator');
+            const statusLabel = document.getElementById('typing-status');
+            const timerLabel = document.getElementById('typing-timer');
+            
+            indicator.classList.remove('hidden');
+            statusLabel.innerText = "Searching knowledge base...";
+            
+            let startTime = Date.now();
+            let timerInterval = setInterval(() => {
+                let elapsed = (Date.now() - startTime) / 1000;
+                timerLabel.innerText = elapsed.toFixed(1) + 's';
+                
+                // Dynamic Status based on time
+                if (elapsed > 3.0 && elapsed < 7.0) statusLabel.innerText = "Analyzing documents...";
+                if (elapsed > 7.0) statusLabel.innerText = "Generating answer...";
+            }, 100);
 
             try {
                 const res = await fetch(`${API_URL}/api/chat`, {
@@ -521,17 +543,17 @@
                     body: JSON.stringify({ message: text, user_id: userId, language: selectedLang })
                 });
                 const data = await res.json();
-                document.getElementById('typing-indicator').classList.add('hidden');
-
-                // If AI suggests opening a live session or it's a specific trigger
-                if (data.answer.includes("Live Session Started") || activeSessionId) {
-                    // This logic would be triggered by rag_engine or session creation
-                }
+                
+                // Stop timer
+                clearInterval(timerInterval);
+                indicator.classList.add('hidden');
 
                 addMessageUI('received', data.answer, data.chunk_ids || []);
                 if (!chatStarted) showEndChatBtn();
             } catch (err) {
-                document.getElementById('typing-indicator').classList.add('hidden');
+                clearInterval(timerInterval);
+                indicator.classList.add('hidden');
+                addMessageUI('received', '⚠️ Sorry, something went wrong. Please try again.');
             }
         }
 

@@ -34,10 +34,8 @@ from app.schemas.schemas import WhatsAppMessage, WhatsAppAttachment
 from app.core.config import settings
 from app.core.logging import logger
 
-# Simple in-memory cache for idempotency (In prod, use Redis)
-PROCESSED_MESSAGES = set()
-MAX_CACHE_SIZE = 5000
-
+from app.core.database import db_manager
+from app.models.models import WhatsAppMessage as DBWhatsAppMessage
 
 class WhatsAppWebhookService:
     @staticmethod
@@ -98,17 +96,16 @@ class WhatsAppWebhookService:
 
             message_id = msg.get("id", "")
 
-            # --- Idempotency Check ---
-            if message_id and message_id in PROCESSED_MESSAGES:
-                logger.warning(f"Duplicate message: {message_id}")
-                raise HTTPException(status_code=200, detail="Duplicate")
-
+            # --- P0 Fix: Scalable Idempotency Check (DB Backed) ---
             if message_id:
-                PROCESSED_MESSAGES.add(message_id)
-                if len(PROCESSED_MESSAGES) > MAX_CACHE_SIZE:
-                    to_remove = list(PROCESSED_MESSAGES)[:MAX_CACHE_SIZE // 5]
-                    for item in to_remove:
-                        PROCESSED_MESSAGES.discard(item)
+                session = db_manager.get_session()
+                try:
+                    exists = session.query(DBWhatsAppMessage.id).filter_by(external_message_id=message_id).first()
+                    if exists:
+                        logger.warning(f"Duplicate message detected via DB: {message_id}")
+                        raise HTTPException(status_code=200, detail="Duplicate")
+                finally:
+                    db_manager.Session.remove()
 
             # --- Extract message content ---
             msg_type = msg.get("type", "text")

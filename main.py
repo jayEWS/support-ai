@@ -1,4 +1,5 @@
-import os
+import os # Forces reload
+
 import re
 import json
 import uuid
@@ -167,9 +168,16 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # Initialize Services with error handling
+    # Initialize Core LLM Service FIRST
     try:
-        app.state.intent_service = IntentService()
+        app.state.llm_service = LLMService()
+    except Exception as e:
+        logger.error(f"Failed to init LLMService: {e}")
+        app.state.llm_service = None
+
+    # Initialize Intent Service with the LLM Service
+    try:
+        app.state.intent_service = IntentService(llm_service=app.state.llm_service)
     except Exception as e:
         logger.error(f"Failed to init IntentService: {e}")
         app.state.intent_service = None
@@ -187,12 +195,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         logger.error(f"Failed to init RAGServiceV2: {e}")
         app.state.rag_service_v2 = None
-    
-    try:
-        app.state.llm_service = LLMService()
-    except Exception as e:
-        logger.error(f"Failed to init LLMService: {e}")
-        app.state.llm_service = None
     
     try:
         app.state.customer_service = CustomerService()
@@ -266,7 +268,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         asyncio.create_task(sla_service.monitor_breaches())
         asyncio.create_task(routing_service.process_queue())
-        logger.info("🔥 Autonomous SLA and Routing workers activated.")
+        
+        # P1 Fix: Daily Token Cleanup to prevent DB bloat
+        async def periodic_db_cleanup():
+            while True:
+                await asyncio.sleep(86400) # Every 24 hours
+                if db_manager:
+                    logger.info("Running periodic database cleanup...")
+                    db_manager._cleanup_expired_tokens()
+        
+        asyncio.create_task(periodic_db_cleanup())
+        
+        logger.info("🔥 Autonomous SLA, Routing, and Cleanup workers activated.")
     except Exception as e:
         logger.error(f"Failed to start background workers: {e}")
     
@@ -330,6 +343,11 @@ async def portal_dashboard(request: Request):
 @app.get("/chat", response_class=HTMLResponse)
 async def live_chat_demo(request: Request):
     return templates.TemplateResponse(request, "chat.html")
+
+@app.get("/whatsapp-demo", response_class=HTMLResponse)
+async def whatsapp_interactive_demo(request: Request):
+    """Public interactive WhatsApp simulation mockup."""
+    return templates.TemplateResponse(request, "wa_demo.html")
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -843,12 +861,16 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     # Save inbound message to DB
     db = _require_db() if db_manager else None
     if db:
-        db.save_whatsapp_message(
+        msg_id = db.save_whatsapp_message(
             phone_number=message.sender,
             direction="inbound",
             content=message.text,
             external_message_id=message.message_id
         )
+        if msg_id is None and message.message_id:
+            # save_whatsapp_message returns None on IntegrityError (duplicate)
+            logger.warning(f"Duplicate message detected at save time: {message.message_id}")
+            return {"status": "duplicate", "message_id": message.message_id}
 
     customer = await app.state.customer_service.get_or_register_customer(message.sender)
     

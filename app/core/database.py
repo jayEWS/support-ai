@@ -36,6 +36,18 @@ class DatabaseManager:
         logger.info(f"Initializing {db_label} database engine...")
 
         self.engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
+        
+        # P1 Fix: Enable WAL Mode for SQLite concurrency
+        if IS_SQLITE:
+            from sqlalchemy import event
+            @event.listens_for(self.engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+                cursor.close()
+            logger.info("SQLite WAL Mode enabled for high concurrency.")
+
         self.session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(self.session_factory)
         self._init_db()
@@ -1397,13 +1409,14 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-    def execute_safe_query(self, table_name: str, filters: dict = None, limit: int = 10):
+    def execute_safe_query(self, table_name: str, filters: dict = None, limit: int = 10, tenant_id: str = None):
         """
         Executes a safe, read-only query on whitelisted tables for AI Tools.
         Args:
             table_name: Table name (tickets, users, etc)
             filters: Dictionary of equality filters {column: value}
             limit: Max rows to return
+            tenant_id: Mandatory tenant isolation filter
         """
         session = self.get_session()
         try:
@@ -1427,6 +1440,14 @@ class DatabaseManager:
             
             model = allowed_tables[table_name]
             query = session.query(model)
+            
+            # P0 Fix: Enforce Tenant Isolation
+            if hasattr(model, "tenant_id"):
+                if not tenant_id:
+                    # In multi-tenant mode, tenant_id is mandatory. 
+                    # If missing, we return nothing rather than everything.
+                    return []
+                query = query.filter(model.tenant_id == tenant_id)
             
             if filters:
                 for col, val in filters.items():

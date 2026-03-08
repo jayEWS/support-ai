@@ -339,39 +339,53 @@ class AdvancedRetriever:
         k_boost = _intent_k_boost.get(intent, 0)
         k_eff = k_per_method + k_boost
 
-        # ── Stage 1: Multi-Query Retrieval ──────────────────────────
-
-        # 1a. BM25 on original query (keyword precision)
-        bm25_results = self._bm25_search(original_query, k=k_eff)
-        self._merge_candidates(all_candidates, bm25_results, "bm25_original", weight=0.35)
-        if bm25_results:
-            methods_used.append("bm25_original")
-
-        # 1b. Vector search on original query (semantic understanding)
-        vector_results = await self._vector_search(original_query, k=k_eff)
-        self._merge_candidates(all_candidates, vector_results, "vector_original", weight=0.40)
-        if vector_results:
-            methods_used.append("vector_original")
-
-        # 1c. Vector search on expanded query (recall boost)
+        # ── Stage 1: Multi-Query Retrieval (Parallelized) ──────────────────────────
+        
+        # Run BM25 and Vector search in parallel to save time
+        tasks = []
+        tasks.append(asyncio.to_thread(self._bm25_search, original_query, k=k_eff))
+        tasks.append(self._vector_search(original_query, k=k_eff))
+        
         if expanded_query and expanded_query != original_query:
-            expanded_results = await self._vector_search(expanded_query, k=k_eff // 2)
-            self._merge_candidates(all_candidates, expanded_results, "vector_expanded", weight=0.15)
-            if expanded_results:
-                methods_used.append("vector_expanded")
-
-            # 1c-ii. BM25 on expanded query too (was missing — keyword recall gap)
-            bm25_exp = self._bm25_search(expanded_query, k=k_eff // 2)
-            self._merge_candidates(all_candidates, bm25_exp, "bm25_expanded", weight=0.10)
-            if bm25_exp:
-                methods_used.append("bm25_expanded")
-
-        # 1d. HyDE retrieval (hypothetical document embedding)
+            tasks.append(self._vector_search(expanded_query, k=k_eff // 2))
+            tasks.append(asyncio.to_thread(self._bm25_search, expanded_query, k=k_eff // 2))
+        
         if hyde_passage:
-            hyde_results = await self._vector_search(hyde_passage, k=k_eff // 2)
+            tasks.append(self._vector_search(hyde_passage, k=k_eff // 2))
+            
+        results = await asyncio.gather(*tasks)
+        
+        # Merge results from all parallel tasks
+        result_idx = 0
+        
+        bm25_results = results[result_idx]
+        self._merge_candidates(all_candidates, bm25_results, "bm25_original", weight=0.35)
+        if bm25_results: methods_used.append("bm25_original")
+        result_idx += 1
+        
+        vector_results = results[result_idx]
+        self._merge_candidates(all_candidates, vector_results, "vector_original", weight=0.40)
+        if vector_results: methods_used.append("vector_original")
+        result_idx += 1
+        
+        if expanded_query and expanded_query != original_query:
+            expanded_results = results[result_idx]
+            self._merge_candidates(all_candidates, expanded_results, "vector_expanded", weight=0.15)
+            if expanded_results: methods_used.append("vector_expanded")
+            result_idx += 1
+            
+            bm25_exp = results[result_idx]
+            self._merge_candidates(all_candidates, bm25_exp, "bm25_expanded", weight=0.10)
+            if bm25_exp: methods_used.append("bm25_expanded")
+            result_idx += 1
+            
+        if hyde_passage:
+            hyde_results = results[result_idx]
             self._merge_candidates(all_candidates, hyde_results, "hyde", weight=0.25)
-            if hyde_results:
-                methods_used.append("hyde")
+            if hyde_results: methods_used.append("hyde")
+            result_idx += 1
+
+        total_candidates = len(all_candidates)
 
         # 1e. Sub-query retrieval (for complex multi-part queries)
         if sub_queries and len(sub_queries) > 1:
@@ -648,32 +662,37 @@ class AdvancedRetriever:
 
     async def _rerank(self, query: str, chunks: List[RetrievedChunk], k: int = 10) -> List[RetrievedChunk]:
         """
-        Real cross-encoder reranking using sentence-transformers
-        (ms-marco-MiniLM-L-6-v2) with RFF relevance feedback boost.
-        Falls back to n-gram heuristic if model is unavailable.
+        Optional cross-encoder reranking. 
+        Controlled by ENABLE_CROSS_ENCODER environment variable.
+        If disabled, uses original RRF scores which is MUCH faster.
         """
         if not chunks:
             return []
 
-        # ── Step 1: Cross-encoder scoring ───────────────────────────
-        passages = [c.content for c in chunks]
-        ce_scores = await asyncio.to_thread(
-            self._cross_encoder.score, query, passages
-        )
+        enable_ce = os.getenv("ENABLE_CROSS_ENCODER", "false").lower() == "true"
+        
+        if enable_ce:
+            # ── Full Cross-encoder logic ───────────────────────────
+            passages = [c.content for c in chunks]
+            ce_scores = await asyncio.to_thread(
+                self._cross_encoder.score, query, passages
+            )
 
-        for chunk, ce_score in zip(chunks, ce_scores):
-            chunk.rerank_score = float(ce_score)
-
-            # ── Step 2: RFF relevance feedback boost ────────────────
-            rff_boost = self._rff.get_boost(chunk.chunk_id)
-
-            # Blend: 40% original RRF + 45% cross-encoder + 15% position-bonus (via RRF)
-            # then multiply by RFF boost
-            chunk.final_score = (
-                0.40 * chunk.final_score +
-                0.45 * chunk.rerank_score +
-                0.15 * max(chunk.scores.get("vector", 0), chunk.scores.get("bm25", 0))
-            ) * rff_boost
+            for chunk, ce_score in zip(chunks, ce_scores):
+                chunk.rerank_score = float(ce_score)
+                rff_boost = self._rff.get_boost(chunk.chunk_id)
+                chunk.final_score = (
+                    0.40 * chunk.final_score +
+                    0.45 * chunk.rerank_score +
+                    0.15 * max(chunk.scores.get("vector", 0), chunk.scores.get("bm25", 0))
+                ) * rff_boost
+        else:
+            # ── Fast Path: Use existing scores ─────────────────────
+            for chunk in chunks:
+                rff_boost = self._rff.get_boost(chunk.chunk_id)
+                chunk.final_score = chunk.final_score * rff_boost
+                # Mock a rerank score for confidence calculation
+                chunk.rerank_score = chunk.scores.get("vector", 0.5)
 
         # Sort by final blended score
         chunks.sort(key=lambda c: c.final_score, reverse=True)

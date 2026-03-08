@@ -46,6 +46,8 @@ class LLMService:
                         temperature=0.2,
                         convert_system_message_to_human=True,
                     )
+                else:
+                    logger.warning("GOOGLE_GEMINI_API_KEY not set, falling back")
             except Exception as e:
                 logger.warning(f"Gemini init failed: {e}, falling back")
         
@@ -63,13 +65,17 @@ class LLMService:
             except Exception as e:
                 logger.warning(f"Groq init failed: {e}, falling back to OpenAI")
         
-        logger.info(f"LLMService using OpenAI: {settings.MODEL_NAME}")
-        return ChatOpenAI(
-            model_name=settings.MODEL_NAME,
-            temperature=0.2,
-            openai_api_key=settings.OPENAI_API_KEY,
-            openai_api_base=settings.AI_BASE_URL
-        )
+        if settings.OPENAI_API_KEY:
+            logger.info(f"LLMService using OpenAI: {settings.MODEL_NAME}")
+            return ChatOpenAI(
+                model_name=settings.MODEL_NAME,
+                temperature=0.2,
+                openai_api_key=settings.OPENAI_API_KEY,
+                openai_api_base=settings.AI_BASE_URL
+            )
+        
+        logger.error("No valid LLM provider configured or missing API keys. LLM features will be disabled.")
+        return None
 
     async def reason(self, text: str) -> str:
         if self.circuit_open:

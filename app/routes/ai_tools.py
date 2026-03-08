@@ -100,10 +100,12 @@ async def tool_db_query(req: DBQueryRequest, agent: Annotated[dict, Depends(requ
     try:
         # Security: Cap limit to prevent massive data dumps
         safe_limit = min(req.limit, 100)
+        # P0 Fix: Pass tenant_id for isolation
         results = db_manager.execute_safe_query(
             table_name=req.table_name,
             filters=req.filters,
-            limit=safe_limit
+            limit=safe_limit,
+            tenant_id=agent.get("tenant_id")
         )
         return {"status": "success", "count": len(results), "data": results}
     except ValueError as e:
@@ -123,7 +125,8 @@ async def tool_check_voucher(
     """
     repo = VoucherRepository(db_manager.Session)
     try:
-        result = repo.check_voucher_validity(req.voucher_code)
+        # P0 Fix: Pass tenant_id for isolation
+        result = repo.check_voucher_validity(req.voucher_code, tenant_id=agent.get("tenant_id"))
         return result
     except Exception as e:
         logger.error(f"Voucher check failed: {e}")
@@ -142,8 +145,12 @@ async def tool_redeem_voucher(
     """
     repo = VoucherRepository(db_manager.Session)
     try:
-        # P0 Fix: Row-level locking logic is within the repository
-        result = repo.redeem_voucher(req.voucher_code, agent_id=agent.get("user_id", "ai_agent"))
+        # P0 Fix: Pass tenant_id for isolation
+        result = repo.redeem_voucher(
+            req.voucher_code, 
+            agent_id=agent.get("user_id", "ai_agent"),
+            tenant_id=agent.get("tenant_id")
+        )
         if result["status"] == "error":
             raise HTTPException(status_code=400, detail=result["message"])
         return result

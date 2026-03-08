@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: support_portal_prod
+    restart: always
+    env_file: .env
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data:/app/data
+    # Balanced for e2-medium (4GB RAM) - Leaves credits for other APIs
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    command: >
+      gunicorn -w 3 -k uvicorn.workers.UvicornWorker main:app 
+      --bind 0.0.0.0:8000 --timeout 120 --preload --graceful-timeout 30
+
+  # Free Secure Tunnel (Ganti Ngrok)
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run

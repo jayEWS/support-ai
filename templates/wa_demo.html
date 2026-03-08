@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Simulation Demo | Edgeworks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #e5ddd5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .wa-header { background-color: #075e54; color: white; }
+        .chat-container { height: calc(100vh - 120px); overflow-y: auto; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; }
+        .msg-in { background-color: white; border-radius: 0 15px 15px 15px; position: relative; max-width: 80%; }
+        .msg-out { background-color: #dcf8c6; border-radius: 15px 0 15px 15px; position: relative; max-width: 80%; align-self: flex-end; }
+        .wa-input { background-color: #f0f0f0; }
+        .btn-send { color: #075e54; }
+        .status-bar { background-color: #054d44; color: white; font-size: 12px; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+    <!-- Status Bar -->
+    <div class="status-bar px-4 py-1 flex justify-between items-center">
+        <span>9:41</span>
+        <div class="flex gap-2">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="wa-header p-4 flex items-center gap-3 shadow-md">
+        <a href="/"><i class="fas fa-arrow-left"></i></a>
+        <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+            <i class="fas fa-user text-white"></i>
+        </div>
+        <div class="flex-1">
+            <h1 class="font-bold leading-tight">Edgeworks Support (Demo)</h1>
+            <p class="text-xs opacity-80">Online</p>
+        </div>
+        <div class="flex gap-4">
+            <i class="fas fa-video"></i>
+            <i class="fas fa-phone"></i>
+            <i class="fas fa-ellipsis-v"></i>
+        </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div id="chat-box" class="chat-container flex-1 p-4 flex flex-col gap-3">
+        <!-- System Warning -->
+        <div class="bg-yellow-100 text-[10px] text-center p-2 rounded shadow-sm self-center max-w-[90%] text-gray-600">
+            🔒 Messages and calls are end-to-end encrypted. This is a <b>WhatsApp Simulation Mode</b> for public testing.
+        </div>
+    </div>
+
+    <!-- Loading Timer (Visible when AI is thinking) -->
+    <div id="ai-status" class="hidden px-4 py-1 bg-white/80 backdrop-blur text-[10px] text-gray-500 italic flex justify-between">
+        <span id="status-text">AI is typing...</span>
+        <span id="timer-text">0.0s</span>
+    </div>
+
+    <!-- Input Area -->
+    <div class="wa-input p-3 flex items-center gap-3">
+        <div class="bg-white flex-1 rounded-full px-4 py-2 flex items-center shadow-sm">
+            <i class="far fa-smile text-gray-500 text-xl"></i>
+            <input id="wa-input" type="text" placeholder="Type a message" class="flex-1 px-3 outline-none text-sm py-1">
+            <i class="fas fa-paperclip text-gray-500 ml-2"></i>
+            <i class="fas fa-camera text-gray-500 ml-3"></i>
+        </div>
+        <button onclick="sendSimulatedMessage()" class="bg-[#075e54] w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md">
+            <i class="fas fa-paper-plane text-lg"></i>
+        </button>
+    </div>
+
+    <script>
+        // Use a persistent random phone number for the session
+        let phoneNumber = localStorage.getItem('wa_demo_phone');
+        if (!phoneNumber) {
+            phoneNumber = '628' + Math.floor(Math.random() * 1000000000);
+            localStorage.setItem('wa_demo_phone', phoneNumber);
+        }
+
+        const chatBox = document.getElementById('chat-box');
+        const input = document.getElementById('wa-input');
+        const aiStatus = document.getElementById('ai-status');
+        const timerText = document.getElementById('timer-text');
+        const statusText = document.getElementById('status-text');
+
+        function addMessage(text, side) {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const div = document.createElement('div');
+            div.className = side === 'in' ? 'msg-in p-3 shadow-sm' : 'msg-out p-3 shadow-sm';
+            div.innerHTML = `
+                <div class="text-sm">${text.replace(/\n/g, '<br>')}</div>
+                <div class="text-[10px] text-right text-gray-500 mt-1">${time} ${side === 'out' ? '<i class="fas fa-check-double text-blue-400"></i>' : ''}</div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendSimulatedMessage() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            addMessage(text, 'out');
+            input.value = '';
+
+            // Show Thinking Status
+            aiStatus.classList.remove('hidden');
+            let startTime = Date.now();
+            let timer = setInterval(() => {
+                let elapsed = (Date.now() - startTime) / 1000;
+                timerText.innerText = elapsed.toFixed(1) + 's';
+                if (elapsed > 3) statusText.innerText = "Searching Knowledge Base...";
+                if (elapsed > 7) statusText.innerText = "Generating Response...";
+            }, 100);
+
+            try {
+                const response = await fetch('/api/whatsapp/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_number: phoneNumber,
+                        message: text
+                    })
+                });
+                const data = await response.json();
+                
+                clearInterval(timer);
+                aiStatus.classList.add('hidden');
+                statusText.innerText = "AI is typing...";
+
+                if (data.ai_response) {
+                    addMessage(data.ai_response, 'in');
+                }
+            } catch (err) {
+                clearInterval(timer);
+                aiStatus.classList.add('hidden');
+                addMessage("⚠️ Connection error. Please try again.", "in");
+            }
+        }
+
+        // Start with a greeting if empty
+        window.onload = () => {
+            if (chatBox.children.length <= 1) {
+                setTimeout(() => {
+                    addMessage("👋 Welcome! Silakan kirim 'Halo' untuk memulai simulasi WhatsApp ini.", 'in');
+                }, 500);
+            }
+        };
+
+        // Enter to send
+        input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendSimulatedMessage(); });
+    </script>
+</body>
+</html>

@@ -18,21 +18,29 @@ class VoucherRepository(BaseRepository):
     Includes row-level locking for multi-tenant financial integrity.
     """
 
-    def get_voucher(self, code: str) -> Optional[dict]:
+    def get_voucher(self, code: str, tenant_id: str = None) -> Optional[dict]:
         """Read-only check of voucher status."""
         code = code.upper()
         with self.session_scope() as session:
-            v = session.query(Voucher).filter_by(code=code).first()
+            query = session.query(Voucher).filter_by(code=code)
+            if tenant_id:
+                query = query.filter(Voucher.tenant_id == tenant_id)
+            
+            v = query.first()
             if not v:
                 return None
             
             return self._voucher_to_dict(v)
 
-    def check_voucher_validity(self, code: str) -> dict:
+    def check_voucher_validity(self, code: str, tenant_id: str = None) -> dict:
         """Verbose check for UI/Tool feedback."""
         code = code.upper()
         with self.session_scope() as session:
-            v = session.query(Voucher).filter_by(code=code).first()
+            query = session.query(Voucher).filter_by(code=code)
+            if tenant_id:
+                query = query.filter(Voucher.tenant_id == tenant_id)
+            
+            v = query.first()
             if not v:
                 return {"valid": False, "reason": "Invalid voucher code"}
             
@@ -62,7 +70,7 @@ class VoucherRepository(BaseRepository):
                 "expiry": v.expiry_date.isoformat() if v.expiry_date else None
             }
 
-    def redeem_voucher(self, code: str, agent_id: str = "system") -> dict:
+    def redeem_voucher(self, code: str, agent_id: str = "system", tenant_id: str = None) -> dict:
         """
         Redeem a voucher with row-level locking (SELECT ... FOR UPDATE).
         Prevents race condition where concurrent requests spend the same voucher.
@@ -71,7 +79,11 @@ class VoucherRepository(BaseRepository):
         # Note: session_scope will automatically commit/rollback at the end
         with self.session_scope() as session:
             # P0 Fix: with_for_update() ensures this row is locked until commit
-            v = session.query(Voucher).filter_by(code=code).with_for_update().first()
+            query = session.query(Voucher).filter_by(code=code).with_for_update()
+            if tenant_id:
+                query = query.filter(Voucher.tenant_id == tenant_id)
+            
+            v = query.first()
             
             if not v:
                 return {"status": "error", "message": "Invalid voucher code"}
