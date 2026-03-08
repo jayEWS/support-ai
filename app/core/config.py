@@ -120,8 +120,8 @@ class Settings(BaseSettings):
                 "another-secret-key", "please-change-me",
             ]
             
-            if self.SECRET_KEY.lower().strip() in weak_values:
-                raise ValueError("CRITICAL: SECRET_KEY is weak or missing in PRODUCTION mode!")
+            if self.API_SECRET_KEY.lower().strip() in weak_values:
+                raise ValueError("CRITICAL: API_SECRET_KEY is weak or missing in PRODUCTION mode!")
             
             if self.AUTH_SECRET_KEY.lower().strip() in weak_values:
                 raise ValueError(
