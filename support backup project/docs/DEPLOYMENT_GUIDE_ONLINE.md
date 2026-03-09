@@ -69,12 +69,12 @@ git push origin master
 4. **Set Environment Variables**
    In Render dashboard → "Environment":
    ```
-   DATABASE_URL=mssql+pyodbc://sa:1@localhost:1433/tCareEWS?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=no&TrustServerCertificate=yes
-   OPENAI_API_KEY=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
+   DATABASE_URL=mssql+pyodbc://sa:****************@localhost:1433/tCareEWS?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=no&TrustServerCertificate=yes
+   OPENAI_API_KEY=gsk_****************************************************
    LLM_PROVIDER=groq
-   GROQ_API_KEY=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
-   API_SECRET_KEY=supersecretkey123
-   AUTH_SECRET_KEY=your-secret-auth-key-123456789
+   GROQ_API_KEY=gsk_****************************************************
+   API_SECRET_KEY=********************
+   AUTH_SECRET_KEY=***********************************
    ```
 
 5. **Deploy**

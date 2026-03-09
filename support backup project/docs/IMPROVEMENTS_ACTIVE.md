@@ -135,7 +135,7 @@
 ```env
 # LLM Provider (Currently: Groq - FREE)
 LLM_PROVIDER=groq
-GROQ_API_KEY=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
+GROQ_API_KEY=gsk_****************************************************
 
 # Hybrid Search (Enabled)
 RAG_HYBRID_SEARCH_ENABLED=true
