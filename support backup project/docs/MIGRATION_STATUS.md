@@ -44,7 +44,7 @@
 |-----------|--------|-----------------|
 | FastAPI Server | ✅ Running | http://127.0.0.1:8001 |
 | Supabase Database | ✅ Connected | db.wjsaltebtbmnysgcdsoh.supabase.co |
-| Groq LLM | ✅ Configured | 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 |
+| Groq LLM | ✅ Configured | gsk_**************************************************** |
 | Admin Account | ✅ Created | admin@example.com / admin123 |
 | SQLite (Legacy) | ⏭️ Retired | data.db (empty, not used) |
 
@@ -109,10 +109,10 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8001
 
 ```env
 # Supabase
-DATABASE_URL=postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres
+DATABASE_URL=postgresql+psycopg2://postgres:****************@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres
 
 # Groq LLM
-GROQ_API_KEY=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
+GROQ_API_KEY=gsk_****************************************************
 
 # Admin Login
 Email: admin@example.com

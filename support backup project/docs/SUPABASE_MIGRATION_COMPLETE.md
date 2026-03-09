@@ -30,7 +30,7 @@ Your support portal has been successfully migrated from local SQLite to **Supaba
 
 ### 4. Environment Configuration
 - **File Updated**: `.env`
-- **DATABASE_URL**: `postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres`
+- **DATABASE_URL**: `postgresql+psycopg2://postgres:****************@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres`
 - **Status**: ✅ Set and active
 
 ### 5. Server Status
@@ -60,9 +60,9 @@ git push -u origin main
 # 2. Create new Web Service on render.com
 # - Connect GitHub repo
 # - Environment Variables:
-#   DATABASE_URL=postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres
-#   GROQ_API_KEY=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
-#   OPENAI_API_KEY=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
+#   DATABASE_URL=postgresql+psycopg2://postgres:****************@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres
+#   GROQ_API_KEY=gsk_****************************************************
+#   OPENAI_API_KEY=gsk_****************************************************
 # - Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
@@ -89,14 +89,14 @@ git push -u origin main
 Host: db.wjsaltebtbmnysgcdsoh.supabase.co
 Port: 5432
 Username: postgres
-Password: Tekansaja123
+Password: ****************
 Database: postgres
 Schema: app
 ```
 
 ### Groq API
 ```
-API Key: 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
+API Key: gsk_****************************************************
 Model: llama-3.3-70b-versatile
 Base URL: https://api.groq.com/openai/v1
 ```
