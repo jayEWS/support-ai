@@ -18,6 +18,7 @@ from app.core.auth_deps import decode_access_token
 from app.core.config import settings
 from app.core.logging import logger
 from app.utils.security import bind_user_ip
+from app.utils.async_db import run_sync
 
 router = APIRouter(prefix="/api/portal", tags=["Portal"])
 
@@ -48,7 +49,7 @@ async def portal_kb_query(request: Request):
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header[7:]
             payload = decode_access_token(token)
-            if payload and db_manager.get_agent(payload.get("sub")):
+            if payload and await run_sync(db_manager.get_agent, payload.get("sub")):
                 is_agent = True
         
         data = await request.json()
@@ -125,8 +126,8 @@ async def get_chat_history(request: Request, user_id: str = "web_portal_user", t
     
     db = db_manager
     if ticket_id:
-        return {"history": db.get_unified_history(user_id, ticket_id)}
-    return {"history": db.get_messages(user_id)}
+        return {"history": await run_sync(db.get_unified_history, user_id, ticket_id)}
+    return {"history": await run_sync(db.get_messages, user_id)}
 
 @router.get("/history/sessions")
 @limiter.limit("30/minute")
@@ -139,7 +140,7 @@ async def get_history_sessions(request: Request, user_id: str = "web_portal_user
     bind_user_ip(user_id, request)
     
     db = db_manager
-    tickets = db.get_tickets_by_user(user_id, limit=50)
+    tickets = await run_sync(db.get_tickets_by_user, user_id, 50)
     return {
         "sessions": [{
             "session_id": f"ticket_{t['id']}",
@@ -175,7 +176,7 @@ async def upload_portal_recording(
     from app.utils.file_handler import save_upload
     metadata = save_upload(file_bytes, f"portal_{user_id}{ext}", destination="chat")
     
-    db_manager.save_message(user_id, "user", f"📹 Screen Recording: {metadata['url']}")
+    await run_sync(db_manager.save_message, user_id, "user", f"📹 Screen Recording: {metadata['url']}")
     return {"status": "ok", "url": metadata["url"]}
 
 @router.post("/session/close")

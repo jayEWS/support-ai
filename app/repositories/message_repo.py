@@ -6,6 +6,7 @@ Extracted from DatabaseManager.
 """
 
 from datetime import datetime, timezone
+from typing import List, Optional
 from sqlalchemy import desc
 from app.repositories.base import BaseRepository
 from app.models.models import Message, ChatSession, ChatMessage, User

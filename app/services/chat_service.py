@@ -10,6 +10,8 @@ from app.services.prompt_service import prompt_service
 from app.models.models import AIInteraction
 from datetime import datetime, timezone
 from app.services.guardrail_service import guardrail_service
+from app.utils.pii_scrubber import scrub_pii
+from app.utils.async_db import run_sync
 
 def _sanitize_text(text: str) -> str:
     """Remove invalid surrogate characters that break UTF-8 encoding."""
@@ -76,6 +78,10 @@ class ChatService:
             return {'state': 'complete', 'user': user}
         return {'state': 'asking_language', 'user': user}
 
+    async def _get_user_state_async(self, user_id: str) -> dict:
+        """Async wrapper for _get_user_state."""
+        return await run_sync(self._get_user_state, user_id)
+
     def _handle_onboarding(self, user_id: str, query: str, state_info: dict) -> Optional[str]:
         state = state_info['state']
         user = state_info.get('user')
@@ -120,8 +126,8 @@ class ChatService:
             session = db_manager.get_session()
             log = AIInteraction(
                 user_id=user_id,
-                query=query,
-                response=response_data.get("answer"),
+                query=scrub_pii(query),
+                response=scrub_pii(response_data.get("answer", "")),
                 retrieved_docs=json.dumps(response_data.get("sources", [])),
                 tools_used=json.dumps(response_data.get("tools_used", [])),
                 confidence=response_data.get("confidence", 0.0),
@@ -151,12 +157,12 @@ class ChatService:
             if not guardrail_service.validate_input(query):
                 return {"answer": "I apologize, but your message contains content that I cannot process. Please try asking about your POS system help!", "confidence": 1.0}, 200
 
-            db_manager.save_message(user_id, "user", query, attachments=json.dumps([attachment_meta]) if attachment_meta else None)
+            await run_sync(db_manager.save_message, user_id, "user", query, None if not attachment_meta else json.dumps([attachment_meta]))
 
-            state_info = self._get_user_state(user_id)
+            state_info = await self._get_user_state_async(user_id)
             onboarding_response = self._handle_onboarding(user_id, query, state_info)
             if onboarding_response:
-                db_manager.save_message(user_id, "bot", onboarding_response)
+                await run_sync(db_manager.save_message, user_id, "bot", onboarding_response)
                 return {"answer": onboarding_response, "confidence": 1.0, "onboarding": True}, 200
 
             # --- Enterprise Agentic Flow ---
@@ -206,7 +212,7 @@ class ChatService:
             answer = guardrail_service.validate_output(answer)
             
             logger.info(f"ChatService Answer: {answer[:100]} (len={len(answer)})")
-            db_manager.save_message(user_id, "bot", answer)
+            await run_sync(db_manager.save_message, user_id, "bot", answer)
 
             response_data = {
                 "answer": answer,

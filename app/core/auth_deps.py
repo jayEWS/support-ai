@@ -7,6 +7,7 @@ from fastapi import Request, HTTPException
 from app.utils.auth_utils import decode_access_token
 from app.core.database import db_manager
 from app.core.logging import logger
+from app.utils.async_db import run_sync
 from typing import Annotated
 from fastapi import Depends
 
@@ -38,7 +39,7 @@ async def require_agent(request: Request) -> dict:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     user_id = payload.get("sub")
-    agent = db_manager.get_agent(user_id)
+    agent = await run_sync(db_manager.get_agent, user_id)
     if not agent:
         raise HTTPException(status_code=401, detail="Agent not found")
 

@@ -26,6 +26,9 @@ from app.core.database import db_manager
 # Concurrency gate: max 10 simultaneous AI calls to avoid Vertex AI quota exhaustion
 AI_SEMAPHORE = asyncio.Semaphore(10)
 
+# Async wrapper for synchronous DB calls (prevents event loop blocking)
+from app.utils.async_db import run_sync
+
 def _require_db():
     """Guard: raises 503 if DB is unavailable so app still boots and serves non-DB routes."""
     if db_manager is None:
@@ -153,7 +156,7 @@ async def get_current_agent(request: Request):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
     user_id = payload.get("sub")
-    agent = _require_db().get_agent(user_id)
+    agent = await run_sync(_require_db().get_agent, user_id)
     if not agent:
         raise HTTPException(status_code=401, detail="Agent not found")
     return agent
@@ -170,7 +173,6 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
-@asynccontextmanager
 # --- Startup Helper Functions to Reduce Lifespan Complexity ---
 
 async def _init_ai_services(app: FastAPI):
@@ -286,6 +288,7 @@ async def _start_background_tasks(app: FastAPI):
     except Exception as e:
         logger.error(f"Background workers failed: {e}")
 
+@asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 1. AI Stack
     await _init_ai_services(app)
@@ -405,6 +408,61 @@ templates = Jinja2Templates(directory="templates")
 os.makedirs(os.path.join("data", "uploads", "chat"), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=os.path.join("data", "uploads")), name="uploads")
 
+# ============ Legacy/Frontend Aliases ============
+
+@app.post("/api/chat")
+@limiter.limit("10/minute")
+async def legacy_portal_chat(
+    request: Request,
+    message: Optional[str] = Form(None),
+    user_id: Optional[str] = Form("web_portal_user"),
+    language: Optional[str] = Form("en"),
+    file: Optional[UploadFile] = File(None)
+):
+    """Legacy alias for /api/portal/chat to support existing frontend."""
+    from app.routes.portal_routes import portal_chat
+    return await portal_chat(request, message, user_id, language, file)
+
+@app.post("/api/knowledge/upload")
+async def upload_knowledge_legacy(
+    request: Request,
+    agent: Annotated[dict, Depends(get_current_agent)],
+    files: List[UploadFile] = File(...)
+):
+    """Restore missing upload endpoint for Knowledge Base."""
+    try:
+        from app.utils.security import validate_knowledge_file, safe_filename, safe_path
+        
+        saved_files = []
+        for file in files:
+            sanitized = validate_knowledge_file(file.filename)
+            file_bytes = await file.read()
+            
+            # Save to knowledge directory
+            dest_path = os.path.join(settings.KNOWLEDGE_DIR, sanitized)
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            with open(dest_path, "wb") as f:
+                f.write(file_bytes)
+                
+            # Update DB metadata
+            db_manager.save_knowledge_metadata(
+                filename=sanitized,
+                file_path=dest_path,
+                uploaded_by=agent["user_id"],
+                status="Processing"
+            )
+            saved_files.append(sanitized)
+            
+        # Trigger re-indexing if service available
+        rag = getattr(app.state, 'rag_service', None)
+        if rag and hasattr(rag, 'reload_knowledge'):
+            asyncio.create_task(rag.reload_knowledge())
+            
+        return {"status": "success", "files": saved_files}
+    except Exception as e:
+        logger.error(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============ Health Check ============
 
 @app.get("/health")
@@ -505,7 +563,7 @@ async def login(request: Request):
             raise HTTPException(status_code=403, detail="Only @edgeworks.com.sg accounts are allowed")
             
         db = _require_db()
-        agent = db.get_agent_by_email(email)
+        agent = await run_sync(db.get_agent_by_email, email)
         if not agent or not verify_password(password, agent.get("hashed_password")):
             raise HTTPException(status_code=401, detail="Incorrect email or password")
         

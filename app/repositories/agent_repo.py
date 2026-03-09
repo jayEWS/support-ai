@@ -5,6 +5,7 @@ Agent/admin user operations, extracted from DatabaseManager.
 """
 
 from datetime import datetime, timezone
+from typing import Optional, List
 from sqlalchemy import desc
 from app.repositories.base import BaseRepository, TenantContext
 from app.models.models import Agent, AgentPresence, Role, Permission

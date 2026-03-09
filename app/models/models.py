@@ -197,6 +197,26 @@ class AIInteraction(Base):
     created_at = Column("CreatedAt", DateTime, server_default=func.now())
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
 
+class POSIssue(Base):
+    """Knowledge Base entry for an AI Support issue (as defined in knowledge_base_schema.md)"""
+    __tablename__ = "pos_issues"
+    __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
+    id = Column("IssueID", Integer, primary_key=True, autoincrement=True)
+    problem_id = Column("ProblemID", Unicode(50), unique=True, index=True) # e.g., POS_SYNC_001
+    problem_name = Column("ProblemName", Unicode(255))
+    category = Column("Category", Unicode(100))
+    priority = Column("Priority", Unicode(50), default="medium")
+    affected_system = Column("AffectedSystem", Text)  # JSON/CSV
+    symptoms = Column("Symptoms", Text)
+    root_causes = Column("RootCauses", Text)
+    diagnostic_steps = Column("DiagnosticSteps", Text)
+    fix_steps = Column("FixSteps", Text)
+    automation_tools = Column("AutomationTools", Text) # JSON list
+    verification_steps = Column("VerificationSteps", Text)
+    created_at = Column("CreatedAt", DateTime, server_default=func.now())
+    updated_at = Column("UpdatedAt", DateTime, server_default=func.now(), onupdate=func.now())
+    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+
 class User(Base):
     __tablename__ = "Users"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}

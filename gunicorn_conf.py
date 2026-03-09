@@ -34,3 +34,17 @@ max_requests_jitter = 50 # Add jitter to prevent all workers restarting at once
 
 def on_starting(server):
     print("🚀 Gunicorn is starting Edgeworks Support Portal...")
+
+def post_fork(server, worker):
+    """Safety check: Warn if multi-worker mode runs without Redis (WebSocket state issue)."""
+    if server.num_workers > 1:
+        import os
+        redis_enabled = os.getenv("REDIS_ENABLED", "False").lower() == "true"
+        if not redis_enabled:
+            import logging
+            logging.getLogger("gunicorn.error").warning(
+                "⚠️  MULTI-WORKER DETECTED (%d workers) WITHOUT REDIS_ENABLED=true. "
+                "WebSocket broadcasts will NOT reach clients on other workers. "
+                "Set REDIS_ENABLED=true and configure REDIS_URL for production.",
+                server.num_workers
+            )
