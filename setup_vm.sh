@@ -42,9 +42,9 @@ if grep -q "sqlite" .env || (grep -q "localhost" .env && ! grep -q "mssql" .env)
     echo "🔧 Configuring production DATABASE_URL (SQL Server)..."
     
     # Active configuration for local SQL Server 2025 (matching user request sa:1)
-    sed -i "s|^DATABASE_URL=.*|DATABASE_URL=mssql+pyodbc://sa:1@localhost/supportportal?driver=ODBC+Driver+18+for+SQL+Server\&TrustServerCertificate=yes|" .env
+    sed -i "s|^DATABASE_URL=.*|DATABASE_URL=mssql+pyodbc://sa:1@172.17.0.1/supportportal?driver=ODBC+Driver+18+for+SQL+Server\&TrustServerCertificate=yes|" .env
     
-    echo "✅ Database set to SQL Server (localhost)."
+    echo "✅ Database set to SQL Server (Docker Host 172.17.0.1)."
 fi
 
 # Final Check
