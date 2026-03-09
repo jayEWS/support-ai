@@ -11,9 +11,39 @@ Covers:
 import os
 import re
 import ipaddress
+import hashlib
 from urllib.parse import urlparse
-from fastapi import HTTPException
+from typing import Union
+from fastapi import HTTPException, Request, WebSocket
 from app.core.logging import logger
+
+# ============ SESSION & IDOR PROTECTION ============
+
+_user_ip_map: dict[str, str] = {}  # user_id -> hashed IP
+
+def bind_user_ip(user_id: str, connection: Union[Request, WebSocket]):
+    """
+    Bind a user_id to the first IP that uses it, preventing IDOR enumeration.
+    Supports both standard FastAPI Request and WebSocket objects.
+    """
+    if not user_id:
+        return
+
+    # Extract client IP based on connection type
+    client_ip = "unknown"
+    if isinstance(connection, Request):
+        client_ip = connection.client.host if connection.client else "unknown"
+    elif isinstance(connection, WebSocket):
+        client_ip = connection.client.host if connection.client else "unknown"
+
+    ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
+
+    if user_id not in _user_ip_map:
+        _user_ip_map[user_id] = ip_hash
+        logger.info(f"[SECURITY] Bound user_id {user_id} to IP hash {ip_hash}")
+    elif _user_ip_map[user_id] != ip_hash:
+        logger.warning(f"[SECURITY] IDOR attempt blocked: user_id={user_id} accessed from IP {client_ip} (expected hash {_user_ip_map[user_id]})")
+        raise HTTPException(status_code=403, detail="Session mismatch. Please start a new chat.")
 
 
 # ============ PATH TRAVERSAL PROTECTION ============

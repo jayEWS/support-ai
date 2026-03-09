@@ -115,8 +115,8 @@ class RAGServiceV2:
         self.query_engine.set_llm(llm)
         return llm
 
-    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en') -> RAGResponse:
-        cached = _query_cache.get(text, language)
+    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en', system_prompt: Optional[str] = None) -> RAGResponse:
+        cached = _query_cache.get(f"{text}_{hash(system_prompt)}", language)
         if cached: return cached
 
         processed = await self.query_engine.process(text, language)
@@ -139,7 +139,11 @@ class RAGServiceV2:
         if not retrieval_result.chunks:
             return RAGResponse(answer="No relevant documents found.", confidence=0.0, source_documents=[])
 
-        prompt = f"{SYSTEM_PROMPT_CORE}\n\nContext: {retrieval_result.context_text}\n\nQuestion: {text}"
+        if system_prompt:
+            prompt = f"{system_prompt}\n\nDOCUMENT CONTEXT:\n{retrieval_result.context_text}\n\nUSER QUESTION: {text}"
+        else:
+            prompt = f"{SYSTEM_PROMPT_CORE}\n\nContext: {retrieval_result.context_text}\n\nQuestion: {text}"
+            
         llm = self._get_llm()
         try:
             res = await llm.ainvoke(prompt)

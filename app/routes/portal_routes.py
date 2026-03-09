@@ -17,6 +17,7 @@ from app.core.database import db_manager
 from app.core.auth_deps import decode_access_token
 from app.core.config import settings
 from app.core.logging import logger
+from app.utils.security import bind_user_ip
 
 router = APIRouter(prefix="/api/portal", tags=["Portal"])
 
@@ -29,19 +30,6 @@ AI_SEMAPHORE = asyncio.Semaphore(10) # Max 10 concurrent AI queries
 
 # --- Security: Max query length to prevent prompt injection / abuse ---
 MAX_PORTAL_QUERY_LENGTH = 500
-
-# --- Security: IP-to-user binding for lightweight IDOR prevention ---
-_user_ip_map: dict[str, str] = {}  # user_id -> hashed IP
-
-def _bind_user_ip(user_id: str, request: Request):
-    """Bind a user_id to the first IP that uses it, preventing IDOR enumeration."""
-    client_ip = get_remote_address(request) or "unknown"
-    ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
-    if user_id not in _user_ip_map:
-        _user_ip_map[user_id] = ip_hash
-    elif _user_ip_map[user_id] != ip_hash:
-        logger.warning(f"[SECURITY] IDOR attempt: user_id={user_id} accessed from different IP")
-        raise HTTPException(status_code=403, detail="Session mismatch. Please start a new chat.")
 
 def _require_rag(request: Request):
     rag = getattr(request.app.state, 'rag_service', None)
@@ -109,6 +97,9 @@ async def portal_chat(
     file: Optional[UploadFile] = File(None)
 ):
     """Direct portal chat with Level-1 AI agent."""
+    # Security: Bind user_id to IP
+    bind_user_ip(user_id, request)
+    
     chat_service = getattr(request.app.state, 'chat_service', None)
     if not chat_service:
         raise HTTPException(status_code=503, detail="Chat service unavailable")
@@ -130,7 +121,7 @@ async def get_chat_history(request: Request, user_id: str = "web_portal_user", t
         raise HTTPException(status_code=400, detail="Invalid user_id format")
     
     # Security: Bind user_id to the IP that first used it
-    _bind_user_ip(user_id, request)
+    bind_user_ip(user_id, request)
     
     db = db_manager
     if ticket_id:
@@ -145,7 +136,7 @@ async def get_history_sessions(request: Request, user_id: str = "web_portal_user
         raise HTTPException(status_code=400, detail="Invalid user_id format")
     
     # Security: Bind user_id to the IP that first used it
-    _bind_user_ip(user_id, request)
+    bind_user_ip(user_id, request)
     
     db = db_manager
     tickets = db.get_tickets_by_user(user_id, limit=50)

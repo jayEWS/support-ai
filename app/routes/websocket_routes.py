@@ -15,6 +15,7 @@ from app.core.auth_deps import decode_access_token
 from app.services.websocket_manager import manager, portal_manager
 from app.core.config import settings
 from app.core.logging import logger
+from app.utils.security import bind_user_ip
 
 router = APIRouter(prefix="/ws", tags=["WebSocket"])
 
@@ -77,6 +78,24 @@ async def websocket_chat_endpoint(
         await websocket.close(code=1008)
         return
     
+    # IDOR check: Is the user a participant in this session? (Security Fix)
+    if user_type == "agent":
+        if session["agent_id"] != user_id:
+             logger.warning(f"[SECURITY] Agent {user_id} tried to access session {session_id} assigned to {session['agent_id']}")
+             await websocket.close(code=4003)
+             return
+    elif user_type == "customer":
+        if session["customer_id"] != user_id:
+             logger.warning(f"[SECURITY] Customer {user_id} tried to access session {session_id} assigned to {session['customer_id']}")
+             await websocket.close(code=4003)
+             return
+        # P1 Fix: Bind customer user_id to IP for IDOR prevention
+        try:
+            bind_user_ip(user_id, websocket)
+        except HTTPException:
+            await websocket.close(code=4003)
+            return
+    
     # P1 Fix: Cross-tenant IDOR check
     if agent and session.get("tenant_id") and agent.get("tenant_id") and session["tenant_id"] != agent.get("tenant_id"):
         logger.warning(f"Agent {agent['user_id']} tried to access session {session_id} in another tenant")
@@ -119,11 +138,16 @@ async def portal_websocket(websocket: WebSocket, user_id: str):
         await websocket.close(code=4003)
         return
     
-    # Security: Rate limit — max 5 WebSocket connections per user_id
-    existing = portal_manager.connections.get(user_id, set())
     if len(existing) >= 5:
         logger.warning(f"[SECURITY] WebSocket flood: {user_id} already has {len(existing)} connections")
         await websocket.close(code=4008)
+        return
+
+    # P1 Fix: Bind portal user_id to IP for IDOR prevention
+    try:
+        bind_user_ip(user_id, websocket)
+    except HTTPException:
+        await websocket.close(code=4003)
         return
          
     await portal_manager.connect_user(user_id, websocket)

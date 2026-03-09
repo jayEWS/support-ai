@@ -104,7 +104,7 @@ class RAGService:
         return None
 
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=4), reraise=True)
-    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en') -> RAGResponse:
+    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en', system_prompt: Optional[str] = None) -> RAGResponse:
         logger.info(f"RAG Query: {text[:50]}")
         try:
             # 0. Empty/Media Message Check
@@ -121,7 +121,7 @@ class RAGService:
                 return await self._handle_greeting(text, language)
 
             # 2. Cache Check
-            cache_key = f"{text.lower().strip()}_{language}"
+            cache_key = f"{text.lower().strip()}_{language}_{hash(system_prompt) if system_prompt else 'default'}"
             if cache_key in self._cache:
                 if (datetime.now().timestamp() - self._cache[cache_key]['timestamp']) < self._cache_ttl:
                     return self._cache[cache_key]['response']
@@ -135,7 +135,10 @@ class RAGService:
             from main import app
             llm_svc = getattr(app.state, 'llm_service', None)
             
-            prompt = f"Context: {context}\n\nQuestion: {text}\n\nAnswer concisely in {language}:"
+            if system_prompt:
+                prompt = f"{system_prompt}\n\nDOCUMENT CONTEXT:\n{context}\n\nUSER QUESTION: {text}"
+            else:
+                prompt = f"Context: {context}\n\nQuestion: {text}\n\nAnswer concisely in {language}:"
             
             if llm_svc:
                 # Use centralized instance which is already warmed up

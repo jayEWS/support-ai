@@ -165,9 +165,20 @@ class ChatService:
             # 1. Intent/Category Detection for Persona Switching
             category = "diagnose"
             q_lower = query.lower()
-            if "printer" in q_lower: category = "printer"
-            elif any(x in q_lower for x in ["payment", "transaction", "bayar"]): category = "payment"
-            elif any(x in q_lower for x in ["voucher", "kupon", "promo"]): category = "voucher"
+            if "pos-guardian" in q_lower or "pos guardian" in q_lower: 
+                category = "pos_guardian"
+            elif "heart-guardian" in q_lower or "heart guardian" in q_lower: 
+                category = "heart_guardian"
+            elif "relationship-comms" in q_lower or "comms assistant" in q_lower:
+                category = "relationship_comms"
+            elif "love-agent" in q_lower or "relationship coach" in q_lower or "love agent" in q_lower:
+                category = "love_agent"
+            elif "printer" in q_lower: 
+                category = "printer"
+            elif any(x in q_lower for x in ["payment", "transaction", "bayar"]): 
+                category = "payment"
+            elif any(x in q_lower for x in ["voucher", "kupon", "promo"]): 
+                category = "voucher"
 
             # 2. Get Advanced System Prompt
             system_msg = prompt_service.get_system_message(category, user_context)
@@ -178,12 +189,12 @@ class ChatService:
             # Smart context injection: Only append context if the message is long/technical
             # Keep greetings "clean" so they hit the fast path in RAGService
             query_to_send = query
-            if len(query.split()) > 3:
+            if len(query.split()) > 3 and category not in ("pos_guardian", "heart_guardian", "relationship_comms", "love_agent"):
                 query_to_send += f" (Context: {user_context['outlet']})"
                 
-            rag_res = await self.rag_service.query(query_to_send, language=user_lang)
+            rag_res = await self.rag_service.query(query_to_send, language=user_lang, system_prompt=system_msg)
             
-            # 4. LLM Completion (Mocked integration of system_msg here, in reality would use ChatOpenAI messages)
+            # 4. LLM Completion
             answer = _sanitize_text(rag_res.answer)
             db_manager.save_message(user_id, "bot", answer)
 
