@@ -81,7 +81,7 @@ cd d:\Project\support-portal-edgeworks
 
 # Server is already running - access at http://127.0.0.1:8001/login
 # Or restart with:
-$env:DATABASE_URL = 'postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres'
+$env:DATABASE_URL = 'postgresql+psycopg2://postgres:****************@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres'
 python -m uvicorn main:app --host 127.0.0.1 --port 8001
 ```
 

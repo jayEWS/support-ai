@@ -69,7 +69,7 @@ sed -i "s|^COOKIE_SECURE=.*|COOKIE_SECURE=true|" .env
 sed -i "s|^COOKIE_SAMESITE=.*|COOKIE_SAMESITE=lax|" .env
 
 # Supabase direct connection
-sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres|' .env
+sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:****************@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres|' .env
 
 echo "--- .env preview (sensitive values masked) ---"
 grep -E "^(BASE_URL|GOOGLE_REDIRECT_URI|DATABASE_URL|COOKIE_SECURE)" .env | sed 's|://[^@]*@|://***@|'

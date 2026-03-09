@@ -34,9 +34,9 @@ fi
 # Gemini LLM Provider
 sed -i 's|^LLM_PROVIDER=.*|LLM_PROVIDER=gemini|' .env
 if grep -q "^GOOGLE_GEMINI_API_KEY=" .env; then
-    sed -i 's|^GOOGLE_GEMINI_API_KEY=.*|GOOGLE_GEMINI_API_KEY=AIzaSyA0N2iJTZWZYx1mn7JgPDMsXuQsiRUQfsw|' .env
+    sed -i 's|^GOOGLE_GEMINI_API_KEY=.*|GOOGLE_GEMINI_API_KEY=AIzaSyA********************************|' .env
 else
-    echo "GOOGLE_GEMINI_API_KEY=AIzaSyA0N2iJTZWZYx1mn7JgPDMsXuQsiRUQfsw" >> .env
+    echo "GOOGLE_GEMINI_API_KEY=AIzaSyA********************************" >> .env
 fi
 if ! grep -q "^GEMINI_MODEL_NAME=" .env; then
     echo "GEMINI_MODEL_NAME=gemini-2.5-flash" >> .env
@@ -44,7 +44,7 @@ fi
 
 # Supabase pooler (IPv4, port 6543)
 if grep -q "db.wjsaltebtbmnysgcdsoh.supabase.co" .env; then
-    sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres.wjsaltebtbmnysgcdsoh:Tekansaja123@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres|' .env
+    sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres.wjsaltebtbmnysgcdsoh:****************@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres|' .env
 fi
 
 # GCS Config (Phase 2) — auto-enable if sa-key.json exists

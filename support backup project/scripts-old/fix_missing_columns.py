@@ -1,7 +1,7 @@
 """Fix missing columns in Users table"""
 import psycopg2
 
-DB_URL = "postgresql://postgres.wjsaltebtbmnysgcdsoh:Tekansaja123@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+DB_URL = "postgresql://postgres.wjsaltebtbmnysgcdsoh:****************@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
 
 conn = psycopg2.connect(DB_URL)
 cur = conn.cursor()

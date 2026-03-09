@@ -234,7 +234,7 @@
 ### Local Development
 ```bash
 cd d:\Project\support-portal-edgeworks
-$env:DATABASE_URL = 'postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres'
+$env:DATABASE_URL = 'postgresql+psycopg2://postgres:****************@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres'
 python -m uvicorn main:app --host 0.0.0.0 --port 8001
 ```
 

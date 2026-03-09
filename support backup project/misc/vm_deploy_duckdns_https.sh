@@ -51,7 +51,7 @@ sed -i "s|^COOKIE_SECURE=.*|COOKIE_SECURE=true|" .env
 sed -i "s|^COOKIE_SAMESITE=.*|COOKIE_SAMESITE=lax|" .env
 
 # Database connection (Ensure direct connection is used)
-sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:Tekansaja123@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres|' .env
+sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://postgres:****************@db.wjsaltebtbmnysgcdsoh.supabase.co:5432/postgres|' .env
 
 echo "=== [5/7] Stop & remove old container ==="
 sudo docker stop support-ai 2>/dev/null || true
