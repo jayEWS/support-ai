@@ -6,11 +6,15 @@ set -e
 PROJECT_DIR="support-portal-edgeworks"
 ARCHIVE="support-portal.tar.gz"
 
-echo "📂 Extracting project files..."
-mkdir -p "$PROJECT_DIR"
-tar -xzf "$ARCHIVE" -C "$PROJECT_DIR"
-
-cd "$PROJECT_DIR"
+# 1. Extraction (Skip if archive is missing - e.g. for Git clones)
+if [ -f "$ARCHIVE" ]; then
+    echo "📂 Extracting project files..."
+    mkdir -p "$PROJECT_DIR"
+    tar -xzf "$ARCHIVE" -C "$PROJECT_DIR"
+    cd "$PROJECT_DIR"
+else
+    echo "ℹ️  Archive not found. Assuming files are already in place."
+fi
 
 # FIX CRLF to LF for all script files (crucial for Windows-to-Linux upload)
 echo "🧹 Fixing line endings for scripts..."
