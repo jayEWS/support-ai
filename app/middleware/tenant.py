@@ -72,7 +72,16 @@ class TenantMiddleware(BaseHTTPMiddleware):
         tenant_id = self._resolve_tenant(request)
 
         if not tenant_id:
-            # During migration: fall back to default tenant
+            # In multi-tenant mode, we MUST resolve a tenant unless the path is exempt.
+            # Falling back to 'default' in production SaaS is a security risk.
+            if settings.MULTI_TENANT_ENABLED:
+                logger.warning(f"Tenant resolution failed for {path}. Rejecting request.")
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Tenant identification required (X-Tenant-ID header or valid session)."}
+                )
+            
+            # During migration or single-tenant mode: fall back to default tenant
             tenant_id = DEFAULT_TENANT_ID
             logger.debug(f"No tenant resolved for {path}, using default: {DEFAULT_TENANT_ID}")
 

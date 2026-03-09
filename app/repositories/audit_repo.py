@@ -22,9 +22,10 @@ class AuditRepository(BaseRepository):
         target_id: str,
         details: str = None,
     ):
-        """Log an auditable action."""
+        """Log an auditable action, scoped by tenant."""
         with self.session_scope() as session:
             log = AuditLog(
+                tenant_id=self.tenant_id, # P0 Fix
                 agent_id=agent_id,
                 action=action,
                 target_type=target_type,
@@ -34,11 +35,12 @@ class AuditRepository(BaseRepository):
             session.add(log)
 
     def get_audit_logs(self, page: int = 1, per_page: int = 50) -> List[dict]:
-        """Get recent audit logs with pagination."""
+        """Get recent audit logs for the current tenant with pagination."""
         with self.session_scope() as session:
+            q = session.query(AuditLog)
+            q = self._apply_tenant_filter(q, AuditLog)
             logs = (
-                session.query(AuditLog)
-                .order_by(AuditLog.timestamp.desc())
+                q.order_by(AuditLog.timestamp.desc())
                 .offset((page - 1) * per_page)
                 .limit(per_page)
                 .all()

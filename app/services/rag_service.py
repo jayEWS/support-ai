@@ -19,6 +19,9 @@ class RAGService:
         self._cache = {}
         self._cache_ttl = 3600 # 1 hour
         
+        # P1 Fix: LLM service reference set externally to avoid circular import
+        self._llm_service = None
+        
         # Initialize AdvancedRetriever
         documents = []
         if self.vector_store:
@@ -37,6 +40,10 @@ class RAGService:
         
         self.langfuse_enabled = os.getenv("LANGFUSE_PUBLIC_KEY") is not None
         logger.info(f"[RAGService] Initialized with {type(self.vector_store).__name__}")
+
+    def set_llm_service(self, llm_service):
+        """Set LLM service reference (called from main.py lifespan to avoid circular import)."""
+        self._llm_service = llm_service
 
     @staticmethod
     def _sanitize_text(text: str) -> str:
@@ -132,11 +139,11 @@ class RAGService:
             confidence = retrieval_result.confidence
             
             # 4. LLM using centralized LLMService (Much faster)
-            from main import app
-            llm_svc = getattr(app.state, 'llm_service', None)
+            # P1 Fix: Use injected LLM service instead of circular import from main
+            llm_svc = self._llm_service
             
             if system_prompt:
-                prompt = f"{system_prompt}\n\nDOCUMENT CONTEXT:\n{context}\n\nUSER QUESTION: {text}"
+                prompt = f"{system_prompt}\n\nDOCUMENT CONTEXT:\n{context}\n\nUSER QUESTION: {text}\n\nGenerate your response based on your identity and the context provided above. Be natural and engaging."
             else:
                 prompt = f"Context: {context}\n\nQuestion: {text}\n\nAnswer concisely in {language}:"
             
@@ -149,6 +156,12 @@ class RAGService:
                 llm = self._get_llm()
                 res = await asyncio.wait_for(asyncio.to_thread(llm.invoke, prompt), timeout=15.0)
                 answer = self._sanitize_text(res.content)
+            
+            # Guard against empty LLM responses
+            if not answer or answer.strip() == "":
+                logger.warning(f"LLM returned empty response for query: {text[:50]}")
+                answer = "I'm processing that, but I'm having a bit of trouble finding the right words. Could you rephrase your question?"
+                if language == 'id': answer = "Saya sedang memprosesnya, tetapi saya kesulitan menemukan kata-kata yang tepat. Bisa tolong ulangi pertanyaannya?"
             
             result = RAGResponse(
                 answer=answer, confidence=confidence, 

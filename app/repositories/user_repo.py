@@ -14,9 +14,11 @@ class UserRepository(BaseRepository):
     """Manages portal customer/user records."""
 
     def get_user(self, identifier: str) -> Optional[dict]:
-        """Get a portal user by identifier."""
+        """Get a portal user by identifier, scoped by tenant."""
         with self.session_scope() as session:
-            user = session.query(User).filter_by(identifier=identifier).first()
+            q = session.query(User).filter_by(identifier=identifier)
+            q = self._apply_tenant_filter(q, User)
+            user = q.first()
             if not user:
                 return None
             return {
@@ -36,11 +38,12 @@ class UserRepository(BaseRepository):
             }
 
     def get_all_users(self, page: int = 1, per_page: int = 50) -> List[dict]:
-        """Get all portal users with pagination."""
+        """Get all portal users with pagination, scoped by tenant."""
         with self.session_scope() as session:
+            q = session.query(User)
+            q = self._apply_tenant_filter(q, User)
             users = (
-                session.query(User)
-                .order_by(User.created_at.desc())
+                q.order_by(User.created_at.desc())
                 .offset((page - 1) * per_page)
                 .limit(per_page)
                 .all()
@@ -66,70 +69,55 @@ class UserRepository(BaseRepository):
     def create_or_update_user(
         self,
         identifier: str,
-        name: str = None,
-        company: str = None,
-        position: str = None,
-        outlet_pos: str = None,
-        state: str = "idle",
-        email: str = None,
-        mobile: str = None,
-        outlet_address: str = None,
-        category: str = None,
-        language: str = None,
+        **kwargs
     ) -> dict:
-        """Create or update a portal user."""
+        """Create or update a portal user, tied to current tenant."""
         with self.session_scope() as session:
-            user = session.query(User).filter_by(identifier=identifier).first()
+            q = session.query(User).filter_by(identifier=identifier)
+            q = self._apply_tenant_filter(q, User)
+            user = q.first()
+            
             if not user:
-                # Generate account_id
-                account_id = self._get_next_account_id(session)
-                user = User(
-                    identifier=identifier,
-                    account_id=account_id,
-                    name=name,
-                    company=company,
-                    position=position,
-                    outlet_pos=outlet_pos,
-                    state=state,
-                    email=email,
-                    mobile=mobile,
-                    outlet_address=outlet_address,
-                    category=category,
-                    language=language,
-                )
-                session.add(user)
-                logger.info(f"New user created: {identifier} ({account_id})")
+                user = self._create_new_user(session, identifier, **kwargs)
             else:
-                if name is not None:
-                    user.name = name
-                if company is not None:
-                    user.company = company
-                if position is not None:
-                    user.position = position
-                if outlet_pos is not None:
-                    user.outlet_pos = outlet_pos
-                if state is not None:
-                    user.state = state
-                if email is not None:
-                    user.email = email
-                if mobile is not None:
-                    user.mobile = mobile
-                if outlet_address is not None:
-                    user.outlet_address = outlet_address
-                if category is not None:
-                    user.category = category
-                if language is not None:
-                    user.language = language
+                self._update_user_fields(user, **kwargs)
 
             return self._user_to_dict(user)
 
+    def _create_new_user(self, session, identifier: str, **kwargs) -> User:
+        """Helper to create a new user record."""
+        account_id = self._get_next_account_id(session)
+        user = User(
+            identifier=identifier,
+            tenant_id=self.tenant_id,
+            account_id=account_id,
+        )
+        self._update_user_fields(user, **kwargs)
+        session.add(user)
+        logger.info(f"New user created: {identifier} ({account_id}) in tenant {self.tenant_id}")
+        return user
+
+    def _update_user_fields(self, user: User, **kwargs):
+        """Helper to update user model fields from kwargs."""
+        field_map = {
+            "name": "name", "company": "company", "position": "position",
+            "outlet_pos": "outlet_pos", "state": "state", "email": "email",
+            "mobile": "mobile", "outlet_address": "outlet_address",
+            "category": "category", "language": "language"
+        }
+        for key, value in kwargs.items():
+            if key in field_map and value is not None:
+                setattr(user, field_map[key], value)
+
     def delete_user(self, identifier: str) -> bool:
-        """Delete a portal user."""
+        """Delete a portal user, scoped by tenant."""
         with self.session_scope() as session:
-            user = session.query(User).filter_by(identifier=identifier).first()
+            q = session.query(User).filter_by(identifier=identifier)
+            q = self._apply_tenant_filter(q, User)
+            user = q.first()
             if user:
                 session.delete(user)
-                logger.info(f"User deleted: {identifier}")
+                logger.info(f"User deleted: {identifier} from tenant {self.tenant_id}")
                 return True
             return False
 

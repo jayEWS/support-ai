@@ -5,7 +5,7 @@ Ticket lifecycle operations, extracted from DatabaseManager.
 """
 
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import desc
 from app.repositories.base import BaseRepository
 from app.models.models import Ticket, TicketQueue
@@ -80,12 +80,9 @@ class TicketRepository(BaseRepository):
         """Efficiently check if user has an open ticket (Status != CLOSED)."""
         with self.session_scope() as session:
             # Using the index 'ix_ticket_customer' implicitly via user_id filter
-            ticket = (
-                session.query(Ticket)
-                .filter(Ticket.user_id == user_id, Ticket.status != "CLOSED")
-                .order_by(desc(Ticket.created_at))
-                .first()
-            )
+            q = session.query(Ticket).filter(Ticket.user_id == user_id, Ticket.status != "CLOSED")
+            q = self._apply_tenant_filter(q, Ticket) # P1 Fix: Scoping
+            ticket = q.order_by(desc(Ticket.created_at)).first()
             return self._ticket_to_dict(ticket) if ticket else None
 
     def update_ticket_status(self, ticket_id: int, status: str):
@@ -99,14 +96,16 @@ class TicketRepository(BaseRepository):
                 ticket.modified_at = datetime.now(timezone.utc)
 
     def update_ticket_sla(self, ticket_id: int, priority: str, due_at: datetime = None):
-        """Update ticket SLA priority and due date."""
+        """Update ticket SLA priority and due date, scoped by tenant."""
         with self.session_scope() as session:
-            ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+            q = session.query(Ticket).filter_by(id=ticket_id)
+            q = self._apply_tenant_filter(q, Ticket) # P1 Fix
+            ticket = q.first()
             if ticket:
                 ticket.priority = priority
                 if due_at:
                     ticket.due_at = due_at
-                ticket.modified_at = datetime.utcnow()
+                ticket.modified_at = datetime.now(timezone.utc)
 
     def get_ticket_counts(self) -> dict:
         """Get ticket counts by status, scoped by tenant."""
@@ -128,11 +127,15 @@ class TicketRepository(BaseRepository):
                 session.add(q)
 
     def get_queue(self) -> List[dict]:
-        """Get unassigned queue."""
+        """Get unassigned queue, scoped by tenant (IDOR fix)."""
         with self.session_scope() as session:
+            # TicketQueue itself might need mapping to Ticket to enforce tenant_id
+            # JOIN with Ticket to ensure the ticket belongs to this tenant
             items = (
                 session.query(TicketQueue)
+                .join(Ticket, Ticket.id == TicketQueue.ticket_id)
                 .filter(TicketQueue.assigned_at == None)
+                .filter(Ticket.tenant_id == self.tenant_id) # P1 Fix
                 .order_by(TicketQueue.priority_level.desc(), TicketQueue.queued_at.asc())
                 .all()
             )

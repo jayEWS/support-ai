@@ -102,6 +102,10 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
 
+    # Redis Config (Distributed State)
+    REDIS_URL: str = os.getenv("REDIS_URL", "")
+    REDIS_ENABLED: bool = os.getenv("REDIS_ENABLED", "False").lower() == "true"
+
     DEBUG: bool = False  # Defaults to False (Production) if not set
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

@@ -83,3 +83,4 @@ docker-compose.override.yml
 knowledge.zip
 
 Customer/
+*.tar.gz

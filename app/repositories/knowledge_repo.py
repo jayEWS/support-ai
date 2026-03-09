@@ -21,9 +21,11 @@ class KnowledgeRepository(BaseRepository):
         status: str = "Processing",
         source_url: str = None,
     ):
-        """Save or update knowledge file metadata."""
+        """Save or update knowledge file metadata, scoped by tenant."""
         with self.session_scope() as session:
-            existing = session.query(KnowledgeMetadata).filter_by(filename=filename).first()
+            q = session.query(KnowledgeMetadata).filter_by(filename=filename)
+            q = self._apply_tenant_filter(q, KnowledgeMetadata)
+            existing = q.first()
             if existing:
                 existing.file_path = file_path
                 existing.status = status
@@ -33,6 +35,7 @@ class KnowledgeRepository(BaseRepository):
                     existing.source_url = source_url
             else:
                 meta = KnowledgeMetadata(
+                    tenant_id=self.tenant_id, # P0 Fix
                     filename=filename,
                     file_path=file_path,
                     uploaded_by=uploaded_by,
@@ -42,9 +45,11 @@ class KnowledgeRepository(BaseRepository):
                 session.add(meta)
 
     def get_all_knowledge(self) -> List[dict]:
-        """Get all knowledge file metadata."""
+        """Get all knowledge file metadata for current tenant."""
         with self.session_scope() as session:
-            items = session.query(KnowledgeMetadata).order_by(KnowledgeMetadata.upload_date.desc()).all()
+            q = session.query(KnowledgeMetadata)
+            q = self._apply_tenant_filter(q, KnowledgeMetadata)
+            items = q.order_by(KnowledgeMetadata.upload_date.desc()).all()
             return [
                 {
                     "id": k.id,
@@ -59,16 +64,20 @@ class KnowledgeRepository(BaseRepository):
             ]
 
     def update_knowledge_status(self, filename: str, status: str):
-        """Update indexing status for a knowledge file."""
+        """Update indexing status for a knowledge file, scoped by tenant."""
         with self.session_scope() as session:
-            meta = session.query(KnowledgeMetadata).filter_by(filename=filename).first()
+            q = session.query(KnowledgeMetadata).filter_by(filename=filename)
+            q = self._apply_tenant_filter(q, KnowledgeMetadata)
+            meta = q.first()
             if meta:
                 meta.status = status
 
     def get_knowledge_metadata(self, filename: str) -> Optional[dict]:
-        """Get metadata for a specific knowledge file."""
+        """Get metadata for a specific knowledge file, scoped by tenant."""
         with self.session_scope() as session:
-            k = session.query(KnowledgeMetadata).filter_by(filename=filename).first()
+            q = session.query(KnowledgeMetadata).filter_by(filename=filename)
+            q = self._apply_tenant_filter(q, KnowledgeMetadata)
+            k = q.first()
             if not k:
                 return None
             return {
@@ -81,9 +90,11 @@ class KnowledgeRepository(BaseRepository):
             }
 
     def delete_knowledge_metadata(self, filename: str) -> bool:
-        """Delete knowledge file metadata."""
+        """Delete knowledge file metadata, scoped by tenant."""
         with self.session_scope() as session:
-            meta = session.query(KnowledgeMetadata).filter_by(filename=filename).first()
+            q = session.query(KnowledgeMetadata).filter_by(filename=filename)
+            q = self._apply_tenant_filter(q, KnowledgeMetadata)
+            meta = q.first()
             if meta:
                 session.delete(meta)
                 return True

@@ -9,6 +9,7 @@ from app.services.rag_service import RAGService
 from app.services.prompt_service import prompt_service
 from app.models.models import AIInteraction
 from datetime import datetime, timezone
+from app.services.guardrail_service import guardrail_service
 
 def _sanitize_text(text: str) -> str:
     """Remove invalid surrogate characters that break UTF-8 encoding."""
@@ -146,6 +147,10 @@ class ChatService:
             
             if not query: return {"error": "Message required"}, 400
 
+            # --- Guardrail: Input Validation ---
+            if not guardrail_service.validate_input(query):
+                return {"answer": "I apologize, but your message contains content that I cannot process. Please try asking about your POS system help!", "confidence": 1.0}, 200
+
             db_manager.save_message(user_id, "user", query, attachments=json.dumps([attachment_meta]) if attachment_meta else None)
 
             state_info = self._get_user_state(user_id)
@@ -196,6 +201,11 @@ class ChatService:
             
             # 4. LLM Completion
             answer = _sanitize_text(rag_res.answer)
+            
+            # --- Guardrail: Output Validation ---
+            answer = guardrail_service.validate_output(answer)
+            
+            logger.info(f"ChatService Answer: {answer[:100]} (len={len(answer)})")
             db_manager.save_message(user_id, "bot", answer)
 
             response_data = {

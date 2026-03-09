@@ -4,8 +4,9 @@ Agent Repository
 Agent/admin user operations, extracted from DatabaseManager.
 """
 
-from typing import Optional, List
-from app.repositories.base import BaseRepository
+from datetime import datetime, timezone
+from sqlalchemy import desc
+from app.repositories.base import BaseRepository, TenantContext
 from app.models.models import Agent, AgentPresence, Role, Permission
 from app.core.logging import logger
 
@@ -21,11 +22,14 @@ class AgentRepository(BaseRepository):
         department: str = "Support",
         google_id: str = None,
     ) -> dict:
-        """Create a new agent or return existing."""
+        """Create a new agent or return existing, scoped by tenant."""
         with self.session_scope() as session:
-            agent = session.query(Agent).filter_by(user_id=user_id).first()
+            q = session.query(Agent).filter_by(user_id=user_id)
+            q = self._apply_tenant_filter(q, Agent)
+            agent = q.first()
             if not agent:
                 agent = Agent(
+                    tenant_id=self.tenant_id, # P0 Fix
                     user_id=user_id,
                     name=name or user_id,
                     email=email,
@@ -33,43 +37,47 @@ class AgentRepository(BaseRepository):
                     google_id=google_id,
                 )
                 session.add(agent)
-                logger.info(f"Agent created: {user_id}")
+                logger.info(f"Agent created: {user_id} in tenant {self.tenant_id}")
             return self._agent_to_dict(agent)
 
     def get_agent(self, user_id: str) -> Optional[dict]:
-        """Get agent by username."""
+        """Get agent by username, scoped by tenant."""
         with self.session_scope() as session:
-            agent = session.query(Agent).filter_by(user_id=user_id).first()
-            if not agent:
-                return None
-            return self._agent_to_dict(agent)
+            q = session.query(Agent).filter_by(user_id=user_id)
+            q = self._apply_tenant_filter(q, Agent)
+            agent = q.first()
+            return self._agent_to_dict(agent) if agent else None
 
     def get_agent_by_email(self, email: str) -> Optional[dict]:
-        """Get agent by email."""
+        """Get agent by email, scoped by tenant."""
         with self.session_scope() as session:
-            agent = session.query(Agent).filter_by(email=email).first()
-            if not agent:
-                return None
-            return self._agent_to_dict(agent)
+            q = session.query(Agent).filter_by(email=email)
+            q = self._apply_tenant_filter(q, Agent)
+            agent = q.first()
+            return self._agent_to_dict(agent) if agent else None
 
     def get_agent_by_google_id(self, google_id: str) -> Optional[dict]:
-        """Get agent by Google OAuth ID."""
+        """Get agent by Google OAuth ID, scoped by tenant."""
         with self.session_scope() as session:
-            agent = session.query(Agent).filter_by(google_id=google_id).first()
-            if not agent:
-                return None
-            return self._agent_to_dict(agent)
+            q = session.query(Agent).filter_by(google_id=google_id)
+            q = self._apply_tenant_filter(q, Agent)
+            agent = q.first()
+            return self._agent_to_dict(agent) if agent else None
 
     def get_all_agents(self) -> List[dict]:
-        """Get all agents."""
+        """Get all agents for current tenant."""
         with self.session_scope() as session:
-            agents = session.query(Agent).filter_by(is_active=True).all()
+            q = session.query(Agent).filter_by(is_active=True)
+            q = self._apply_tenant_filter(q, Agent)
+            agents = q.all()
             return [self._agent_to_dict(a) for a in agents]
 
     def update_agent_auth(self, user_id: str, hashed_password: str = None, google_id: str = None):
-        """Update agent authentication credentials."""
+        """Update agent authentication credentials, scoped by tenant."""
         with self.session_scope() as session:
-            agent = session.query(Agent).filter_by(user_id=user_id).first()
+            q = session.query(Agent).filter_by(user_id=user_id)
+            q = self._apply_tenant_filter(q, Agent)
+            agent = q.first()
             if agent:
                 if hashed_password:
                     agent.hashed_password = hashed_password
@@ -77,11 +85,17 @@ class AgentRepository(BaseRepository):
                     agent.google_id = google_id
 
     def update_agent_presence(self, agent_id: str, status: str, active_chat_count: int = None):
-        """Update agent online presence."""
+        """Update agent online presence, scoped by tenant."""
         with self.session_scope() as session:
-            presence = session.query(AgentPresence).filter_by(agent_id=agent_id).first()
+            q = session.query(AgentPresence).filter_by(agent_id=agent_id)
+            q = self._apply_tenant_filter(q, AgentPresence)
+            presence = q.first()
             if not presence:
-                presence = AgentPresence(agent_id=agent_id, status=status)
+                presence = AgentPresence(
+                    tenant_id=self.tenant_id, # P0 Fix
+                    agent_id=agent_id, 
+                    status=status
+                )
                 session.add(presence)
             else:
                 presence.status = status
@@ -89,11 +103,14 @@ class AgentRepository(BaseRepository):
                     presence.active_chat_count = active_chat_count
 
     def get_available_agents(self) -> List[dict]:
-        """Get agents who are currently available."""
+        """Get agents who are currently available in the current tenant."""
         with self.session_scope() as session:
-            results = session.query(Agent, AgentPresence).outerjoin(
+            # Join with Agent to enforce tenant_id
+            q = session.query(Agent, AgentPresence).outerjoin(
                 AgentPresence, Agent.user_id == AgentPresence.agent_id
-            ).filter(Agent.is_active == True).all()
+            ).filter(Agent.is_active == True)
+            q = self._apply_tenant_filter(q, Agent)
+            results = q.all()
             return [
                 {
                     **self._agent_to_dict(a),
@@ -106,9 +123,11 @@ class AgentRepository(BaseRepository):
     # ── RBAC ──────────────────────────────────────────────────────────
 
     def get_agent_effective_permissions(self, username: str) -> List[str]:
-        """Get merged permissions from roles + direct grants."""
+        """Get merged permissions from roles + direct grants, scoped by tenant."""
         with self.session_scope() as session:
-            agent = session.query(Agent).filter_by(user_id=username).first()
+            q = session.query(Agent).filter_by(user_id=username)
+            q = self._apply_tenant_filter(q, Agent)
+            agent = q.first()
             if not agent:
                 return []
             effective = set()
@@ -120,10 +139,16 @@ class AgentRepository(BaseRepository):
             return sorted(effective)
 
     def assign_role_to_agent(self, username: str, role_name: str) -> bool:
-        """Assign a role to an agent."""
+        """Assign a role to an agent, scoped by tenant."""
         with self.session_scope() as session:
-            agent = session.query(Agent).filter_by(user_id=username).first()
-            role = session.query(Role).filter_by(name=role_name).first()
+            q_agent = session.query(Agent).filter_by(user_id=username)
+            q_agent = self._apply_tenant_filter(q_agent, Agent)
+            agent = q_agent.first()
+            
+            q_role = session.query(Role).filter_by(name=role_name)
+            q_role = self._apply_tenant_filter(q_role, Role)
+            role = q_role.first()
+            
             if agent and role and role not in agent.roles:
                 agent.roles.append(role)
                 return True

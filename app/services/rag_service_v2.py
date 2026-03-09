@@ -63,7 +63,14 @@ class RAGServiceV2:
         )
         self.langfuse_enabled = os.getenv("LANGFUSE_PUBLIC_KEY") is not None
         doc_count = len(self.all_documents) if self.all_documents else 0
+        self._llm_service = None # P1 Fix: Circular dependency fix
         logger.info(f"[RAGServiceV2] Initialized — {doc_count} documents")
+
+    def set_llm_service(self, llm_service):
+        """Set LLM service reference (called from main.py lifespan to avoid circular import)."""
+        self._llm_service = llm_service
+        if llm_service and llm_service.llm:
+            self.query_engine.set_llm(llm_service.llm)
 
     def _init_embeddings(self):
         try:
@@ -104,8 +111,8 @@ class RAGServiceV2:
             return []
 
     def _get_llm(self):
-        from main import app
-        llm_svc = getattr(app.state, 'llm_service', None)
+        # P1 Fix: Use injected service instead of app.state from circular import
+        llm_svc = self._llm_service
         if llm_svc and llm_svc.llm:
             self.query_engine.set_llm(llm_svc.llm)
             return llm_svc.llm

@@ -29,7 +29,10 @@ AI_SEMAPHORE = asyncio.Semaphore(10)
 def _require_db():
     """Guard: raises 503 if DB is unavailable so app still boots and serves non-DB routes."""
     if db_manager is None:
-        raise HTTPException(status_code=503, detail="Database unavailable. Please check DATABASE_URL and DB server connectivity.")
+        raise HTTPException(
+            status_code=503, 
+            detail="Database unavailable. Please check DATABASE_URL and DB server connectivity."
+        )
     return db_manager
 
 # ============ RATE LIMITING SETUP ============
@@ -71,6 +74,7 @@ from app.services.ticket_service import TicketService
 from app.services.escalation_service import EscalationService
 from app.services.chat_service import ChatService
 from app.services.websocket_manager import manager, portal_manager
+from app.services.guardrail_service import guardrail_service
 from app.webhook.whatsapp import WhatsAppWebhookService
 
 # Background Services
@@ -167,15 +171,16 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(timezone.utc)
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # Initialize Core LLM Service FIRST
+# --- Startup Helper Functions to Reduce Lifespan Complexity ---
+
+async def _init_ai_services(app: FastAPI):
+    """Initialize LLM, RAG and Intent services."""
     try:
         app.state.llm_service = LLMService()
     except Exception as e:
         logger.error(f"Failed to init LLMService: {e}")
         app.state.llm_service = None
 
-    # Initialize Intent Service with the LLM Service
     try:
         app.state.intent_service = IntentService(llm_service=app.state.llm_service)
     except Exception as e:
@@ -184,18 +189,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     try:
         app.state.rag_service = RAGService()
+        if app.state.llm_service:
+            app.state.rag_service.set_llm_service(app.state.llm_service)
     except Exception as e:
         logger.error(f"Failed to init RAGService: {e}")
         app.state.rag_service = None
     
-    # Initialize Shopify-inspired Advanced RAG Service (V2)
     try:
         app.state.rag_service_v2 = RAGServiceV2()
+        if app.state.llm_service:
+            app.state.rag_service_v2.set_llm_service(app.state.llm_service)
         logger.info("[OK] RAGServiceV2 (Shopify-grade) initialized")
     except Exception as e:
         logger.error(f"Failed to init RAGServiceV2: {e}")
         app.state.rag_service_v2 = None
-    
+
+async def _init_business_services(app: FastAPI):
+    """Initialize Customer, Ticket, and Escalation services."""
     try:
         app.state.customer_service = CustomerService()
     except Exception as e:
@@ -213,27 +223,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         logger.error(f"Failed to init EscalationService: {e}")
         app.state.escalation_service = None
-    
-    # Initialize GCS Service (Phase 2)
+
     try:
         from app.services.gcs_service import init_gcs_service
         app.state.gcs_service = init_gcs_service()
     except Exception as e:
         logger.warning(f"GCS Service init skipped: {e}")
         app.state.gcs_service = None
-    
-    # Initialize ChatService with stable RAGService
+
     try:
         app.state.chat_service = ChatService(rag_service=app.state.rag_service)
-        logger.info("[OK] ChatService standardized on stable RAGService")
     except Exception as e:
         logger.error(f"Failed to init ChatService: {e}")
         app.state.chat_service = None
-    
-    # RAGEngine was merged into RAGService - no longer needed here
-    app.state.rag_engine = None
-    
-    # ── SaaS Repository Layer ──
+
+async def _init_saas_layer(app: FastAPI):
+    """Initialize SaaS repositories and tables."""
     try:
         if db_manager:
             app.state.tenant_repo = TenantRepository(db_manager.Session)
@@ -243,51 +248,119 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 ai_log_repo=app.state.ai_log_repo,
                 usage_repo=app.state.usage_repo,
             )
-            logger.info("SaaS repositories initialized (tenant, usage, AI observability).")
             
-            # Create SaaS tables if they don't exist
             try:
                 from app.models.tenant_models import Base as TenantBase
                 TenantBase.metadata.create_all(db_manager.engine)
-                logger.info("SaaS tables verified/created.")
+                logger.debug("SaaS tables verified.")
             except Exception as e:
                 logger.warning(f"SaaS table creation skipped: {e}")
-        else:
-            app.state.tenant_repo = None
-            app.state.usage_repo = None
-            app.state.ai_log_repo = None
-            app.state.ai_observability = None
     except Exception as e:
-        logger.warning(f"SaaS layer init error (non-fatal): {e}")
-        app.state.tenant_repo = None
-        app.state.usage_repo = None
-        app.state.ai_log_repo = None
-        app.state.ai_observability = None
+        logger.warning(f"SaaS layer init error: {e}")
 
-    # 🚀 Start autonomous background workers (Powered Mode)
+async def _start_background_tasks(app: FastAPI):
+    """Activate foreground and background workers and store references."""
+    app.state.background_tasks = set()
     try:
-        asyncio.create_task(sla_service.monitor_breaches())
-        asyncio.create_task(routing_service.process_queue())
+        from app.services.backup_service import backup_service
         
-        # P1 Fix: Daily Token Cleanup to prevent DB bloat
+        sla_task = asyncio.create_task(sla_service.monitor_breaches())
+        app.state.background_tasks.add(sla_task)
+        
+        routing_task = asyncio.create_task(routing_service.process_queue())
+        app.state.background_tasks.add(routing_task)
+        
+        backup_task = asyncio.create_task(backup_service.schedule())
+        app.state.background_tasks.add(backup_task)
+        
         async def periodic_db_cleanup():
             while True:
-                await asyncio.sleep(86400) # Every 24 hours
+                await asyncio.sleep(86400 * 0.9)
                 if db_manager:
-                    logger.info("Running periodic database cleanup...")
                     db_manager._cleanup_expired_tokens()
         
-        asyncio.create_task(periodic_db_cleanup())
+        cleanup_task = asyncio.create_task(periodic_db_cleanup())
+        app.state.background_tasks.add(cleanup_task)
         
-        logger.info("🔥 Autonomous SLA, Routing, and Cleanup workers activated.")
+        logger.info(f"Background workers started ({len(app.state.background_tasks)} tasks).")
     except Exception as e:
-        logger.error(f"Failed to start background workers: {e}")
+        logger.error(f"Background workers failed: {e}")
+
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    # 1. AI Stack
+    await _init_ai_services(app)
     
-    logger.info("All services and background workers initialized.")
+    # 2. Business Logic
+    await _init_business_services(app)
+    
+    # 3. SaaS Layer
+    await _init_saas_layer(app)
+    
+    # 4. Redis (Distributed State)
+    try:
+        from app.core.redis import redis_service
+        await redis_service.connect()
+        if redis_service.enabled:
+            manager.set_redis(redis_service)
+            portal_manager.set_redis(redis_service)
+            
+            async def _redis_ws_listener():
+                async with redis_service.client.pubsub() as pubsub:
+                    await pubsub.subscribe("ws_broadcast", "ws_portal_broadcast")
+                    try:
+                        async for message in pubsub.listen():
+                            if message["type"] == "message":
+                                try:
+                                    data = json.loads(message["data"])
+                                    if message["channel"] == "ws_broadcast":
+                                        await manager._handle_redis_message(data)
+                                    elif message["channel"] == "ws_portal_broadcast":
+                                        await portal_manager._handle_redis_message(data)
+                                except Exception: pass
+                    except Exception: pass
+            
+            app.state.redis_ws_task = asyncio.create_task(_redis_ws_listener())
+    except Exception: pass
+
+    # 5. Workers
+    await _start_background_tasks(app)
+    
+    logger.info("🔥 Support Portal Engine fully operational.")
     yield
     # Cleanup
 
 app = FastAPI(title="Support Portal Edgeworks", lifespan=lifespan)
+
+# --- Security & Observability Middleware (Phase 10) ---
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
+
+from app.core.middleware import CustomCSRFMiddleware, CorrelationIDMiddleware, SecurityHeadersMiddleware
+
+# 1. Tracing First
+app.add_middleware(CorrelationIDMiddleware)
+# 2. Security Headers
+app.add_middleware(SecurityHeadersMiddleware)
+# 3. Rate Limiting
+app.add_middleware(SlowAPIMiddleware)
+# 4. CSRF
+app.add_middleware(CustomCSRFMiddleware)
+
+# Phase 10: Production Global Error Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Mask raw traces in production, provide structured logging."""
+    logger.error(f"UNHANDLED ERROR: {exc}", exc_info=True)
+    if settings.DEBUG:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": str(exc), "trace": "Raw traceback visible in DEBUG mode only"}
+        )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred. Please contact support."}
+    )
 
 # Add CORS Middleware - MUST be configured correctly for production
 # Security: reject wildcard "*" patterns — require explicit origins
@@ -332,7 +405,62 @@ templates = Jinja2Templates(directory="templates")
 os.makedirs(os.path.join("data", "uploads", "chat"), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=os.path.join("data", "uploads")), name="uploads")
 
-# ============ UI Routes ============
+# ============ Health Check ============
+
+@app.get("/health")
+async def health_check():
+    """Liveness & Readiness probe for monitoring/load balancers."""
+    health = {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "services": {
+            "database": "unknown",
+            "redis": "disabled",
+            "ai": "unknown"
+        }
+    }
+    
+    # 1. Check Database
+    try:
+        if db_manager:
+            from sqlalchemy import text
+            with db_manager.engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            health["services"]["database"] = "up"
+        else:
+            health["services"]["database"] = "down"
+            health["status"] = "degraded"
+    except Exception as e:
+        health["services"]["database"] = f"down: {str(e)}"
+        health["status"] = "degraded"
+
+    # 2. Check Redis
+    try:
+        from app.core.redis import redis_service
+        if redis_service.enabled:
+            await redis_service.client.ping()
+            health["services"]["redis"] = "up"
+        else:
+            health["services"]["redis"] = "disabled"
+    except Exception:
+        health["services"]["redis"] = "down"
+        health["status"] = "degraded"
+
+    # 3. Check AI Service (Gemini/Vertex)
+    try:
+        if app.state.llm_service:
+            # Simple metadata check, don't trigger actual generation to save cost
+            health["services"]["ai"] = "configured"
+        else:
+            health["services"]["ai"] = "missing"
+    except Exception:
+        health["services"]["ai"] = "error"
+
+    if health["status"] != "healthy":
+        return JSONResponse(content=health, status_code=503)
+    return health
+
+# ============ Static Content ============
 
 @app.get("/", response_class=HTMLResponse)
 async def portal_dashboard(request: Request):
@@ -368,7 +496,7 @@ async def user_portal(request: Request):
 # ============ Auth APIs ============
 
 @app.post("/api/auth/login")
-@limiter.limit("5/minute")  # Prevent brute force
+@limiter.limit("10/minute")
 async def login(request: Request):
     try:
         data = await request.json()
@@ -682,7 +810,7 @@ async def google_login_token(request: Request):
 
 # ============ MAGIC LINK LOGIN ============
 @app.post("/api/auth/magic-link/request")
-@limiter.limit("3/minute")
+@limiter.limit("5/minute")
 async def request_magic_link(request: Request, background_tasks: BackgroundTasks):
     """Request a magic link login"""
     try:
@@ -769,9 +897,9 @@ async def verify_magic_link(token: str, email: str, request: Request):
         
         db.log_action(agent["user_id"], "login_magic_link", "agent", agent["user_id"])
         
-        # Redirect to login page with token in URL so JS can store it and go to /admin
+        # Security Fix P0-2: Do NOT expose access_token in URL query string.
+        # Tokens are set via secure HTTP-only cookies instead (matching Google OAuth fix C9).
         qs = _up.urlencode({
-            "access_token": access_token,
             "role": agent.get("role", "agent"),
             "name": agent.get("name", agent["user_id"]),
         })
@@ -832,17 +960,24 @@ async def whatsapp_webhook_verify(request: Request):
         logger.info(f"✅ WhatsApp webhook verified successfully")
         return PlainTextResponse(challenge)
     
-    # Fallback for health checks
-    if "challenge" in params:
-        return PlainTextResponse(params["challenge"])
+    # Security Fix P0-4: Removed unsafe fallback that echoed any challenge without token validation.
+    # This was a bypass vulnerability — attackers could register arbitrary webhook URLs.
     
-    logger.warning(f"❌ WhatsApp webhook verification failed. mode={mode}, token={token}")
-    return {"status": "ok", "message": "WhatsApp webhook is active"}
+    logger.warning(f"❌ WhatsApp webhook verification failed. mode={mode}, token_provided={'yes' if token else 'no'}")
+    raise HTTPException(status_code=403, detail="Webhook verification failed")
 
 @app.post("/webhook/whatsapp")
 @limiter.limit("30/minute")
 async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     trace_id = set_trace_id()
+    
+    # Security Fix P0-3: Validate webhook signature BEFORE processing payload.
+    # This prevents attackers from sending forged webhook payloads to trigger AI responses.
+    raw_body = await request.body()
+    signature = request.headers.get("X-Hub-Signature-256", "")
+    if not WhatsAppWebhookService.validate_signature(raw_body, signature):
+        logger.warning(f"[SECURITY] WhatsApp webhook signature validation FAILED")
+        raise HTTPException(status_code=403, detail="Invalid webhook signature")
     
     try:
         message = await WhatsAppWebhookService.normalize_payload(request)
@@ -871,6 +1006,13 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
             # save_whatsapp_message returns None on IntegrityError (duplicate)
             logger.warning(f"Duplicate message detected at save time: {message.message_id}")
             return {"status": "duplicate", "message_id": message.message_id}
+
+        # --- Guardrail: Input Validation ---
+        if not guardrail_service.validate_input(message.text):
+            # Send a safe rejection message
+            from app.adapters.whatsapp_meta import send_whatsapp_message
+            await send_whatsapp_message(message.sender, "I apologize, but I cannot process that request. Please ask about POS support.")
+            return {"status": "blocked", "reason": "guardrail_violation"}
 
     customer = await app.state.customer_service.get_or_register_customer(message.sender)
     
@@ -904,6 +1046,9 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
             if rag_res.confidence < 0.5:
                 response_text = await app.state.escalation_service.escalate(customer.identifier, f"Low Confidence", message.text)
             else: response_text = rag_res.answer
+
+        # --- Guardrail: Output Validation ---
+        response_text = guardrail_service.validate_output(response_text)
 
         if customer.is_new and state_info['state'] == 'complete':
             response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
@@ -1293,47 +1438,62 @@ async def convert_whatsapp_to_ticket(data: dict, agent: Annotated[dict, Depends(
 # WebSockets moved to app/routes/websocket_routes.py
 
 
-@app.get("/health")
+@app.get("/health", responses={503: {"description": "Service Unavailable"}})
 async def health():
-    health_data = {"status": "ok"}
+    """Liveness & Readiness probe for monitoring/load balancers."""
+    health_data = {
+        "status": "ok",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "1.2.0-prod",
+        "trace_id": get_trace_id()
+    }
     
-    # Database connection check
+    # 1. Database connection check
     try:
         if db_manager:
             from sqlalchemy import text as sa_text
-            session = db_manager.get_session()
-            session.execute(sa_text("SELECT 1"))
-            db_manager.Session.remove()
+            with db_manager.Session() as session:
+                session.execute(sa_text("SELECT 1"))
             health_data["database"] = "connected"
         else:
             health_data["database"] = "unavailable"
     except Exception as e:
-        health_data["database"] = f"error: {str(e)[:50]}"
+        health_data["database"] = f"error: {str(e)[:100]}"
+        health_data["status"] = "degraded"
     
-    # Active connections
-    from app.services.websocket_manager import portal_manager
-    health_data["active_ws_users"] = len(portal_manager.connections)
+    # 2. Active connections
+    from app.services.websocket_manager import portal_manager, manager
+    health_data["connectivity"] = {
+        "admin_ws": len(manager.connections),
+        "portal_ws": len(portal_manager.connections),
+    }
     
-    # Phase 2: Include GCS status
+    # 3. Cloud Services status
     try:
         from app.services.gcs_service import get_gcs_service
         gcs = get_gcs_service()
-        health_data["gcs"] = {"enabled": gcs.enabled, "bucket": settings.GCS_BUCKET_NAME if gcs.enabled else None}
+        health_data["gcs"] = {
+            "enabled": gcs.enabled, 
+            "bucket": settings.GCS_BUCKET_NAME if gcs.enabled else None
+        }
     except Exception:
         health_data["gcs"] = {"enabled": False}
     
-    # SaaS status
+    # 4. SaaS Infrastructure status
     health_data["saas"] = {
         "multi_tenant": getattr(settings, "MULTI_TENANT_ENABLED", False),
         "plan_enforcement": getattr(settings, "PLAN_ENFORCEMENT_ENABLED", False),
         "ai_observability": getattr(settings, "AI_OBSERVABILITY_ENABLED", True),
         "repositories": {
-            "tenant": app.state.tenant_repo is not None if hasattr(app.state, "tenant_repo") else False,
-            "usage": app.state.usage_repo is not None if hasattr(app.state, "usage_repo") else False,
-            "ai_log": app.state.ai_log_repo is not None if hasattr(app.state, "ai_log_repo") else False,
+            "tenant": hasattr(app.state, "tenant_repo") and app.state.tenant_repo is not None,
+            "usage": hasattr(app.state, "usage_repo") and app.state.usage_repo is not None,
+            "ai_log": hasattr(app.state, "ai_log_repo") and app.state.ai_log_repo is not None,
         }
     }
     
+    if health_data["status"] != "ok":
+        return JSONResponse(status_code=503, content=health_data)
+        
     return health_data
 
 # ============ SPA Catch-all (MUST be last route) ============

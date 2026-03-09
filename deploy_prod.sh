@@ -34,7 +34,18 @@ fi
 
 # 5. Build and Launch
 echo "🔥 Launching Containers (WAL Mode Enabled)..."
-sudo docker compose -f docker-compose.prod.yml up --build -d
+
+# Detect Docker Compose version (V1 vs V2)
+if docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+elif docker-compose --version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    echo "❌ ERROR: Docker Compose not found! Please install it."
+    exit 1
+fi
+
+sudo $DOCKER_COMPOSE -f docker-compose.prod.yml up --build -d
 
 echo "✅ DEPLOYMENT COMPLETE!"
 echo "Your API is running on port 8001 (Internal: 8000)."

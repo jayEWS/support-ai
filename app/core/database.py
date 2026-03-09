@@ -55,6 +55,17 @@ class DatabaseManager:
     def _init_db(self):
         """Create all tables if they don't exist."""
         try:
+            # P0 Fix: Create 'app' schema for SQL Server if it doesn't exist
+            if IS_MSSQL:
+                from sqlalchemy import text
+                with self.engine.connect() as conn:
+                    try:
+                        conn.execute(text("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'app') EXEC('CREATE SCHEMA [app]')"))
+                        conn.commit()
+                        logger.info("SQL Server 'app' schema verified/created.")
+                    except Exception as schema_err:
+                        logger.warning(f"Could not create 'app' schema (might already exist or permission issue): {schema_err}")
+
             Base.metadata.create_all(self.engine)
             db_label = "PostgreSQL" if IS_POSTGRES else "SQL Server" if IS_MSSQL else "SQLite"
             logger.info(f"{db_label} database tables verified/created.")

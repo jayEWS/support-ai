@@ -6,7 +6,7 @@ AI interaction observability: quality monitoring, cost tracking, hallucination d
 
 import time
 from typing import Optional, List, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, desc
 from app.repositories.base import BaseRepository
 from app.models.tenant_models import AIInteractionLog
@@ -18,55 +18,28 @@ class AILogRepository(BaseRepository):
 
     def log_interaction(
         self,
-        tenant_id: str,
-        user_id: str = None,
-        ticket_id: int = None,
-        query: str = None,
-        response: str = None,
-        tokens_input: int = 0,
-        tokens_output: int = 0,
-        confidence_score: float = None,
-        escalation_flag: bool = False,
-        hallucination_flag: bool = False,
-        retrieval_method: str = None,
-        latency_ms: int = None,
-        cost_usd: float = None,
-        model_name: str = None,
-        language: str = None,
+        tenant_id: str = None,
+        **kwargs
     ) -> int:
-        """Log a single AI interaction. Returns interaction_id."""
+        """Log a single AI interaction, scoped by tenant."""
         with self.session_scope() as session:
+            effective_tenant_id = tenant_id or self.tenant_id
             log = AIInteractionLog(
-                tenant_id=tenant_id,
-                user_id=user_id,
-                ticket_id=ticket_id,
-                query=query,
-                response=response,
-                tokens_input=tokens_input,
-                tokens_output=tokens_output,
-                tokens_total=tokens_input + tokens_output,
-                confidence_score=confidence_score,
-                escalation_flag=escalation_flag,
-                hallucination_flag=hallucination_flag,
-                retrieval_method=retrieval_method,
-                latency_ms=latency_ms,
-                cost_usd=cost_usd,
-                model_name=model_name,
-                language=language,
+                tenant_id=effective_tenant_id,
+                **kwargs
             )
             session.add(log)
             session.flush()
             return log.id
 
-    def get_ai_metrics(self, tenant_id: str, days: int = 30) -> Dict:
+    def get_ai_metrics(self, tenant_id: str = None, days: int = 30) -> Dict:
         """
-        Get aggregated AI quality metrics for a tenant.
-        Returns: avg confidence, escalation rate, avg latency, total tokens, total cost, etc.
+        Get aggregated AI quality metrics for current tenant.
         """
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(timezone.utc) - timedelta(days=days)
         with self.session_scope() as session:
             q = session.query(AIInteractionLog).filter(
-                AIInteractionLog.tenant_id == tenant_id,
+                AIInteractionLog.tenant_id == (tenant_id or self.tenant_id),
                 AIInteractionLog.created_at >= since,
             )
 
@@ -88,14 +61,12 @@ class AILogRepository(BaseRepository):
                 func.avg(AIInteractionLog.latency_ms),
                 func.sum(AIInteractionLog.tokens_total),
                 func.sum(AIInteractionLog.cost_usd),
-                func.sum(func.cast(AIInteractionLog.escalation_flag, type_=func.integer if hasattr(func, 'integer') else None)),
-                func.sum(func.cast(AIInteractionLog.hallucination_flag, type_=func.integer if hasattr(func, 'integer') else None)),
             ).filter(
-                AIInteractionLog.tenant_id == tenant_id,
+                AIInteractionLog.tenant_id == (tenant_id or self.tenant_id),
                 AIInteractionLog.created_at >= since,
             ).first()
 
-            # Count escalations and hallucinations manually for compatibility
+            # Count escalations and hallucinations manually
             escalations = q.filter(AIInteractionLog.escalation_flag == True).count()
             hallucinations = q.filter(AIInteractionLog.hallucination_flag == True).count()
 
@@ -110,16 +81,12 @@ class AILogRepository(BaseRepository):
                 "period_days": days,
             }
 
-    def get_recent_interactions(self, tenant_id: str, limit: int = 20) -> List[dict]:
-        """Get recent AI interactions for debugging/monitoring."""
+    def get_recent_interactions(self, tenant_id: str = None, limit: int = 20) -> List[dict]:
+        """Get recent AI interactions for current tenant."""
         with self.session_scope() as session:
-            logs = (
-                session.query(AIInteractionLog)
-                .filter_by(tenant_id=tenant_id)
-                .order_by(desc(AIInteractionLog.created_at))
-                .limit(limit)
-                .all()
-            )
+            q = session.query(AIInteractionLog)
+            q = q.filter_by(tenant_id=tenant_id or self.tenant_id)
+            logs = q.order_by(desc(AIInteractionLog.created_at)).limit(limit).all()
             return [
                 {
                     "id": l.id,
@@ -135,13 +102,12 @@ class AILogRepository(BaseRepository):
                 for l in logs
             ]
 
-    def get_low_confidence_interactions(self, tenant_id: str, threshold: float = 0.5, limit: int = 20) -> List[dict]:
-        """Get interactions with low confidence scores (potential quality issues)."""
+    def get_low_confidence_interactions(self, tenant_id: str = None, threshold: float = 0.5, limit: int = 20) -> List[dict]:
+        """Get interactions with low confidence scores for current tenant."""
         with self.session_scope() as session:
             logs = (
-                session.query(AIInteractionLog)
-                .filter(
-                    AIInteractionLog.tenant_id == tenant_id,
+                session.query(AIInteractionLog).filter(
+                    AIInteractionLog.tenant_id == (tenant_id or self.tenant_id),
                     AIInteractionLog.confidence_score != None,
                     AIInteractionLog.confidence_score < threshold,
                 )

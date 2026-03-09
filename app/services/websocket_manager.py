@@ -15,6 +15,18 @@ class ConnectionManager:
         self.session_participants: Dict[int, dict] = {}
         # Map of user_id -> typing flag (for tracking who's typing)
         self.typing_users: Dict[str, dict] = {}
+        self.redis_service = None
+
+    def set_redis(self, redis_service):
+        """Enable distributed broadcasting via Redis."""
+        self.redis_service = redis_service
+
+    async def _handle_redis_message(self, data: dict):
+        """Handle broadast received from Redis."""
+        session_id = data.get("session_id")
+        msg_payload = data.get("payload")
+        if session_id and msg_payload:
+            await self._local_broadcast(int(session_id), msg_payload)
 
     async def connect(self, session_id: int, user_id: str, user_type: str, websocket: WebSocket):
         """Register a new WebSocket connection for a chat session."""
@@ -55,7 +67,20 @@ class ConnectionManager:
         logger.info(f"Connection disconnected from session {session_id}")
 
     async def broadcast(self, session_id: int, data: dict, exclude_websocket: WebSocket = None):
-        """Broadcast a message to all users in a session."""
+        """Broadcast a message to all users in a session (Distributed)."""
+        # 1. Local broadcast
+        await self._local_broadcast(session_id, data, exclude_websocket)
+        
+        # 2. Redis broadcast to other instances
+        if self.redis_service and self.redis_service.enabled:
+            await self.redis_service.publish("ws_broadcast", {
+                "type": "connection_manager",
+                "session_id": session_id,
+                "payload": data
+            })
+
+    async def _local_broadcast(self, session_id: int, data: dict, exclude_websocket: WebSocket = None):
+        """Helper for local-only broadcast."""
         if session_id not in self.active_connections:
             return
         
@@ -169,6 +194,24 @@ class PortalConnectionManager:
         self.connections: Dict[str, Set[WebSocket]] = {}
         # Map of user_id -> set of admin WebSocket connections watching this chat
         self.admin_watchers: Dict[str, Set[WebSocket]] = {}
+        self.redis_service = None
+
+    def set_redis(self, redis_service):
+        """Enable distributed broadcasting via Redis."""
+        self.redis_service = redis_service
+
+    async def _handle_redis_message(self, data: dict):
+        """Handle broadcast received from Redis."""
+        msg_type = data.get("msg_type")
+        user_id = data.get("user_id")
+        payload = data.get("payload")
+        
+        if msg_type == "to_user":
+            await self._local_send_to_user(user_id, payload)
+        elif msg_type == "to_admins":
+            await self._local_send_to_admins(user_id, payload)
+        elif msg_type == "to_all_admins":
+            await self._local_broadcast_to_all_admins(payload)
 
     async def connect_user(self, user_id: str, websocket: WebSocket):
         """Register a customer portal WebSocket connection."""
@@ -202,7 +245,16 @@ class PortalConnectionManager:
                 del self.admin_watchers[user_id]
 
     async def send_to_user(self, user_id: str, data: dict):
-        """Send a message to a specific portal user."""
+        """Send a message to a specific portal user (Distributed)."""
+        await self._local_send_to_user(user_id, data)
+        if self.redis_service and self.redis_service.enabled:
+            await self.redis_service.publish("ws_portal_broadcast", {
+                "msg_type": "to_user",
+                "user_id": user_id,
+                "payload": data
+            })
+
+    async def _local_send_to_user(self, user_id: str, data: dict):
         if user_id not in self.connections:
             return
         message = json.dumps(data)
@@ -216,7 +268,16 @@ class PortalConnectionManager:
             self.connections[user_id].discard(ws)
 
     async def send_to_admins(self, user_id: str, data: dict):
-        """Send a message to all admins watching a user's chat."""
+        """Send a message to all admins watching a user's chat (Distributed)."""
+        await self._local_send_to_admins(user_id, data)
+        if self.redis_service and self.redis_service.enabled:
+            await self.redis_service.publish("ws_portal_broadcast", {
+                "msg_type": "to_admins",
+                "user_id": user_id,
+                "payload": data
+            })
+
+    async def _local_send_to_admins(self, user_id: str, data: dict):
         if user_id not in self.admin_watchers:
             return
         message = json.dumps(data)
@@ -230,7 +291,15 @@ class PortalConnectionManager:
             self.admin_watchers[user_id].discard(ws)
 
     async def broadcast_to_all_admins(self, data: dict):
-        """Send a message to ALL connected admin watchers (e.g., new chat notification)."""
+        """Send a message to ALL connected admin watchers (Distributed)."""
+        await self._local_broadcast_to_all_admins(data)
+        if self.redis_service and self.redis_service.enabled:
+            await self.redis_service.publish("ws_portal_broadcast", {
+                "msg_type": "to_all_admins",
+                "payload": data
+            })
+
+    async def _local_broadcast_to_all_admins(self, data: dict):
         message = json.dumps(data)
         for user_id in list(self.admin_watchers.keys()):
             dead = []

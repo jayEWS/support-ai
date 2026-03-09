@@ -5,8 +5,7 @@ Portal messages, live chat sessions, and chat messages.
 Extracted from DatabaseManager.
 """
 
-from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import desc
 from app.repositories.base import BaseRepository
 from app.models.models import Message, ChatSession, ChatMessage, User
@@ -19,16 +18,24 @@ class MessageRepository(BaseRepository):
     # ── Portal Messages ───────────────────────────────────────────────
 
     def save_message(self, user_id: str, role: str, content: str, attachments: str = None):
-        """Save a portal chat message."""
+        """Save a portal chat message, scoped by tenant."""
         with self.session_scope() as session:
-            # Ensure user exists
-            user = session.query(User).filter_by(identifier=user_id).first()
+            # P1 Fix: Ensure user lookup is tenant-scoped
+            q_user = session.query(User).filter_by(identifier=user_id)
+            q_user = self._apply_tenant_filter(q_user, User)
+            user = q_user.first()
             if not user:
-                user = User(identifier=user_id, name=f"User {user_id[-4:]}", state="idle")
+                user = User(
+                    tenant_id=self.tenant_id, 
+                    identifier=user_id, 
+                    name=f"User {user_id[-4:]}", 
+                    state="idle"
+                )
                 session.add(user)
                 session.flush()
 
             msg = Message(
+                tenant_id=self.tenant_id, # P0 Fix
                 user_id=user_id,
                 role=role,
                 content=content,
@@ -37,12 +44,12 @@ class MessageRepository(BaseRepository):
             session.add(msg)
 
     def get_messages(self, user_id: str, limit: int = 100) -> List[dict]:
-        """Get portal messages for a user."""
+        """Get portal messages for a user, scoped by tenant."""
         with self.session_scope() as session:
+            q = session.query(Message).filter_by(user_id=user_id)
+            q = self._apply_tenant_filter(q, Message)
             msgs = (
-                session.query(Message)
-                .filter_by(user_id=user_id)
-                .order_by(Message.timestamp.asc())
+                q.order_by(Message.timestamp.asc())
                 .limit(limit)
                 .all()
             )
@@ -58,16 +65,19 @@ class MessageRepository(BaseRepository):
             ]
 
     def clear_messages(self, user_id: str):
-        """Clear all portal messages for a user."""
+        """Clear all portal messages for a user, scoped by tenant."""
         with self.session_scope() as session:
-            session.query(Message).filter_by(user_id=user_id).delete()
+            q = session.query(Message).filter_by(user_id=user_id)
+            q = self._apply_tenant_filter(q, Message)
+            q.delete(synchronize_session=False)
 
     # ── Live Chat Sessions ────────────────────────────────────────────
 
     def create_chat_session(self, ticket_id: int, agent_id: str, customer_id: str) -> int:
-        """Create a live chat session. Returns session_id."""
+        """Create a live chat session, scoped by tenant."""
         with self.session_scope() as session:
             cs = ChatSession(
+                tenant_id=self.tenant_id, # P0 Fix
                 ticket_id=ticket_id,
                 agent_id=agent_id,
                 customer_id=customer_id,
@@ -77,11 +87,13 @@ class MessageRepository(BaseRepository):
             return cs.id
 
     def close_chat_session(self, session_id: int):
-        """Close a live chat session."""
+        """Close a live chat session, scoped by tenant."""
         with self.session_scope() as session:
-            cs = session.query(ChatSession).filter_by(id=session_id).first()
+            q = session.query(ChatSession).filter_by(id=session_id)
+            q = self._apply_tenant_filter(q, ChatSession)
+            cs = q.first()
             if cs:
-                cs.ended_at = datetime.utcnow()
+                cs.ended_at = datetime.now(timezone.utc)
 
     def save_chat_message(
         self,
@@ -103,8 +115,14 @@ class MessageRepository(BaseRepository):
             session.add(msg)
 
     def get_chat_history(self, session_id: int, limit: int = 50) -> List[dict]:
-        """Get chat history for a live session."""
+        """Get chat history for a live session, scoped by tenant."""
         with self.session_scope() as session:
+            # Filter ChatSession by tenant first to prevent leakage via session_id
+            session_check = session.query(ChatSession).filter_by(id=session_id)
+            session_check = self._apply_tenant_filter(session_check, ChatSession)
+            if not session_check.first():
+                return []
+
             msgs = (
                 session.query(ChatMessage)
                 .filter_by(session_id=session_id)

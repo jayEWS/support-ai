@@ -138,6 +138,8 @@ async def portal_websocket(websocket: WebSocket, user_id: str):
         await websocket.close(code=4003)
         return
     
+    # Security Fix P0-1: Get existing connections from portal_manager (was undefined 'existing' → NameError)
+    existing = portal_manager.connections.get(user_id, set())
     if len(existing) >= 5:
         logger.warning(f"[SECURITY] WebSocket flood: {user_id} already has {len(existing)} connections")
         await websocket.close(code=4008)
@@ -167,7 +169,7 @@ async def portal_websocket(websocket: WebSocket, user_id: str):
             data = await websocket.receive_text()
             msg = json.loads(data)
             if msg.get("event") == "message":
-                content = msg.get("content", "").strip()
+                content = msg.get("content", "").strip()[:5000]
                 if content:
                     db_manager.save_message(user_id, "user", content)
                     await portal_manager.send_to_admins(user_id, {

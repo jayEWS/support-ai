@@ -437,13 +437,36 @@
         (function handleServerRedirects() {
             const params = new URLSearchParams(window.location.search);
 
-            // Google OAuth success OR Magic Link success
-            const accessToken = params.get('access_token');
-            if (accessToken) {
-                localStorage.setItem('support_portal_token', accessToken);
-                localStorage.setItem('support_portal_role', params.get('role') || 'agent');
+            // Security Fix P0-2: access_token is NO LONGER passed in URL.
+            // Tokens are set via HTTP-only cookies by the server.
+            // We detect success via oauth_success or magic_success params.
+            
+            // Google OAuth success (token is in HTTP-only cookie)
+            if (params.get('oauth_success') === '1') {
+                const role = params.get('role') || 'agent';
+                localStorage.setItem('support_portal_role', role);
+                localStorage.setItem('support_portal_name', params.get('name') || 'Agent');
+                // Clean URL and redirect to admin
+                window.history.replaceState({}, '', '/login');
                 window.location.replace('/admin');
                 return;
+            }
+
+            // Magic Link success (token is in HTTP-only cookie)
+            if (params.get('magic_success') === '1') {
+                const role = params.get('role') || 'agent';
+                localStorage.setItem('support_portal_role', role);
+                localStorage.setItem('support_portal_name', params.get('name') || 'Agent');
+                // Clean URL and redirect to admin
+                window.history.replaceState({}, '', '/login');
+                window.location.replace('/admin');
+                return;
+            }
+
+            // Legacy: If access_token is somehow still in URL, ignore it and clean up
+            if (params.get('access_token')) {
+                console.warn('[SECURITY] access_token found in URL — ignoring. Use cookie-based auth.');
+                window.history.replaceState({}, '', '/login');
             }
 
             // Error from server

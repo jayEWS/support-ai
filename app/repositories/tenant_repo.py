@@ -7,7 +7,7 @@ Handles Tenant CRUD, Plan management, and tenant onboarding.
 import uuid
 import json
 from typing import Optional, List, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.repositories.base import BaseRepository
 from app.models.tenant_models import Tenant, Plan, TenantUser, Subscription, FeatureFlag
 from app.models.models import Agent
@@ -45,7 +45,7 @@ class TenantRepository(BaseRepository):
                 industry=industry,
                 plan_id=plan.id if plan else None,
                 status="trial" if trial_days > 0 else "active",
-                trial_ends_at=datetime.utcnow() + timedelta(days=trial_days) if trial_days > 0 else None,
+                trial_ends_at=datetime.now(timezone.utc) + timedelta(days=trial_days) if trial_days > 0 else None,
             )
             session.add(tenant)
             session.flush()  # Ensure tenant row exists before FK-dependent inserts
@@ -57,7 +57,7 @@ class TenantRepository(BaseRepository):
                     agent_id=owner_agent_id,
                     role="owner",
                     status="active",
-                    joined_at=datetime.utcnow(),
+                    joined_at=datetime.now(timezone.utc),
                 )
                 session.add(tu)
 
@@ -231,7 +231,7 @@ class TenantRepository(BaseRepository):
                     agent_id=agent_id,
                     role=role,
                     status="active",
-                    joined_at=datetime.utcnow(),
+                    joined_at=datetime.now(timezone.utc),
                 )
                 session.add(tu)
             return {"tenant_id": tenant_id, "agent_id": agent_id, "role": role}

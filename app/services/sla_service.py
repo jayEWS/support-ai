@@ -1,19 +1,23 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import asyncio
 from app.core.database import db_manager
 from app.models.models import Ticket, SLARule
+from app.repositories.audit_repo import AuditRepository
+from app.repositories.base import TenantContext
 from app.core.logging import logger
-import asyncio
 
 class SLAService:
     @staticmethod
-    def calculate_due_date(priority: str) -> datetime:
+    def calculate_due_date(priority: str, tenant_id: str = None) -> datetime:
         """
-        Calculates the due date based on SLA rules in the database.
-        Default fallbacks if no rule exists.
+        Calculates the due date based on SLA rules, scoped by tenant.
         """
         session = db_manager.get_session()
         try:
-            rule = session.query(SLARule).filter_by(priority=priority).first()
+            q = session.query(SLARule).filter_by(priority=priority)
+            if tenant_id:
+                q = q.filter_by(tenant_id=tenant_id)
+            rule = q.first()
             if rule:
                 minutes = rule.resolution_minutes
             else:
@@ -26,7 +30,7 @@ class SLAService:
                 }
                 minutes = fallbacks.get(priority, 1440)
             
-            return datetime.now() + timedelta(minutes=minutes)
+            return datetime.now(timezone.utc) + timedelta(minutes=minutes)
         finally:
             db_manager.Session.remove()
 
@@ -38,28 +42,28 @@ class SLAService:
         while True:
             try:
                 session = db_manager.get_session()
-                # Fetch only needed fields to avoid detachment issues or refresh later
+                now = datetime.now(timezone.utc)
+                
+                # Monitor all overdue tickets across all tenants
                 overdue_tickets = session.query(Ticket).filter(
                     Ticket.status.in_(['open', 'pending']),
-                    Ticket.due_at < datetime.now()
+                    Ticket.due_at < now
                 ).all()
 
+                audit_repo = AuditRepository(db_manager.Session)
+
                 for ticket in overdue_tickets:
-                    # Capture data before any potential session removal or refresh
-                    t_id = ticket.id
-                    t_priority = ticket.priority
-                    t_due_at = ticket.due_at
-                    
-                    logger.warning(f"SLA BREACH: Ticket #{t_id} is overdue! (Priority: {t_priority})")
-                    
-                    # log_action creates its own session, which is fine if we use local variables here
-                    db_manager.log_action(
-                        "System", 
-                        "sla_breach", 
-                        "ticket", 
-                        str(t_id), 
-                        f"Ticket overdue. Due was: {t_due_at}"
-                    )
+                    # Securely associate breach with the correct tenant
+                    with TenantContext.set_tenant_id(ticket.tenant_id):
+                        logger.warning(f"SLA BREACH: Ticket #{ticket.id} is overdue for tenant {ticket.tenant_id}!")
+                        
+                        audit_repo.log_action(
+                            agent_id="System", 
+                            action="sla_breach", 
+                            target_type="ticket", 
+                            target_id=str(ticket.id), 
+                            details=f"Ticket overdue. Priority: {ticket.priority}, Due was: {ticket.due_at}"
+                        )
                 
                 session.commit()
             except Exception as e:

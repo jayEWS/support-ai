@@ -6,7 +6,7 @@ Usage tracking and billing enforcement for SaaS plans.
 
 import json
 from typing import Optional, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from app.repositories.base import BaseRepository
 from app.models.tenant_models import UsageTracking, Subscription, Plan, Tenant
 from app.core.logging import logger
@@ -17,7 +17,7 @@ class UsageRepository(BaseRepository):
 
     def get_current_usage(self, tenant_id: str) -> dict:
         """Get current month's usage for a tenant."""
-        period = datetime.utcnow().strftime("%Y-%m")
+        period = datetime.now(timezone.utc).strftime("%Y-%m")
         with self.session_scope() as session:
             usage = session.query(UsageTracking).filter_by(
                 tenant_id=tenant_id, period=period
@@ -48,7 +48,7 @@ class UsageRepository(BaseRepository):
 
     def increment_usage(self, tenant_id: str, field: str, amount: int = 1):
         """Increment a usage counter for the current period."""
-        period = datetime.utcnow().strftime("%Y-%m")
+        period = datetime.now(timezone.utc).strftime("%Y-%m")
         with self.session_scope() as session:
             usage = session.query(UsageTracking).filter_by(
                 tenant_id=tenant_id, period=period
@@ -66,7 +66,7 @@ class UsageRepository(BaseRepository):
 
     def add_token_usage(self, tenant_id: str, tokens: int, cost_usd: float = 0.0):
         """Add token and cost usage for AI interactions."""
-        period = datetime.utcnow().strftime("%Y-%m")
+        period = datetime.now(timezone.utc).strftime("%Y-%m")
         with self.session_scope() as session:
             usage = session.query(UsageTracking).filter_by(
                 tenant_id=tenant_id, period=period
@@ -112,7 +112,7 @@ class UsageRepository(BaseRepository):
                 return {"allowed": True, "current": 0, "limit": -1, "remaining": -1}
 
             # Get current usage
-            period = datetime.utcnow().strftime("%Y-%m")
+            period = datetime.now(timezone.utc).strftime("%Y-%m")
             usage = session.query(UsageTracking).filter_by(
                 tenant_id=tenant_id, period=period
             ).first()
