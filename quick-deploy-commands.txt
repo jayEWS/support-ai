@@ -1,0 +1,13 @@
+# Quick deployment commands (run in PowerShell/Terminal)
+
+# 1. Create tar package (requires WSL or Git Bash)
+wsl tar -czf /tmp/support-ai-20260310-231517.tar.gz -C "C:\Users\j33ca\AppData\Local\Temp\tmpgstf4d.tmp" .
+
+# 2. Upload to GCP VM
+scp /tmp/support-ai-20260310-231517.tar.gz deploy/gcp-vm-direct.sh your-username@34.126.104.27:/tmp/
+
+# 3. Run deployment
+ssh your-username@34.126.104.27 'sudo chmod +x /tmp/gcp-vm-direct.sh && sudo /tmp/gcp-vm-direct.sh'
+
+# 4. Check deployment
+curl http://34.126.104.27/api/health
