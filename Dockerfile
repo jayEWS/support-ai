@@ -31,20 +31,22 @@ COPY . .
 # Security Fix M4: Create non-root user and set ownership
 RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
 
-# Pre-create data directories with correct permissions
-RUN mkdir -p data/knowledge data/db_storage data/uploads/chat \
-    && chown -R appuser:appuser /app/data
+# Pre-create data directories and cache with correct permissions
+RUN mkdir -p data/knowledge data/db_storage data/uploads/chat .cache \
+    && chown -R appuser:appuser /app/data /app/.cache
+
+ENV HF_HOME=/app/.cache
 
 # Switch to non-root user
 USER appuser
 
 # Health check (start-period allows time for AI models to load)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" || exit 1
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8001
 
 # 2 workers for concurrent client handling, 120s timeout for AI responses
 # --preload shares FAISS index across workers (saves ~200MB RAM)
-CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--timeout", "120", "--preload", "--graceful-timeout", "30"]
+CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8001", "--timeout", "120", "--preload", "--graceful-timeout", "30"]

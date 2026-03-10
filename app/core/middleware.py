@@ -74,8 +74,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if not response.headers.get("Content-Security-Policy"):
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://connect.facebook.net; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://connect.facebook.net https://cdn.tailwindcss.com; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "img-src 'self' data: https://*.googleusercontent.com https://*.fbcdn.net; "
                 "connect-src 'self' wss: https://*.vertexai.goog https://*.googleapis.com;"
