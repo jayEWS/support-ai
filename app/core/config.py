@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from typing import Optional
 import os
 
@@ -73,6 +74,13 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = True  # SECURITY: Set to False only for local development
     COOKIE_SAMESITE: str = "strict"  # SECURITY: Use 'strict' in production
     ALLOWED_ORIGINS: list = []  # SECURITY: Specify exact origins in .env for production
+    
+    @field_validator('ALLOWED_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str) and v:
+            return [origin.strip() for origin in v.split(',')]
+        return v or []
     
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
