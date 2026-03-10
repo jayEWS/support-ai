@@ -467,6 +467,35 @@
             color: var(--text-tertiary);
         }
 
+        .godmode-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 0.9rem;
+            border: 1px solid rgba(225, 29, 72, 0.25);
+            background: linear-gradient(135deg, rgba(225, 29, 72, 0.12), rgba(147, 51, 234, 0.08));
+            color: var(--text-primary);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .godmode-banner.show {
+            display: flex;
+        }
+
+        .godmode-chip {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.25rem 0.55rem;
+            border-radius: 999px;
+            color: #be123c;
+            background: rgba(251, 113, 133, 0.18);
+            border: 1px solid rgba(225, 29, 72, 0.2);
+        }
+
         /* ═══════════ THEME SWITCHER ═══════════ */
         .theme-switcher {
             display: flex;
@@ -1119,6 +1148,14 @@
         <!-- Input Area -->
         <div class="input-area px-6 py-5">
             <div class="max-w-4xl mx-auto flex flex-col gap-3">
+                <div id="godmode-banner" class="godmode-banner">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="godmode-chip">God Mode</span>
+                        <p id="godmode-banner-text" class="text-xs font-semibold truncate">Human resolver is handling your case directly.</p>
+                    </div>
+                    <span class="text-[10px] font-bold opacity-70">Priority handling</span>
+                </div>
+
                 <!-- Pending file bar -->
                 <div id="pending-file" class="pending-file-bar">
                     <span id="pending-file-icon" class="text-xl">📎</span>
@@ -1592,11 +1629,32 @@
         const pendingFileSize = document.getElementById('pending-file-size');
         const pendingFileIcon = document.getElementById('pending-file-icon');
         const dragOverlay = document.getElementById('drag-overlay');
+        const godModeBanner = document.getElementById('godmode-banner');
+        const godModeBannerText = document.getElementById('godmode-banner-text');
+        const sendBtn = document.querySelector('#chat-form button[type="submit"]');
         const userId = localStorage.getItem('ews_user_id') || `cust_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
         localStorage.setItem('ews_user_id', userId);
         let customerProfile = JSON.parse(localStorage.getItem('ews_customer_profile') || 'null');
         let onboardingState = customerProfile ? 'complete' : 'new';
         let pendingFile = null;
+        let portalGodModeActive = false;
+
+        function setPortalGodModeActive(enabled, note = '') {
+            portalGodModeActive = !!enabled;
+            if (!godModeBanner || !godModeBannerText) return;
+
+            if (portalGodModeActive) {
+                godModeBanner.classList.add('show');
+                godModeBannerText.innerText = note || 'Human resolver is handling your case directly.';
+                userInput.placeholder = 'Message your human resolver...';
+                if (sendBtn) sendBtn.innerText = 'Send to Resolver';
+            } else {
+                godModeBanner.classList.remove('show');
+                godModeBannerText.innerText = 'Human resolver is handling your case directly.';
+                userInput.placeholder = 'Type your message...';
+                if (sendBtn) sendBtn.innerText = 'Send';
+            }
+        }
 
         // AUTH
         async function initPortal() {
@@ -1811,7 +1869,13 @@
                 if (!res.ok) {
                     addMessage(data.detail || data.error || 'Failed to get response', 'ai');
                 } else {
-                    addMessage(data.answer, 'ai');
+                    const aiText = (typeof data.answer === 'string' && data.answer.trim())
+                        ? data.answer
+                        : (data.detail || data.error || 'I could not generate a reply. Please try again.');
+                    addMessage(aiText, 'ai');
+                    if (data.god_mode === true) {
+                        setPortalGodModeActive(true, 'Human resolver is active for this conversation.');
+                    }
                 }
 
                 if (data.customer_name) {
@@ -2201,6 +2265,14 @@
                 const data = JSON.parse(event.data);
                 if (data.event === 'message' && data.role === 'assistant') {
                     addMessage(data.content, 'ai');
+                } else if (data.event === 'god_mode') {
+                    if (data.enabled) {
+                        setPortalGodModeActive(true, 'Human resolver is handling your case directly.');
+                        addMessage('👑 Human resolver is now handling your case directly.', 'ai');
+                    } else {
+                        setPortalGodModeActive(false);
+                        addMessage('🤖 AI assistant mode is active again for this chat.', 'ai');
+                    }
                 } else if (data.event === 'session_closed') {
                     addMessage(data.message || 'Chat has been closed by the agent.', 'ai');
                     if (data.ticket_created && data.ticket_id) {

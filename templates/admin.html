@@ -220,6 +220,24 @@
             font-weight: 800;
         }
 
+        .godmode-badge {
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            padding: 4px 10px;
+        }
+
+        .godmode-on {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .godmode-off {
+            background: #dcfce7;
+            color: #166534;
+        }
+
         .active .count-badge {
             background: #2563eb;
             color: white;
@@ -743,6 +761,11 @@
                         </div>
                     </div>
                     <div id="lc-actions" class="hidden flex items-center gap-2">
+                        <span id="lc-godmode-badge" class="godmode-badge godmode-off">AI MODE</span>
+                        <span id="lc-godmode-timer" class="godmode-badge hidden" style="background:#eff6ff;color:#1d4ed8;">00:00</span>
+                        <button id="lc-godmode-btn" onclick="lcToggleGodMode()" title="Shortcut: Ctrl+Shift+G"
+                            class="px-4 py-1.5 bg-rose-600 text-white rounded-lg text-[11px] font-bold hover:bg-rose-700 transition tracking-wide flex items-center gap-1"><i
+                                class="fas fa-crown"></i> Enable God Mode</button>
                         <span id="lc-typing-indicator" class="text-xs text-gray-400 italic hidden">Customer is
                             typing...</span>
                         <button onclick="lcCreateTicket()"
@@ -1998,6 +2021,10 @@ Step 3: Select NETS and enter terminal ID..."
         let lcAdminWs = null;
         let lcAllChats = [];
         let lcPollingInterval = null;
+        let lcGodModeEnabled = false;
+        let lcGodModeActivatedAt = null;
+        let lcGodModeTimerInterval = null;
+        const lcGodModeMap = {};
 
         async function loadLiveChat() {
             try {
@@ -2050,6 +2077,7 @@ Step 3: Select NETS and enter terminal ID..."
             list.innerHTML = chats.map(c => {
                 const isActive = lcCurrentUserId === c.user_id;
                 const isWaiting = c.status === 'waiting';
+                const isGodMode = !!lcGodModeMap[c.user_id];
                 const timeAgo = c.last_activity ? getTimeAgo(new Date(c.last_activity)) : '';
                 return `
                 <div onclick="lcSelectChat('${c.user_id}')" class="p-4 border-b hover:bg-blue-50 cursor-pointer transition ${isActive ? 'bg-blue-50 rounded-xl mx-2' : ''}">
@@ -2067,11 +2095,140 @@ Step 3: Select NETS and enter terminal ID..."
                         <span class="text-[11px] font-bold tracking-wide ${isWaiting ? 'text-amber-600' : 'text-green-600'}">
                             <i class="fas ${isWaiting ? 'fa-clock' : 'fa-check-circle'} mr-1"></i>${isWaiting ? 'Waiting' : 'Replied'}
                         </span>
-                        <span class="text-[10px] text-gray-400 font-medium">${timeAgo}</span>
+                        <div class="flex items-center gap-2">
+                            ${isGodMode ? '<span class="text-[9px] font-black tracking-wide text-rose-600">GOD</span>' : ''}
+                            <span class="text-[10px] text-gray-400 font-medium">${timeAgo}</span>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
         }
+
+        function lcApplyGodModeUI() {
+            const badge = document.getElementById('lc-godmode-badge');
+            const button = document.getElementById('lc-godmode-btn');
+            const timer = document.getElementById('lc-godmode-timer');
+            const status = document.getElementById('lc-sidebar-status');
+            const replyBox = document.getElementById('lc-reply-box');
+            const meta = document.getElementById('lc-active-meta');
+
+            if (!badge || !button) return;
+
+            if (lcGodModeEnabled) {
+                badge.className = 'godmode-badge godmode-on';
+                badge.textContent = 'GOD MODE · HUMAN';
+                if (timer) timer.classList.remove('hidden');
+                button.innerHTML = '<i class="fas fa-robot"></i> Back to AI';
+                button.className = 'px-4 py-1.5 bg-slate-600 text-white rounded-lg text-[11px] font-bold hover:bg-slate-700 transition tracking-wide flex items-center gap-1';
+                if (status) status.innerHTML = '<span class="text-rose-600 font-black">Human Resolver (God Mode)</span>';
+                if (replyBox) replyBox.placeholder = 'God Mode active — reply as human resolver...';
+                if (meta && lcCurrentUserId) {
+                    meta.innerText = `${meta.innerText.split(' • ')[0]} • Human resolver active`;
+                }
+                lcStartGodModeTimer(lcGodModeActivatedAt);
+            } else {
+                badge.className = 'godmode-badge godmode-off';
+                badge.textContent = 'AI MODE';
+                if (timer) timer.classList.add('hidden');
+                button.innerHTML = '<i class="fas fa-crown"></i> Enable God Mode';
+                button.className = 'px-4 py-1.5 bg-rose-600 text-white rounded-lg text-[11px] font-bold hover:bg-rose-700 transition tracking-wide flex items-center gap-1';
+                if (replyBox) replyBox.placeholder = 'Type a reply...';
+                lcStopGodModeTimer();
+            }
+        }
+
+        function lcFormatDuration(totalSeconds) {
+            const seconds = Math.max(0, Math.floor(totalSeconds));
+            const hh = Math.floor(seconds / 3600);
+            const mm = Math.floor((seconds % 3600) / 60);
+            const ss = seconds % 60;
+            if (hh > 0) {
+                return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+            }
+            return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+        }
+
+        function lcRenderGodModeTimer() {
+            const timer = document.getElementById('lc-godmode-timer');
+            if (!timer || !lcGodModeEnabled) return;
+            const base = lcGodModeActivatedAt ? new Date(lcGodModeActivatedAt) : new Date();
+            const elapsed = (Date.now() - base.getTime()) / 1000;
+            timer.textContent = lcFormatDuration(elapsed);
+        }
+
+        function lcStartGodModeTimer(activatedAt) {
+            lcGodModeActivatedAt = activatedAt || new Date().toISOString();
+            lcStopGodModeTimer();
+            lcRenderGodModeTimer();
+            lcGodModeTimerInterval = setInterval(lcRenderGodModeTimer, 1000);
+        }
+
+        function lcStopGodModeTimer() {
+            if (lcGodModeTimerInterval) {
+                clearInterval(lcGodModeTimerInterval);
+                lcGodModeTimerInterval = null;
+            }
+        }
+
+        async function lcLoadGodMode(userId) {
+            try {
+                const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(userId)}/god-mode`);
+                if (!res || !res.ok) {
+                    lcGodModeEnabled = false;
+                    lcGodModeMap[userId] = false;
+                    lcApplyGodModeUI();
+                    return;
+                }
+                const data = await res.json();
+                lcGodModeEnabled = !!data.god_mode;
+                lcGodModeActivatedAt = data.activated_at || null;
+                lcGodModeMap[userId] = lcGodModeEnabled;
+                lcApplyGodModeUI();
+                renderLiveChatList(lcAllChats);
+            } catch (_) {
+                lcGodModeEnabled = false;
+                lcGodModeMap[userId] = false;
+                lcApplyGodModeUI();
+            }
+        }
+
+        async function lcToggleGodMode() {
+            if (!lcCurrentUserId) return;
+            const nextEnabled = !lcGodModeEnabled;
+            try {
+                const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(lcCurrentUserId)}/god-mode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: nextEnabled })
+                });
+                if (!res || !res.ok) {
+                    alert('Failed to toggle God Mode');
+                    return;
+                }
+                const data = await res.json();
+                lcGodModeEnabled = !!data.god_mode;
+                lcGodModeActivatedAt = data.activated_at || null;
+                lcGodModeMap[lcCurrentUserId] = lcGodModeEnabled;
+                lcApplyGodModeUI();
+                renderLiveChatList(lcAllChats);
+                lcAppendSystemMessage(lcGodModeEnabled ? 'God Mode enabled — human resolver takeover active' : 'God Mode disabled — AI responder restored');
+                if (typeof showToast === 'function') {
+                    showToast(lcGodModeEnabled ? 'God Mode enabled (human takeover)' : 'AI mode restored', lcGodModeEnabled ? 'warning' : 'success');
+                }
+            } catch (err) {
+                alert('Failed to toggle God Mode');
+            }
+        }
+
+        document.addEventListener('keydown', (event) => {
+            const liveView = document.getElementById('livechat-view');
+            const inLiveChat = liveView && !liveView.classList.contains('hidden');
+            const isHotkey = (event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'g';
+            if (!isHotkey || !inLiveChat || !lcCurrentUserId) return;
+
+            event.preventDefault();
+            lcToggleGodMode();
+        });
 
         function filterLiveChats() {
             const q = document.getElementById('lc-search').value.toLowerCase();
@@ -2115,6 +2272,7 @@ Step 3: Select NETS and enter terminal ID..."
             document.getElementById('lc-sidebar-msgcount').innerText = chatInfo.message_count || '--';
             document.getElementById('lc-sidebar-status').innerText = chatInfo.status || '--';
             document.getElementById('lc-sidebar-lastactivity').innerText = chatInfo.last_activity ? new Date(chatInfo.last_activity).toLocaleString() : '--';
+            await lcLoadGodMode(userId);
 
             // Load customer ticket history for sidebar
             try {
@@ -2188,6 +2346,16 @@ Step 3: Select NETS and enter terminal ID..."
                 } else if (data.event === 'session_closed') {
                     lcAppendSystemMessage('Chat session has been closed');
                     loadLiveChat();
+                } else if (data.event === 'god_mode') {
+                    const enabled = !!data.enabled;
+                    lcGodModeMap[userId] = enabled;
+                    if (lcCurrentUserId === userId) {
+                        lcGodModeEnabled = enabled;
+                        lcGodModeActivatedAt = data.activated_at || data.timestamp || null;
+                        lcApplyGodModeUI();
+                        lcAppendSystemMessage(enabled ? 'God Mode enabled by agent — customer now on human resolver' : 'God Mode disabled — AI resolver resumed');
+                    }
+                    renderLiveChatList(lcAllChats);
                 }
             };
 
