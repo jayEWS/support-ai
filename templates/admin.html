@@ -2249,7 +2249,7 @@ Step 3: Select NETS and enter terminal ID..."
                     const res = await fetchWithAuth(`/api/livechat/${encodeURIComponent(lcCurrentUserId)}/reply`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: text })
+                        body: JSON.stringify({ content: text })
                     });
                     if (res && res.ok) {
                         lcAppendMessage({ role: 'assistant', content: text, timestamp: new Date().toISOString() });

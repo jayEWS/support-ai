@@ -1774,7 +1774,6 @@
                 addMessage("Failed to load transcript.", 'ai');
             }
         }
-
         /* ── Chat Submit ── */
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1794,24 +1793,26 @@
             showTypingIndicator();
 
             try {
-                let res;
+                const formData = new FormData();
+                formData.append('message', message);
+                formData.append('user_id', userId);
                 if (pendingFile) {
-                    const formData = new FormData();
-                    formData.append('message', message);
-                    formData.append('user_id', userId);
                     formData.append('file', pendingFile);
-                    res = await fetch('/api/chat', { method: 'POST', body: formData });
-                } else {
-                    res = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: message, user_id: userId })
-                    });
                 }
+
+                const res = await fetch('/api/portal/chat', {
+                    method: 'POST',
+                    body: formData
+                });
 
                 removeTypingIndicator();
                 const data = await res.json();
-                addMessage(data.answer, 'ai');
+                
+                if (!res.ok) {
+                    addMessage(data.detail || data.error || 'Failed to get response', 'ai');
+                } else {
+                    addMessage(data.answer, 'ai');
+                }
 
                 if (data.customer_name) {
                     customerProfile = { name: data.customer_name };
@@ -1873,7 +1874,7 @@
             addMessage(option === 'close' ? "Closing chat..." : "Creating ticket, please wait...", 'ai');
 
             try {
-                const res = await fetch('/api/close-session', {
+                const res = await fetch('/api/portal/session/close', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId, option: option })
@@ -2149,7 +2150,7 @@
         /* ── Load History ── */
         async function loadHistory() {
             try {
-                const res = await fetch(`/api/history?user_id=${userId}`);
+                const res = await fetch(`/api/portal/history?user_id=${userId}`);
                 const data = await res.json();
                 if (data.history && data.history.length > 0) {
                     const welcomeMsg = chatbox.querySelector('div.max-w-lg');
@@ -2343,7 +2344,7 @@
                 formData.append('file', blob, `screen_recording_${Date.now()}.webm`);
                 formData.append('user_id', userId);
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', '/api/chat/upload-recording');
+                xhr.open('POST', '/api/portal/recording/upload');
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
                         const pct = Math.round((e.loaded / e.total) * 100);
@@ -2435,7 +2436,7 @@
             `;
 
             try {
-                const res = await fetch('/api/kb/query', {
+                const res = await fetch('/api/portal/kb/query', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: query, language: lang })
@@ -2513,73 +2514,7 @@
             }
         }
 
-        function formatKbAnswer(text) {
-            if (!text) return '';
 
-            // 1. Initial Cleanup
-            let cleaned = text
-                .replace(/Source\s*\d+/gi, '')
-                .replace(/Source\s*:\s*[^\n\r]*/gi, '')
-                .replace(/^\s*\*?\*?Sources?:?\*?\*?\s*.*$/gim, '')
-                .replace(/[\w_-]+\.(txt|pdf|docx|md|csv)/gi, '')
-                .replace(/\(\s*[,\s]*\s*\)/g, '')
-                .replace(/\[\s*[,\s]*\s*\]/g, '')
-                .replace(/\* \* \* \*/g, '')
-                .trim();
-
-            // 2. Structural Isolation (Force newlines where needed)
-            const keywordList = ['Prerequisites', 'Instructions', 'Steps to', 'Troubleshooting', 'Note', 'Summary', 'Post-Closing', 'Reconciliation', 'Warning', 'How to', 'Conclusion'];
-            keywordList.forEach(k => {
-                const re = new RegExp('([^\\n])\\s*(\\**' + k + ':?\\**)', 'gi');
-                cleaned = cleaned.replace(re, '$1\n\n$2');
-            });
-            cleaned = cleaned.replace(/([.!?])\s*(\d+\.\s+)/g, '$1\n\n$2');
-            cleaned = cleaned.replace(/([.!?])\s+([-•*])\s+(?!\*)/g, '$1\n\n$2');
-
-            // 3. NUCLEAR REMOVAL OF FORMATTING MARKERS
-            cleaned = cleaned.replace(/\*/g, '');
-
-            const lines = cleaned.split('\n');
-            let html = '';
-
-            lines.forEach(line => {
-                let trimmed = line.trim();
-                if (!trimmed) {
-                    html += '<div style="height: 0.6rem;"></div>';
-                    return;
-                }
-
-                // Escape and Highlight
-                let safeText = trimmed
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/("|&quot;)(.*?)("|&quot;)/g, '<span class="kb-clue">$1$2$3</span>')
-                    .replace(/(')(.*?)(')/g, '<span class="kb-clue">$1$2$3</span>');
-
-                // BLOCK DETECTION
-                // Numbered Step (1. Something)
-                if (/^\d+\./.test(trimmed)) {
-                    html += `<span class="kb-step-title">${safeText}</span>`;
-                }
-                // Bullet Point (- Something)
-                else if (/^[-•]/.test(trimmed)) {
-                    let content = safeText.replace(/^[-•]\s*/, '');
-                    html += `<div class="kb-bullet">${content}</div>`;
-                }
-                // Header (Must end in colon AND be short, or be a specific section title)
-                else if ((trimmed.endsWith(':') && trimmed.length < 60) ||
-                    /^(Prerequisites|Instructions|Step-by-step|Steps to|Troubleshooting|Note|Summary|Post-Closing|Reconciliation|How to.*):?$/i.test(trimmed)) {
-                    html += `<span class="kb-title">${safeText}</span>`;
-                }
-                // Standard Paragraph
-                else {
-                    html += `<p class="kb-para">${safeText}</p>`;
-                }
-            });
-
-            return html;
-        }
 
         function copyKbAnswer(btn) {
             const answerDiv = btn.closest('.rounded-2xl').querySelector('.kb-answer');

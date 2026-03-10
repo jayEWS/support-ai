@@ -101,6 +101,7 @@ from app.routes.knowledge_routes import router as knowledge_router
 from app.routes.websocket_routes import router as websocket_router
 from app.routes.system_routes import router as system_router
 from app.routes.portal_routes import router as portal_router
+from app.routes.livechat_routes import router as livechat_router
 
 # Schemas
 from app.schemas.schemas import IntentType
@@ -399,6 +400,7 @@ app.include_router(knowledge_router)
 app.include_router(websocket_router)
 app.include_router(system_router)
 app.include_router(portal_router)
+app.include_router(livechat_router)
 
 # Add rate limiter to app
 app.state.limiter = limiter

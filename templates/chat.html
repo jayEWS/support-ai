@@ -389,7 +389,7 @@
             addMessageUI('received', i18n[selectedLang].welcome);
 
             // Fetch bot history
-            const hRes = await fetch(`${API_URL}/api/history?user_id=${userId}`);
+            const hRes = await fetch(`${API_URL}/api/portal/history?user_id=${userId}`);
             const hData = await hRes.json();
             if (hData.history.length > 0) {
                 document.getElementById('message-container').innerHTML = '';
@@ -537,11 +537,25 @@
             }, 100);
 
             try {
-                const res = await fetch(`${API_URL}/api/chat`, {
+                const formData = new FormData();
+                formData.append('message', text);
+                formData.append('user_id', userId);
+                formData.append('language', selectedLang);
+                
+                // If there's a pending file upload (feature extension)
+                // formData.append('file', fileInput.files[0]);
+
+                const res = await fetch(`${API_URL}/api/portal/chat`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, user_id: userId, language: selectedLang })
+                    body: formData
+                    // Note: No 'Content-Type' header! Browser sets it automatically for FormData
                 });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || errData.error || 'Server error');
+                }
+
                 const data = await res.json();
                 
                 // Stop timer
@@ -553,7 +567,7 @@
             } catch (err) {
                 clearInterval(timerInterval);
                 indicator.classList.add('hidden');
-                addMessageUI('received', '⚠️ Sorry, something went wrong. Please try again.');
+                addMessageUI('received', `⚠️ ${err.message || 'Sorry, something went wrong. Please try again.'}`);
             }
         }
 
@@ -591,7 +605,7 @@
             hideEndChatMenu();
             document.getElementById('typing-indicator').classList.remove('hidden');
             try {
-                const res = await fetch(`${API_URL}/api/close-session`, {
+                const res = await fetch(`${API_URL}/api/portal/session/close`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId, option: option })
@@ -789,7 +803,7 @@
                 formData.append('session_id', activeSessionId || '');
 
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', `${API_URL}/api/chat/upload-recording`);
+                xhr.open('POST', `${API_URL}/api/portal/recording/upload`);
 
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
