@@ -27,7 +27,7 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y --no-install-recommends m
 
 # Copy requirements and build Python dependencies in isolated layer (for Docker cache)
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Runtime
 FROM python:3.11-slim
@@ -49,9 +49,9 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y --no-install-recommends m
     rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder (keeps image lean)
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH \
-    PYTHONUNBUFFERED=1 \
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     HF_HOME=/app/.cache
 

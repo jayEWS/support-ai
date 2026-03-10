@@ -35,7 +35,7 @@ services:
         limits:
           memory: 2G
     command: >
-      gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
+      python -m gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
       --bind 0.0.0.0:8000 --timeout 120 --graceful-timeout 30
     depends_on:
       - redis
