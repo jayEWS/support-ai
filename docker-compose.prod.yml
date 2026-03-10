@@ -1,22 +1,23 @@
 version: '3.8'
 
 services:
+  # Use the enterprise compose file for production
+  # Run: docker-compose -f docker-compose.enterprise.yml up -d
+  
+  # Legacy single-service deployment (deprecated)
   api:
     build: .
-    container_name: support_portal_prod
+    container_name: support_portal_prod_legacy
     restart: always
     env_file: .env
     ports:
       - "8001:8000"
     volumes:
       - ./data:/app/data
-    # Balanced for e2-medium (4GB RAM) - Leaves credits for other APIs
     deploy:
       resources:
         limits:
           memory: 2G
     command: >
-      gunicorn -w 3 -k uvicorn.workers.UvicornWorker main:app 
+      gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app
       --bind 0.0.0.0:8000 --timeout 120 --preload --graceful-timeout 30
-
-  # Cloudflare Tunnel dihapus - sekarang menggunakan DuckDNS + Caddy untuk HTTPS

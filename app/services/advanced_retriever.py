@@ -568,26 +568,29 @@ class AdvancedRetriever:
     # ── Vector Search ───────────────────────────────────────────────
 
     async def _vector_search(self, query: str, k: int = 8) -> List[RetrievedChunk]:
-        """FAISS vector similarity search"""
+        """Qdrant vector similarity search"""
         if not self.vector_store:
             return []
 
         try:
-            # Use similarity_search_with_score for distance metrics
-            docs_with_scores = await asyncio.to_thread(
-                self.vector_store.similarity_search_with_score, query, k=k
+            query_embedding = await asyncio.to_thread(
+                self.embeddings.embed_query, query
+            )
+            
+            # Use Qdrant similarity search
+            search_results = await asyncio.to_thread(
+                self.vector_store.similarity_search,
+                query_embedding, k=k
             )
 
             results = []
-            for doc, distance in docs_with_scores:
-                # FAISS returns L2 distance; convert to similarity score
-                similarity = 1.0 / (1.0 + distance)
-                
+            for doc, similarity in search_results:
                 chunk = RetrievedChunk(
                     content=doc.page_content,
                     source_file=doc.metadata.get('filename', 'unknown'),
                     upload_date=doc.metadata.get('upload_date', 'unknown'),
-                    chunk_id=hashlib.md5(doc.page_content[:100].encode()).hexdigest()[:12],
+                    chunk_id=doc.metadata.get('chunk_id', 
+                        hashlib.md5(doc.page_content[:100].encode()).hexdigest()[:12]),
                     scores={"vector": similarity},
                     final_score=0.0,
                 )

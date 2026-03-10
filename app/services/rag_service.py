@@ -3,11 +3,11 @@ import asyncio
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import FAISS, PGVector
 from app.core.config import settings
 from app.core.logging import logger, LogLatency
 from app.schemas.schemas import RAGResponse
 from app.services.advanced_retriever import AdvancedRetriever
+from app.services.qdrant_store import get_qdrant_store
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 class RAGService:
@@ -24,13 +24,7 @@ class RAGService:
         
         # Initialize AdvancedRetriever
         documents = []
-        if self.vector_store:
-            if hasattr(self.vector_store, 'docstore'):
-                # FAISS path
-                documents = list(self.vector_store.docstore._dict.values())
-            else:
-                # PGVector path (documents are managed in DB)
-                documents = []
+        # Qdrant manages documents internally, no need to extract them
         
         self.retriever = AdvancedRetriever(
             vector_store=self.vector_store,
@@ -71,44 +65,20 @@ class RAGService:
 
     def _load_vector_store(self):
         """
-        Load vector store based on database configuration.
-        If using PostgreSQL, use PGVector (centralized).
-        Otherwise, fall back to local FAISS index.
+        Load Qdrant vector store for production deployment.
         """
         if not self.embeddings:
             logger.warning("Embeddings not initialized, cannot load vector store.")
             return None
 
-        # Check for PostgreSQL (centralized vector store)
-        db_url = settings.DATABASE_URL
-        if db_url.startswith("postgresql"):
-            try:
-                # Convert async/sync driver if necessary for PGVector
-                connection_string = db_url.replace("postgresql+asyncpg://", "postgresql://")
-                
-                logger.info("[VectorStore] Connecting to PGVector (Centralized)...")
-                store = PGVector(
-                    connection_string=connection_string,
-                    embedding_function=self.embeddings,
-                    collection_name="support_kb_v1",
-                    use_jsonb=True
-                )
-                return store
-            except Exception as e:
-                logger.error(f"PGVector connection failed: {e}. Falling back to FAISS.")
-
-        # Fallback to Local FAISS
-        if os.path.exists(settings.DB_DIR):
-            try:
-                index_path = os.path.join(settings.DB_DIR, "index.faiss")
-                if os.path.exists(index_path):
-                    return FAISS.load_local(settings.DB_DIR, self.embeddings, allow_dangerous_deserialization=True)
-                else:
-                    logger.warning(f"FAISS index not found at {index_path}. Starting with empty vector store.")
-            except Exception as e:
-                logger.error(f"FAISS load error: {e}")
-        
-        return None
+        try:
+            # Use Qdrant for all deployments
+            logger.info("[VectorStore] Connecting to Qdrant...")
+            store = get_qdrant_store()
+            return store
+        except Exception as e:
+            logger.error(f"Qdrant connection failed: {e}")
+            return None
 
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=4), reraise=True)
     async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en', system_prompt: Optional[str] = None) -> RAGResponse:

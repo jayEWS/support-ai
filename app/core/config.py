@@ -26,10 +26,18 @@ class Settings(BaseSettings):
     VERTEX_AI_EMBEDDINGS_MODEL: str = "text-embedding-005"  # Vertex AI embeddings model
     
     # Embeddings Config
-    EMBEDDINGS_TYPE: str = "local"  # local | openai | vertex
+    EMBEDDINGS_TYPE: str = "local"  # local | openai | vertex | qdrant
     EMBEDDINGS_MODEL_NAME: str = "all-MiniLM-L6-v2"
     EMBEDDINGS_BASE_URL: Optional[str] = None
+
+    # Qdrant Vector Storage
+    QDRANT_HOST: Optional[str] = os.getenv("QDRANT_HOST", "qdrant")
+    QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))
+    QDRANT_API_KEY: Optional[str] = os.getenv("QDRANT_API_KEY", "")
     
+    # Prometheus Metrics
+    PROMETHEUS_ENABLED: bool = os.getenv("PROMETHEUS_ENABLED", "False").lower() == "true"
+
     # WhatsApp / Meta Cloud API Settings
     WHATSAPP_API_TOKEN: str = os.getenv("WHATSAPP_API_TOKEN", "")
     WHATSAPP_PHONE_NUMBER_ID: str = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")

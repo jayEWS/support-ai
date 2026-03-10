@@ -19,6 +19,9 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.utils.security import bind_user_ip
 from app.utils.async_db import run_sync
+from app.utils.file_handler import save_upload
+from app.services.websocket_manager import portal_manager
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/portal", tags=["Portal"])
 
@@ -31,6 +34,9 @@ AI_SEMAPHORE = asyncio.Semaphore(10) # Max 10 concurrent AI queries
 
 # --- Security: Max query length to prevent prompt injection / abuse ---
 MAX_PORTAL_QUERY_LENGTH = 500
+
+def _god_mode_key(user_id: str) -> str:
+    return f"god_mode:{user_id}"
 
 def _require_rag(request: Request):
     rag = getattr(request.app.state, 'rag_service', None)
@@ -104,6 +110,43 @@ async def portal_chat(
     chat_service = getattr(request.app.state, 'chat_service', None)
     if not chat_service:
         raise HTTPException(status_code=503, detail="Chat service unavailable")
+
+    god_mode_enabled = (await run_sync(db_manager.get_setting, _god_mode_key(user_id), "0")) == "1"
+
+    if god_mode_enabled:
+        attachment_meta = None
+        if file:
+            file_bytes = await file.read()
+            attachment_meta = save_upload(file_bytes, file.filename, destination="chat")
+
+        if not message and attachment_meta:
+            message = f"[Uploaded {attachment_meta['category']}: {attachment_meta['original_name']}]"
+
+        if not message:
+            raise HTTPException(status_code=400, detail="Message or file is required")
+
+        await run_sync(
+            db_manager.save_message,
+            user_id,
+            "user",
+            message,
+            None if not attachment_meta else json.dumps([attachment_meta])
+        )
+
+        await portal_manager.send_to_admins(user_id, {
+            "event": "message",
+            "role": "user",
+            "content": message,
+            "user_id": user_id,
+            "god_mode": True,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+
+        return {
+            "answer": "✅ Received. A human resolver is handling your case now.",
+            "god_mode": True,
+            "resolver": "human"
+        }
         
     async with AI_SEMAPHORE:
         response_data, status_code = await chat_service.process_portal_message(

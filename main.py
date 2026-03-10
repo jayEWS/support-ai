@@ -335,6 +335,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="Support Portal Edgeworks", lifespan=lifespan)
 
+# --- Monitoring ---
+if getattr(settings, "PROMETHEUS_ENABLED", False):
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator().instrument(app).expose(app, include_in_schema=False, should_gzip=True)
+
 # --- Security & Observability Middleware (Phase 10) ---
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler

@@ -210,6 +210,9 @@ class ChatService:
             
             # --- Guardrail: Output Validation ---
             answer = guardrail_service.validate_output(answer)
+
+            if not answer or not str(answer).strip():
+                answer = "I’m sorry—I couldn’t generate a clear reply just now. Please try again."
             
             logger.info(f"ChatService Answer: {answer[:100]} (len={len(answer)})")
             await run_sync(db_manager.save_message, user_id, "bot", answer)

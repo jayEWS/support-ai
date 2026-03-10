@@ -5,14 +5,26 @@ Endpoints for agent-to-customer live chat interactions.
 """
 
 from typing import Annotated, List, Optional
+import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from app.core.database import db_manager
 from app.core.auth_deps import get_current_agent
 from app.services.websocket_manager import portal_manager
 from app.core.logging import logger
 from datetime import datetime, timezone
+from app.utils.async_db import run_sync
 
 router = APIRouter(prefix="/api/livechat", tags=["Live Chat"])
+
+def _god_mode_key(user_id: str) -> str:
+    return f"god_mode:{user_id}"
+
+def _god_mode_ts_key(user_id: str) -> str:
+    return f"god_mode_ts:{user_id}"
+
+def _validate_user_id(user_id: str):
+    if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
+        raise HTTPException(status_code=400, detail="Invalid user_id")
 
 @router.get("/sessions")
 async def get_active_sessions(
@@ -119,3 +131,65 @@ async def close_live_session(
     except Exception as e:
         logger.error(f"Error closing session for {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{user_id}/god-mode")
+async def get_god_mode_status(
+    user_id: str,
+    agent: Annotated[dict, Depends(get_current_agent)]
+):
+    """Get current human takeover (God Mode) status for one portal user."""
+    _validate_user_id(user_id)
+    try:
+        enabled = (await run_sync(db_manager.get_setting, _god_mode_key(user_id), "0")) == "1"
+        activated_at = await run_sync(db_manager.get_setting, _god_mode_ts_key(user_id), None) if enabled else None
+        return {
+            "user_id": user_id,
+            "god_mode": enabled,
+            "resolver": "human" if enabled else "ai",
+            "activated_at": activated_at
+        }
+    except Exception as e:
+        logger.error(f"Error reading God Mode status for {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read God Mode status")
+
+@router.post("/{user_id}/god-mode")
+async def set_god_mode_status(
+    user_id: str,
+    data: dict,
+    agent: Annotated[dict, Depends(get_current_agent)]
+):
+    """Enable/disable human takeover (God Mode) for one portal user."""
+    _validate_user_id(user_id)
+    enabled = bool(data.get("enabled", False))
+    note = str(data.get("note", "")).strip()[:500]
+    agent_name = agent.get("name", "Agent")
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    try:
+        await run_sync(db_manager.set_setting, _god_mode_key(user_id), "1" if enabled else "0")
+        await run_sync(db_manager.set_setting, _god_mode_ts_key(user_id), now_iso if enabled else "")
+
+        event_payload = {
+            "event": "god_mode",
+            "user_id": user_id,
+            "enabled": enabled,
+            "resolver": "human" if enabled else "ai",
+            "updated_by": agent_name,
+            "note": note,
+            "timestamp": now_iso,
+            "activated_at": now_iso if enabled else None
+        }
+
+        await portal_manager.send_to_user(user_id, event_payload)
+        await portal_manager.send_to_admins(user_id, event_payload)
+
+        return {
+            "status": "success",
+            "user_id": user_id,
+            "god_mode": enabled,
+            "resolver": "human" if enabled else "ai",
+            "activated_at": now_iso if enabled else None
+        }
+    except Exception as e:
+        logger.error(f"Error updating God Mode for {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update God Mode")

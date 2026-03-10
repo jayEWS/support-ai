@@ -1,0 +1,51 @@
+{
+    "name": "Enterprise AI Platform",
+    "dockerComposeFile": "docker-compose.enterprise.yml",
+    "service": "api",
+    "workspaceFolder": "/app",
+    "shutdownAction": "stopCompose",
+    
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.black-formatter",
+                "ms-python.pylint",
+                "ms-azuretools.vscode-docker",
+                "redhat.vscode-yaml",
+                "ms-vscode.vscode-json"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.formatting.provider": "black",
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": true
+            }
+        }
+    },
+
+    "forwardPorts": [8000, 3000, 9090, 6333],
+    "portsAttributes": {
+        "8000": {
+            "label": "FastAPI",
+            "onAutoForward": "notify"
+        },
+        "3000": {
+            "label": "Grafana",
+            "onAutoForward": "ignore"
+        },
+        "9090": {
+            "label": "Prometheus",
+            "onAutoForward": "ignore"
+        },
+        "6333": {
+            "label": "Qdrant",
+            "onAutoForward": "ignore"
+        }
+    },
+
+    "postCreateCommand": "pip install -r requirements.txt",
+    "postStartCommand": "python -c 'print(\"🎉 Enterprise AI Platform development container ready!\")'",
+
+    "remoteUser": "root"
+}
