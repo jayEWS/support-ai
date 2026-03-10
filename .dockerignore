@@ -1,13 +1,99 @@
+# Git
 .git
+.gitignore
+.gitattributes
+
+# Python
 __pycache__
 *.pyc
-.env
-.env.*
+*.pyo
+*.pyd
 *.egg-info
+.egg
+.eggs
+dist
+build
+*.egg
+
+# Virtual environments
 venv
 .venv
+env
+ENV
+.env
+.env.*
+
+# IDE & Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings
+*.sublime-project
+*.sublime-workspace
+
+# Testing
 tests
-docker-compose.yml
-render.yaml
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.hypothesis
+
+# Build artifacts
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Docker & Compose
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+docker-entrypoint.sh
+
+# Documentation & Config
 README.md
-.gitignore
+DEPLOYMENT_GUIDE.md
+DEPLOYMENT_OFFICE_PC.md
+SETUP_DOCKER.md
+SYSTEM_ARCHITECTURE.md
+*.md
+
+# Other configs
+render.yaml
+Makefile
+*.sh
+scripts/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Sensitive data
+*.pem
+*.key
+*.crt
+gcs-key.json
+secrets/
+
+# Large files
+*.zip
+*.tar
+*.tar.gz
+deploy.zip
+deploy_fix.tar
+
+# Development artifacts
+improvement/
+monitoring/
+User\ Guide/
+.cline
+.agents
+.devcontainer
+GOD-MODE\ AUTONOMOUS\ ENGINEERING\ AUDITOR.txt
