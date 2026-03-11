@@ -34,7 +34,9 @@ except ImportError:
 config = context.config
 
 # Override sqlalchemy.url with the actual DB URL from .env
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Escape % signs for configparser (it interprets % as interpolation syntax)
+_db_url = settings.DATABASE_URL.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", _db_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
