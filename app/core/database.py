@@ -1115,6 +1115,8 @@ class DatabaseManager:
                 m = Macro(name=name, content=content, category=category)
                 session.add(m)
             session.commit()
+            session.refresh(m)
+            return {"id": m.id, "name": m.name, "content": m.content, "category": m.category}
         finally:
             self.Session.remove()
 
