@@ -81,6 +81,40 @@ async def upload_recording(
     
     return {"status": "ok", "url": metadata["url"], "filename": metadata["stored_name"]}
 
+@router.post("/recording/analyze")
+async def analyze_recording_agent(request: Request, agent: Annotated[dict, Depends(get_current_agent)]):
+    """
+    AI-powered screen recording analysis for agents.
+    Extracts key frames and uses Llama 4 Scout Vision to explain
+    what's on screen — POS menus, functions, errors, workflow steps.
+    """
+    data = await request.json()
+    video_url = data.get("video_url", "").strip()
+    question = data.get("question", "").strip()
+
+    if not video_url:
+        raise HTTPException(status_code=400, detail="Missing video_url")
+
+    if not video_url.startswith("/uploads/chat/"):
+        raise HTTPException(status_code=400, detail="Invalid video path")
+
+    filename = video_url.split("/")[-1]
+    if not re.match(r'^[\w.\-]+\.(webm|mp4|mov)$', filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    video_path = os.path.join("data", "uploads", "chat", filename)
+    if not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail="Video file not found")
+
+    from app.services.video_analysis_service import analyze_video
+    result = await analyze_video(video_path, user_question=question)
+
+    return {
+        "analysis": result["analysis"],
+        "frames_analyzed": result["frames_analyzed"],
+        "error": result.get("error", False)
+    }
+
 @router.get("/macros")
 async def list_macros(agent: Annotated[dict, Depends(get_current_agent)]):
     """List helper macros for ticket replies."""

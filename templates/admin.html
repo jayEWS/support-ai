@@ -2711,12 +2711,18 @@ WHERE sh.SalesDate = GETDATE()"
             // Detect screen recording links
             const videoMatch = content.match(/📹 Screen Recording: (\/uploads\/chat\/[\w.-]+\.webm)/);
             if (videoMatch) {
-                div.innerHTML = `<div class="${isMe ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-3 text-sm rounded-2xl" style="max-width:320px">
-                    <video src="${videoMatch[1]}" controls playsinline preload="metadata" style="border-radius:10px; width:100%; max-height:220px;"></video>
+                const vid = videoMatch[1];
+                const analyzeId = 'analyze-' + Date.now();
+                div.innerHTML = `<div class="${isMe ? 'bg-white text-gray-800 rounded-tr-none border border-gray-100 shadow-sm' : 'bg-blue-600 text-white rounded-tl-none shadow-md'} p-3 text-sm rounded-2xl" style="max-width:360px">
+                    <video src="${vid}" controls playsinline preload="metadata" style="border-radius:10px; width:100%; max-height:220px;"></video>
                     <div class="flex items-center gap-2 mt-2 text-xs ${isMe ? 'text-gray-400' : 'text-blue-100'}">
                         <i class="fas fa-video"></i> Screen Recording
-                        <a href="${videoMatch[1]}" download class="ml-auto hover:underline"><i class="fas fa-download"></i></a>
+                        <a href="${vid}" download class="hover:underline"><i class="fas fa-download"></i></a>
+                        <button onclick="analyzeRecordingAdmin('${vid}', '${analyzeId}')" id="${analyzeId}" class="ml-auto px-2 py-1 bg-purple-600 text-white rounded-lg text-[10px] font-bold hover:bg-purple-700 transition flex items-center gap-1">
+                            <i class="fas fa-brain"></i> AI Analyze
+                        </button>
                     </div>
+                    <div id="${analyzeId}-result" class="mt-2 hidden"></div>
                 </div>`;
             } else {
                 const contentHtml = (type === 'user') ? escapeHtml(content) : formatMessage(content);
@@ -2943,8 +2949,9 @@ WHERE sh.SalesDate = GETDATE()"
                     const statusIcon = m.status === 'failed' ? ' ❌' : (m.status === 'pending' ? ' 🕐' : (m.direction === 'outbound' ? ' ✓✓' : ''));
                     // Detect screen recording
                     const videoMatch = m.content.match(/📹 Screen Recording: (\/uploads\/chat\/[\w.-]+\.webm)/);
+                    const waAnalyzeId = 'wa-analyze-' + (m.id || Date.now()) + '-' + Math.random().toString(36).slice(2,6);
                     const contentHtml = videoMatch
-                        ? `<video src="${videoMatch[1]}" controls playsinline preload="metadata" style="border-radius:10px; width:100%; max-height:220px;"></video><div class="flex items-center gap-2 mt-1 text-xs text-gray-400"><i class="fas fa-video"></i> Screen Recording <a href="${videoMatch[1]}" download class="ml-auto hover:underline"><i class="fas fa-download"></i></a></div>`
+                        ? `<video src="${videoMatch[1]}" controls playsinline preload="metadata" style="border-radius:10px; width:100%; max-height:220px;"></video><div class="flex items-center gap-2 mt-1 text-xs text-gray-400"><i class="fas fa-video"></i> Screen Recording <a href="${videoMatch[1]}" download class="hover:underline"><i class="fas fa-download"></i></a><button onclick="analyzeRecordingAdmin('${videoMatch[1]}', '${waAnalyzeId}')" id="${waAnalyzeId}" class="ml-auto px-2 py-1 bg-purple-600 text-white rounded-lg text-[10px] font-bold hover:bg-purple-700 transition"><i class="fas fa-brain"></i> AI Analyze</button></div><div id="${waAnalyzeId}-result" class="mt-2 hidden"></div>`
                         : `<p class="text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(m.content)}</p>`;
                     if (isInbound) {
                         return `<div class="flex justify-start"><div class="max-w-[70%] bg-white rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
@@ -4420,6 +4427,45 @@ WHERE sh.SalesDate = GETDATE()"
                 statusText.classList.remove('text-blue-600');
                 statusText.classList.add('text-red-600');
                 setTimeout(() => { box.classList.add('hidden'); box.classList.remove('bg-red-50', 'border-red-100'); box.classList.add('bg-blue-50', 'border-blue-100'); statusText.classList.remove('text-red-600'); statusText.classList.add('text-blue-600'); }, 6000);
+            }
+        }
+
+        // ── AI Screen Recording Analysis ──
+        async function analyzeRecordingAdmin(videoUrl, analyzeId) {
+            const btn = document.getElementById(analyzeId);
+            const resultDiv = document.getElementById(analyzeId + '-result');
+            if (!btn || !resultDiv) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+            btn.classList.add('opacity-60');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<p class="text-[11px] text-gray-400 animate-pulse">🧠 Extracting frames & analyzing with AI Vision...</p>';
+            try {
+                const res = await fetchWithAuth('/api/recording/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video_url: videoUrl })
+                });
+                const data = await res.json();
+                if (data.analysis) {
+                    const formatted = data.analysis.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    resultDiv.innerHTML = `<div class="bg-purple-50 border border-purple-200 rounded-xl p-3 text-[11px] text-gray-700 leading-relaxed">
+                        <div class="font-bold text-purple-700 mb-1"><i class="fas fa-brain"></i> AI Screen Analysis (${data.frames_analyzed || '?'} frames)</div>
+                        ${formatted}
+                    </div>`;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Done';
+                    btn.classList.replace('bg-purple-600', 'bg-green-600');
+                } else {
+                    resultDiv.innerHTML = `<p class="text-[11px] text-red-500">⚠️ ${data.error || 'Analysis failed'}</p>`;
+                    btn.innerHTML = '<i class="fas fa-brain"></i> Retry';
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-60');
+                }
+            } catch (e) {
+                resultDiv.innerHTML = `<p class="text-[11px] text-red-500">❌ Network error: ${e.message}</p>`;
+                btn.innerHTML = '<i class="fas fa-brain"></i> Retry';
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
             }
         }
 

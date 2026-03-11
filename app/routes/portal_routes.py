@@ -7,6 +7,7 @@ Extracted from main.py. High throughput, rate-limited.
 
 import json
 import re
+import os
 import hashlib
 from typing import Annotated, Optional
 from fastapi import APIRouter, Request, Depends, HTTPException, Response, Form, UploadFile, File
@@ -220,7 +221,45 @@ async def upload_portal_recording(
     metadata = save_upload(file_bytes, f"portal_{user_id}{ext}", destination="chat")
     
     await run_sync(db_manager.save_message, user_id, "user", f"📹 Screen Recording: {metadata['url']}")
-    return {"status": "ok", "url": metadata["url"]}
+    return {"status": "ok", "url": metadata["url"], "filename": metadata.get("filename", "")}
+
+
+@router.post("/recording/analyze")
+async def analyze_portal_recording(request: Request):
+    """
+    AI-powered screen recording analysis.
+    Extracts key frames and uses Llama 4 Scout Vision to explain
+    what's on screen — POS menus, functions, errors, workflow steps.
+    """
+    data = await request.json()
+    video_url = data.get("video_url", "").strip()
+    question = data.get("question", "").strip()
+
+    if not video_url:
+        raise HTTPException(status_code=400, detail="Missing video_url")
+
+    # Security: only allow local upload paths
+    if not video_url.startswith("/uploads/chat/"):
+        raise HTTPException(status_code=400, detail="Invalid video path")
+
+    # Sanitize filename
+    filename = video_url.split("/")[-1]
+    if not re.match(r'^[\w.\-]+\.(webm|mp4|mov)$', filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    video_path = os.path.join("data", "uploads", "chat", filename)
+    if not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail="Video file not found")
+
+    async with AI_SEMAPHORE:
+        from app.services.video_analysis_service import analyze_video
+        result = await analyze_video(video_path, user_question=question)
+
+    return {
+        "analysis": result["analysis"],
+        "frames_analyzed": result["frames_analyzed"],
+        "error": result.get("error", False)
+    }
 
 @router.post("/session/close")
 async def close_portal_session(request: Request):

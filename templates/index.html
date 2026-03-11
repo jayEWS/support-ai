@@ -2435,7 +2435,8 @@
                     if (xhr.status === 200) {
                         const data = JSON.parse(xhr.responseText);
                         addVideoMessage(data.url, data.filename);
-                        addMessage('📹 Got your screen recording! Our team will review it.', 'ai');
+                        addMessage('📹 Got your screen recording! AI is analyzing what\'s on screen...', 'ai');
+                        analyzeRecording(data.url);
                     } else {
                         addMessage('⚠️ Failed to upload recording.', 'ai');
                     }
@@ -2467,6 +2468,24 @@
             `;
             chatbox.appendChild(wrapper);
             chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        async function analyzeRecording(videoUrl) {
+            try {
+                const res = await fetch('/api/portal/recording/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video_url: videoUrl })
+                });
+                const data = await res.json();
+                if (res.ok && data.analysis && !data.error) {
+                    addMessage(`🧠 **AI Screen Analysis** (${data.frames_analyzed} frames analyzed):\n\n${data.analysis}`, 'ai');
+                } else if (data.analysis) {
+                    addMessage(`⚠️ AI analysis partial: ${data.analysis}`, 'ai');
+                }
+            } catch (e) {
+                console.error('Recording analysis failed:', e);
+            }
         }
 
         /* ══════════ KNOWLEDGE BASE (Self-Service) ══════════ */
