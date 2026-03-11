@@ -43,9 +43,13 @@ patch_env "ALLOWED_ORIGINS"      "${DOMAIN},https://www.support-edgeworks.duckdn
 # --- Google OAuth ---
 patch_env "GOOGLE_REDIRECT_URI"  "${DOMAIN}/api/auth/google/callback"
 
+# --- Redis (required for multi-worker session sharing) ---
+patch_env "REDIS_ENABLED"        "true"
+patch_env "REDIS_URL"            "redis://localhost:6379/0"
+
 echo ""
 echo "=== Updated values ==="
-grep -E "^(ENVIRONMENT|DEBUG|BASE_URL|COOKIE_SECURE|ALLOWED_ORIGINS|GOOGLE_REDIRECT_URI)=" "$ENV_FILE"
+grep -E "^(ENVIRONMENT|DEBUG|BASE_URL|COOKIE_SECURE|ALLOWED_ORIGINS|GOOGLE_REDIRECT_URI|REDIS_ENABLED|REDIS_URL)=" "$ENV_FILE"
 
 echo ""
 echo "=== Restarting support-ai ==="
