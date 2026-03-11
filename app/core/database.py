@@ -75,7 +75,7 @@ class DatabaseManager:
                 # Verify connectivity by inspecting a known table instead of create_all.
                 from sqlalchemy import inspect
                 inspector = inspect(self.engine)
-                tables = inspector.get_table_names()
+                tables = inspector.get_table_names(schema="app") if IS_MSSQL else inspector.get_table_names()
                 db_label = "PostgreSQL" if IS_POSTGRES else "SQL Server"
                 logger.info(f"{db_label} connected. {len(tables)} tables found. Use 'alembic upgrade head' for schema changes.")
                 if not tables:
