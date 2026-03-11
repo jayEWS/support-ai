@@ -99,7 +99,7 @@ from app.routes.audit_routes import router as audit_router
 from app.routes.ticket_routes import router as ticket_router
 from app.routes.knowledge_routes import router as knowledge_router
 from app.routes.websocket_routes import router as websocket_router
-from app.routes.system_routes import router as system_router
+from app.routes.system_routes import router as system_router, admin_router as admin_rbac_router
 from app.routes.portal_routes import router as portal_router
 from app.routes.livechat_routes import router as livechat_router
 
@@ -410,6 +410,7 @@ app.include_router(ticket_router)
 app.include_router(knowledge_router)
 app.include_router(websocket_router)
 app.include_router(system_router)
+app.include_router(admin_rbac_router)
 app.include_router(portal_router)
 app.include_router(livechat_router)
 

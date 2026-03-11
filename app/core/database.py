@@ -994,6 +994,9 @@ class DatabaseManager:
                     "user_id": a.user_id, "name": a.name, "email": a.email,
                     "department": a.department,
                     "active_chat_count": p.active_chat_count if p else 0,
+                    "availability_status": p.status if p else "Available",
+                    "skills": getattr(a, 'skills', '[]') or '[]',
+                    "role": [r.name for r in a.roles][0] if a.roles else 'Agent',
                     "roles": [r.name for r in a.roles]
                 })
             return result
