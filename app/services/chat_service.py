@@ -30,25 +30,25 @@ class ChatService:
             'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
             'ask_name': "Siapa nama kamu? 😊",
             'invalid_name': "Hmm, boleh tulis nama lengkap kamu? 😊",
-            'ask_company': "Hai {name}! 👋\nNama perusahaan atau outlet kamu apa ya?\n(contoh: PT ABC / Warung Makan XYZ)",
-            'invalid_company': "Boleh tulis nama perusahaan atau outlet kamu?",
-            'onboard_complete': "Terima kasih {name}! ✅\nData kamu sudah kami simpan:\n• Nama: {name}\n• Outlet: {company}\n\nSekarang, ada yang bisa saya bantu hari ini? 😊",
+            'ask_details': "Hai {name}! 👋\nMohon lengkapi data berikut ya (ketik sesuai format):\n\n🏢 Perusahaan/Outlet:\n📱 No. HP:\n📧 Email:\n\nContoh:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
+            'invalid_details': "Mohon lengkapi ketiga data berikut ya 🙏\n\n🏢 Perusahaan/Outlet:\n📱 No. HP:\n📧 Email:\n\nKetik 3 baris, contoh:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
+            'onboard_complete': "Terima kasih {name}! ✅\nData kamu sudah kami simpan:\n\n• 👤 Nama: {name}\n• 🏢 Outlet: {company}\n• 📱 HP: {phone}\n• 📧 Email: {email}\n\nSekarang, ada yang bisa saya bantu hari ini? 😊",
         },
         'en': {
             'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
             'ask_name': "What is your name? 😊",
             'invalid_name': "Could you please type your full name? 😊",
-            'ask_company': "Hi {name}! 👋\nWhat is your company or outlet name?\n(e.g. PT ABC / Restaurant XYZ)",
-            'invalid_company': "Could you please type your company or outlet name?",
-            'onboard_complete': "Thank you {name}! ✅\nYour data has been saved:\n• Name: {name}\n• Outlet: {company}\n\nHow can I help you today? 😊",
+            'ask_details': "Hi {name}! 👋\nPlease provide the following details (type in this format):\n\n🏢 Company/Outlet:\n📱 Mobile Number:\n📧 Email:\n\nExample:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
+            'invalid_details': "Please provide all three details 🙏\n\n🏢 Company/Outlet:\n📱 Mobile Number:\n📧 Email:\n\nType 3 lines, example:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
+            'onboard_complete': "Thank you {name}! ✅\nYour data has been saved:\n\n• 👤 Name: {name}\n• 🏢 Outlet: {company}\n• 📱 Mobile: {phone}\n• 📧 Email: {email}\n\nHow can I help you today? 😊",
         },
         'zh': {
             'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
             'ask_name': "请问您的名字是？😊",
             'invalid_name': "请输入您的全名 😊",
-            'ask_company': "{name} 您好！👋\n请问您的公司或门店名称是什么？\n（例如：PT ABC / 餐厅 XYZ）",
-            'invalid_company': "请输入您的公司或门店名称",
-            'onboard_complete': "谢谢 {name}！✅\n您的信息已保存：\n• 姓名：{name}\n• 门店：{company}\n\n请问今天有什么可以帮助您的？😊",
+            'ask_details': "{name} 您好！👋\n请提供以下信息（按格式输入）：\n\n🏢 公司/门店名称：\n📱 手机号码：\n📧 电子邮箱：\n\n例如：\nPT Jaya Wijaya\n08123456789\nandru@email.com",
+            'invalid_details': "请提供以下三项信息 🙏\n\n🏢 公司/门店：\n📱 手机号码：\n📧 邮箱：\n\n输入3行，例如：\nPT Jaya Wijaya\n08123456789\nandru@email.com",
+            'onboard_complete': "谢谢 {name}！✅\n您的信息已保存：\n\n• 👤 姓名：{name}\n• 🏢 门店：{company}\n• 📱 手机：{phone}\n• 📧 邮箱：{email}\n\n请问今天有什么可以帮助您的？😊",
         }
     }
 
@@ -72,7 +72,10 @@ class ChatService:
         user = db_manager.get_user(user_id)
         if not user: return {'state': 'new', 'user': None}
         db_state = user.get('state', '')
-        if db_state in ('asking_language', 'asking_name', 'asking_company'):
+        if db_state in ('asking_language', 'asking_name', 'asking_details', 'asking_company'):
+            # Migrate old 'asking_company' state to new 'asking_details'
+            if db_state == 'asking_company':
+                db_state = 'asking_details'
             return {'state': db_state, 'user': user}
         if db_state == 'complete' and user.get('name') and user.get('company'):
             return {'state': 'complete', 'user': user}
@@ -81,6 +84,54 @@ class ChatService:
     async def _get_user_state_async(self, user_id: str) -> dict:
         """Async wrapper for _get_user_state."""
         return await run_sync(self._get_user_state, user_id)
+
+    @staticmethod
+    def _parse_contact_details(text: str) -> dict:
+        """
+        Parse company, phone, and email from user's multi-line response.
+        Supports formats like:
+          PT Jaya Wijaya
+          08123456789
+          andru@email.com
+        Also handles labeled formats like:
+          Company: PT Jaya
+          Phone: 0812...
+          Email: a@b.com
+        """
+        lines = [l.strip() for l in text.strip().split('\n') if l.strip()]
+        
+        company = None
+        phone = None
+        email = None
+        remaining_lines = []
+        
+        # Label prefix patterns to strip
+        label_re = re.compile(r'^(?:🏢|📱|📧|company|outlet|perusahaan|hp|phone|mobile|no\.?\s*hp|telepon|email|e-mail)[:\s/]*', re.IGNORECASE)
+        
+        for line in lines:
+            cleaned = label_re.sub('', line).strip()
+            if not cleaned:
+                continue
+            
+            # Detect email (contains @)
+            email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.]+', cleaned)
+            if email_match and not email:
+                email = email_match.group(0).lower()
+                continue
+            
+            # Detect phone (starts with 0, +, or is mostly digits)
+            phone_match = re.search(r'(?:\+?\d[\d\s\-().]{6,})', cleaned)
+            if phone_match and not phone:
+                phone = re.sub(r'[\s\-().]+', '', phone_match.group(0))
+                continue
+            
+            # Otherwise it's the company name
+            remaining_lines.append(cleaned)
+        
+        if remaining_lines and not company:
+            company = ' '.join(remaining_lines)
+        
+        return {'company': company, 'phone': phone, 'email': email}
 
     def _handle_onboarding(self, user_id: str, query: str, state_info: dict) -> Optional[str]:
         state = state_info['state']
@@ -104,15 +155,27 @@ class ChatService:
         if state == 'asking_name':
             name = query.strip().title()
             if len(name) < 2: return self._get_lang_str(lang, 'invalid_name')
-            db_manager.create_or_update_user(user_id, name=name, state='asking_company', language=lang)
-            return self._get_lang_str(lang, 'ask_company', name=name)
+            db_manager.create_or_update_user(user_id, name=name, state='asking_details', language=lang)
+            return self._get_lang_str(lang, 'ask_details', name=name)
 
-        if state == 'asking_company':
-            company = query.strip()
-            if len(company) < 2: return self._get_lang_str(lang, 'invalid_company')
+        if state in ('asking_details', 'asking_company'):
+            # Parse company, phone, email from the response
+            parsed = self._parse_contact_details(query)
+            company = parsed.get('company')
+            phone = parsed.get('phone')
+            email = parsed.get('email')
+            
+            # Need at least company — phone & email are strongly encouraged
+            if not company or not phone or not email:
+                return self._get_lang_str(lang, 'invalid_details')
+            
             name = user.get('name', 'Customer')
-            db_manager.create_or_update_user(user_id, name=name, company=company, outlet_pos=company, state='complete', language=lang)
-            return self._get_lang_str(lang, 'onboard_complete', name=name, company=company)
+            db_manager.create_or_update_user(
+                user_id, name=name, company=company, outlet_pos=company,
+                mobile=phone, email=email, state='complete', language=lang
+            )
+            return self._get_lang_str(lang, 'onboard_complete',
+                                      name=name, company=company, phone=phone, email=email)
         
         return None
 
