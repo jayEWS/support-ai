@@ -9,22 +9,39 @@ class CustomCSRFMiddleware(BaseHTTPMiddleware):
     Requires a custom header (X-Requested-With or X-CSRF-Token) for state-changing requests.
     This works because browsers do not allow custom headers to be sent cross-domain without preflight (CORS).
     """
+    # Public endpoints that use form-data/JSON auth (not cookie auth) — exempt from CSRF
+    CSRF_EXEMPT_PREFIXES = (
+        "/api/portal/",      # Public portal chat, history, recording
+        "/api/chat",         # Legacy portal chat alias
+        "/api/close-session",# Legacy session close
+        "/webhook/",         # WhatsApp and external webhooks
+        "/api/auth/",        # Auth endpoints (login, logout, refresh, OAuth)
+        "/api/plans",        # Public plan listing
+        "/api/tenants/register",  # Self-serve signup
+    )
+
     async def dispatch(self, request: Request, call_next):
         if request.method in ("POST", "PUT", "DELETE", "PATCH"):
-            # Check if request is authenticated via cookie
-            has_auth_cookie = "access_token" in request.cookies
-            
-            # If authenticated via cookie, we MUST have a custom header to prevent CSRF
-            if has_auth_cookie:
-                csrf_token = request.headers.get("X-CSRF-Token")
-                requested_with = request.headers.get("X-Requested-With")
+            path = request.url.path
+
+            # Skip CSRF for public/webhook endpoints
+            is_exempt = any(path.startswith(prefix) for prefix in self.CSRF_EXEMPT_PREFIXES)
+
+            if not is_exempt:
+                # Check if request is authenticated via cookie
+                has_auth_cookie = "access_token" in request.cookies
                 
-                if not csrf_token and not requested_with:
-                    logger.warning(f"[SECURITY] Possible CSRF attempt blocked: {request.url}")
-                    raise HTTPException(
-                        status_code=403, 
-                        detail="CSRF validation failed. Custom header (X-CSRF-Token or X-Requested-With) missing."
-                    )
+                # If authenticated via cookie, we MUST have a custom header to prevent CSRF
+                if has_auth_cookie:
+                    csrf_token = request.headers.get("X-CSRF-Token")
+                    requested_with = request.headers.get("X-Requested-With")
+                    
+                    if not csrf_token and not requested_with:
+                        logger.warning(f"[SECURITY] Possible CSRF attempt blocked: {request.url}")
+                        raise HTTPException(
+                            status_code=403, 
+                            detail="CSRF validation failed. Custom header (X-CSRF-Token or X-Requested-With) missing."
+                        )
                     
         response = await call_next(request)
         return response

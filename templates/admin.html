@@ -1717,7 +1717,7 @@ Step 3: Select NETS and enter terminal ID..."
 
         async function fetchWithAuth(url, options = {}, allowRetry = true) {
             const token = localStorage.getItem('support_portal_token');
-            const headers = { ...options.headers };
+            const headers = { 'X-Requested-With': 'XMLHttpRequest', ...options.headers };
             if (token) headers['Authorization'] = `Bearer ${token}`;
             options.headers = headers;
             options.credentials = 'include';

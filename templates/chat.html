@@ -477,7 +477,7 @@
             try {
                 await fetch(`${API_URL}/api/rag/feedback`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     body: JSON.stringify({ chunk_ids: chunkIds, is_positive: isPositive })
                 });
             } catch (e) { /* silent */ }
@@ -547,6 +547,7 @@
 
                 const res = await fetch(`${API_URL}/api/portal/chat`, {
                     method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     body: formData
                     // Note: No 'Content-Type' header! Browser sets it automatically for FormData
                 });
@@ -607,7 +608,7 @@
             try {
                 const res = await fetch(`${API_URL}/api/portal/session/close`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     body: JSON.stringify({ user_id: userId, option: option })
                 });
                 const data = await res.json();

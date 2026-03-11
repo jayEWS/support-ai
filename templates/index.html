@@ -1860,6 +1860,7 @@
 
                 const res = await fetch('/api/portal/chat', {
                     method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     body: formData
                 });
 
@@ -1940,7 +1941,7 @@
             try {
                 const res = await fetch('/api/portal/session/close', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     body: JSON.stringify({ user_id: userId, option: option })
                 });
                 const data = await res.json();
@@ -2417,6 +2418,7 @@
                 formData.append('user_id', userId);
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', '/api/portal/recording/upload');
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
                         const pct = Math.round((e.loaded / e.total) * 100);
@@ -2510,7 +2512,7 @@
             try {
                 const res = await fetch('/api/portal/kb/query', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     body: JSON.stringify({ query: query, language: lang })
                 });
 
