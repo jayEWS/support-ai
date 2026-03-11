@@ -373,7 +373,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Add CORS Middleware - MUST be configured correctly for production
 # Security: reject wildcard "*" patterns — require explicit origins
-_cors_origins = settings.ALLOWED_ORIGINS if settings.ALLOWED_ORIGINS else []
+_cors_origins = settings.parsed_origins
 if _cors_origins == ["*"]:
     logger.warning("[SECURITY] CORS ALLOWED_ORIGINS is ['*'] — this is insecure for production. Set explicit origins.")
 app.add_middleware(

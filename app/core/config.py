@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
 from typing import Optional
 import os
 
@@ -73,14 +72,14 @@ class Settings(BaseSettings):
     MFA_DEV_RETURN_CODE: bool = False  # SECURITY: Set to False in production
     COOKIE_SECURE: bool = True  # SECURITY: Set to False only for local development
     COOKIE_SAMESITE: str = "strict"  # SECURITY: Use 'strict' in production
-    ALLOWED_ORIGINS: list = []  # SECURITY: Specify exact origins in .env for production
+    ALLOWED_ORIGINS: str = ""  # SECURITY: Comma-separated origins in .env for production
     
-    @field_validator('ALLOWED_ORIGINS', mode='before')
-    @classmethod
-    def parse_cors_origins(cls, v):
-        if isinstance(v, str) and v:
-            return [origin.strip() for origin in v.split(',')]
-        return v or []
+    @property
+    def parsed_origins(self) -> list:
+        """Parse comma-separated ALLOWED_ORIGINS string into a list."""
+        if not self.ALLOWED_ORIGINS:
+            return []
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(',') if o.strip()]
     
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""

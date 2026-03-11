@@ -22,7 +22,7 @@ router = APIRouter(prefix="/ws", tags=["WebSocket"])
 def _validate_origin(websocket: WebSocket):
     """CSWH Protection: Validate Origin header against whitelist (Security Fix)."""
     origin = websocket.headers.get("origin")
-    allowed = settings.ALLOWED_ORIGINS if settings.ALLOWED_ORIGINS else ["*"]
+    allowed = settings.parsed_origins if settings.parsed_origins else ["*"]
     if "*" in allowed:
         return
     if not origin or origin not in allowed:
