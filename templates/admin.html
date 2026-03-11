@@ -3285,6 +3285,7 @@ Step 3: Select NETS and enter terminal ID..."
                 xhr.withCredentials = true;
                 const token = localStorage.getItem('support_portal_token');
                 if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
                         const percent = Math.round((e.loaded / e.total) * 100);
@@ -3307,7 +3308,7 @@ Step 3: Select NETS and enter terminal ID..."
                         loadKnowledge(); loadKBStats();
                     } else {
                         let errMsg = 'Unknown error';
-                        try { errMsg = JSON.parse(xhr.responseText).error || xhr.responseText; } catch (e) { errMsg = xhr.responseText || xhr.statusText; }
+                        try { const parsed = JSON.parse(xhr.responseText); errMsg = parsed.detail || parsed.error || xhr.responseText; } catch (e) { errMsg = xhr.responseText || xhr.statusText; }
                         statusText.innerText = `❌ Upload Failed: ${errMsg}`;
                         box.classList.remove('bg-blue-50', 'border-blue-100');
                         box.classList.add('bg-red-50', 'border-red-100');

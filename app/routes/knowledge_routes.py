@@ -157,13 +157,13 @@ async def get_knowledge_stats(
     """Knowledge base performance & file metrics."""
     db = db_manager
     all_kb = db.get_all_knowledge()
-    rag_svc = _require_rag(request)
+    rag_svc = getattr(request.app.state, 'rag_service', None)
     rag_v2 = getattr(request.app.state, 'rag_service_v2', None)
     
     total_files = len(all_kb)
     indexed_count = sum(1 for k in all_kb if k.get('status') == 'Indexed')
-    total_chunks = len(rag_svc.all_documents) if rag_svc and rag_svc.all_documents else 0
-    has_vector_store = bool(rag_svc and rag_svc.vector_store)
+    total_chunks = len(rag_svc.all_documents) if rag_svc and hasattr(rag_svc, 'all_documents') and rag_svc.all_documents else 0
+    has_vector_store = bool(rag_svc and getattr(rag_svc, 'vector_store', None) and getattr(rag_svc.vector_store, 'client', None))
     last_upload = all_kb[0]['upload_date'] if all_kb and all_kb[0].get('upload_date') else None
     
     return {
@@ -173,8 +173,8 @@ async def get_knowledge_stats(
         "vector_store_ready": has_vector_store,
         "last_upload": last_upload,
         "rag_v2": {
-            "active": bool(rag_v2 and rag_v2.vector_store),
-            "total_chunks": len(rag_v2.all_documents) if rag_v2 and rag_v2.all_documents else 0,
+            "active": bool(rag_v2 and getattr(rag_v2, 'vector_store', None)),
+            "total_chunks": len(rag_v2.all_documents) if rag_v2 and hasattr(rag_v2, 'all_documents') and rag_v2.all_documents else 0,
             "engine": "shopify_advanced_rag"
         }
     }
