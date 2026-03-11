@@ -163,8 +163,9 @@ class QdrantVectorStore:
                     }
                 )
                 
-                # Convert Qdrant cosine distance to similarity score
-                similarity = 1.0 - point.score if point.score <= 1.0 else point.score
+                # Qdrant cosine returns a similarity score in [-1, 1] (1 = most similar)
+                # Normalise to [0, 1] — do NOT subtract from 1 (that would invert ranking)
+                similarity = (point.score + 1.0) / 2.0
                 
                 results.append((doc, similarity))
                 
