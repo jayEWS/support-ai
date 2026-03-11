@@ -377,7 +377,8 @@ class DatabaseManager:
         from app.models.models import User
         existing = session.query(User).filter_by(identifier=user_id).first()
         if not existing:
-            user = User(identifier=user_id, name=None)
+            account_id = self._get_next_account_id(session)
+            user = User(identifier=user_id, name=None, account_id=account_id)
             session.add(user)
             session.flush()
 

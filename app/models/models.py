@@ -222,7 +222,7 @@ class User(Base):
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
     tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
     identifier = Column("UserID", Unicode(100), primary_key=True)
-    account_id = Column("AccountID", Unicode(20), unique=True, nullable=True)  # EWS1, EWS2, ...
+    account_id = Column("AccountID", Unicode(20), index=True, nullable=True)  # EWS1, EWS2, ...
     name = Column("DisplayName", Unicode(255))
     email = Column("Email", Unicode(255), nullable=True)
     mobile = Column("Mobile", Unicode(50), nullable=True)

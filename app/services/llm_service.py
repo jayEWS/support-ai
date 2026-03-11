@@ -65,7 +65,7 @@ class LLMService:
             except Exception as e:
                 logger.warning(f"Groq init failed: {e}, falling back to OpenAI")
         
-        if settings.OPENAI_API_KEY:
+        if settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("sk-your"):
             logger.info(f"LLMService using OpenAI: {settings.MODEL_NAME}")
             return ChatOpenAI(
                 model_name=settings.MODEL_NAME,

@@ -26,10 +26,24 @@ class MessageRepository(BaseRepository):
             q_user = self._apply_tenant_filter(q_user, User)
             user = q_user.first()
             if not user:
+                # Generate account_id to avoid UNIQUE constraint violation on SQL Server
+                from app.repositories.user_repo import UserRepository
+                from sqlalchemy import func as sqlfunc
+                max_id = session.query(sqlfunc.max(User.account_id)).scalar()
+                if max_id and max_id.startswith("EWS"):
+                    try:
+                        num = int(max_id[3:]) + 1
+                    except ValueError:
+                        num = 1
+                else:
+                    num = 1
+                account_id = f"EWS{num}"
+                
                 user = User(
                     tenant_id=self.tenant_id, 
                     identifier=user_id, 
                     name=f"User {user_id[-4:]}", 
+                    account_id=account_id,
                     state="idle"
                 )
                 session.add(user)

@@ -117,15 +117,17 @@ class RAGService:
             else:
                 prompt = f"Context: {context}\n\nQuestion: {text}\n\nAnswer concisely in {language}:"
             
-            if llm_svc:
+            if llm_svc and llm_svc.llm:
                 # Use centralized instance which is already warmed up
                 res = await asyncio.wait_for(llm_svc.llm.ainvoke(prompt), timeout=15.0)
                 answer = self._sanitize_text(res.content)
             else:
-                # Fallback if app state not ready
-                llm = self._get_llm()
-                res = await asyncio.wait_for(asyncio.to_thread(llm.invoke, prompt), timeout=15.0)
-                answer = self._sanitize_text(res.content)
+                # No LLM configured — return retrieval-only answer
+                if context and context.strip():
+                    answer = f"Based on our knowledge base:\n\n{context[:1500]}"
+                else:
+                    answer = "I found related information but I'm unable to generate a detailed response right now. Please try again later or contact a support agent."
+                logger.warning("No LLM provider available — returning raw context or fallback")
             
             # Guard against empty LLM responses
             if not answer or answer.strip() == "":
