@@ -430,45 +430,6 @@ async def legacy_portal_chat(
     from app.routes.portal_routes import portal_chat
     return await portal_chat(request, message, user_id, language, file)
 
-@app.post("/api/knowledge/upload")
-async def upload_knowledge_legacy(
-    request: Request,
-    agent: Annotated[dict, Depends(get_current_agent)],
-    files: List[UploadFile] = File(...)
-):
-    """Restore missing upload endpoint for Knowledge Base."""
-    try:
-        from app.utils.security import validate_knowledge_file, safe_filename, safe_path
-        
-        saved_files = []
-        for file in files:
-            sanitized = validate_knowledge_file(file.filename)
-            file_bytes = await file.read()
-            
-            # Save to knowledge directory
-            dest_path = os.path.join(settings.KNOWLEDGE_DIR, sanitized)
-            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-            with open(dest_path, "wb") as f:
-                f.write(file_bytes)
-                
-            # Update DB metadata
-            db_manager.save_knowledge_metadata(
-                filename=sanitized,
-                file_path=dest_path,
-                uploaded_by=agent["user_id"],
-                status="Processing"
-            )
-            saved_files.append(sanitized)
-            
-        # Trigger re-indexing if service available
-        rag = getattr(app.state, 'rag_service', None)
-        if rag and hasattr(rag, 'reload_knowledge'):
-            asyncio.create_task(rag.reload_knowledge())
-            
-        return {"status": "success", "files": saved_files}
-    except Exception as e:
-        logger.error(f"Upload failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 # ============ Health Check ============
 
