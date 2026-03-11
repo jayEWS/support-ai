@@ -1761,7 +1761,7 @@
             `;
 
             try {
-                const res = await fetch(`/api/history/sessions?user_id=${userId}`);
+                const res = await fetch(`/api/portal/history/sessions?user_id=${userId}`);
                 const data = await res.json();
 
                 if (!data.sessions || data.sessions.length === 0) {
@@ -1819,7 +1819,7 @@
             document.getElementById('close-chat').classList.add('hidden');
 
             try {
-                const res = await fetch(`/api/history?user_id=${userId}&ticket_id=${ticketId}`);
+                const res = await fetch(`/api/portal/history?user_id=${userId}&ticket_id=${ticketId}`);
                 const data = await res.json();
                 if (data.history) {
                     data.history.forEach(msg => {
