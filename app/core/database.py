@@ -53,9 +53,9 @@ class DatabaseManager:
         self._init_db()
 
     def _init_db(self):
-        """Create all tables if they don't exist."""
+        """Initialize database. Uses Alembic for production (MSSQL/PostgreSQL);
+        falls back to metadata.create_all only for SQLite (dev/testing)."""
         try:
-            # P0 Fix: Create 'app' schema for SQL Server if it doesn't exist
             if IS_MSSQL:
                 from sqlalchemy import text
                 with self.engine.connect() as conn:
@@ -66,13 +66,27 @@ class DatabaseManager:
                     except Exception as schema_err:
                         logger.warning(f"Could not create 'app' schema (might already exist or permission issue): {schema_err}")
 
-            Base.metadata.create_all(self.engine)
-            db_label = "PostgreSQL" if IS_POSTGRES else "SQL Server" if IS_MSSQL else "SQLite"
-            logger.info(f"{db_label} database tables verified/created.")
+            if IS_SQLITE:
+                # Dev/testing: auto-create tables for convenience
+                Base.metadata.create_all(self.engine)
+                logger.info("SQLite database tables auto-created (dev mode).")
+            else:
+                # Production (MSSQL/PostgreSQL): rely on Alembic migrations.
+                # Verify connectivity by inspecting a known table instead of create_all.
+                from sqlalchemy import inspect
+                inspector = inspect(self.engine)
+                tables = inspector.get_table_names()
+                db_label = "PostgreSQL" if IS_POSTGRES else "SQL Server"
+                logger.info(f"{db_label} connected. {len(tables)} tables found. Use 'alembic upgrade head' for schema changes.")
+                if not tables:
+                    logger.warning(
+                        "No tables found in database. Run 'alembic upgrade head' to apply migrations."
+                    )
+
             # Cleanup expired tokens on startup
             self._cleanup_expired_tokens()
         except Exception as e:
-            logger.error(f"Error initializing SQL Server: {e}")
+            logger.error(f"Error initializing database: {e}")
 
     def _cleanup_expired_tokens(self):
         """Remove expired MFA challenges, refresh tokens, and magic links to prevent table bloat."""

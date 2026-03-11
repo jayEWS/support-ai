@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER: str = "gmail"  # Options: gmail, sendgrid, mock
     
     # Security
-    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "changethis")
+    API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "")  # MUST be set via environment variable
     AUTH_SECRET_KEY: str = ""  # Set via environment variable - MUST be changed in production
     ALGORITHM: str = "HS256"
     # Security Fix M2: Reduce default access token lifetime from 1440 (24h) to 60 minutes

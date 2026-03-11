@@ -104,7 +104,11 @@ async def portal_chat(
     file: Optional[UploadFile] = File(None)
 ):
     """Direct portal chat with Level-1 AI agent."""
-    # Security: Bind user_id to IP
+    # P0 Fix: Server-side user_id validation via signed cookie
+    response = JSONResponse(content={})
+    user_id = _get_or_create_user_id(request, response, client_user_id=user_id)
+    
+    # Security: Bind user_id to IP (defense-in-depth)
     bind_user_ip(user_id, request)
     
     chat_service = getattr(request.app.state, 'chat_service', None)
@@ -160,11 +164,22 @@ async def portal_chat(
 @router.get("/history")
 @limiter.limit("30/minute")
 async def get_chat_history(request: Request, user_id: str = "web_portal_user", ticket_id: Optional[int] = None):
-    """Retrieve chat history for a portal user. IDOR protected by IP binding."""
+    """Retrieve chat history for a portal user. IDOR protected by signed cookie."""
     if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
         raise HTTPException(status_code=400, detail="Invalid user_id format")
     
-    # Security: Bind user_id to the IP that first used it
+    # P0 Fix: Validate user_id against signed cookie
+    cookie_uid = request.cookies.get(_USER_ID_COOKIE)
+    cookie_sig = request.cookies.get(_USER_ID_SIG_COOKIE)
+    if cookie_uid and cookie_sig:
+        expected_sig = _sign_user_id(cookie_uid)
+        if hmac.compare_digest(cookie_sig, expected_sig):
+            # Only allow access to the cookie-bound user_id
+            if user_id != cookie_uid:
+                logger.warning(f"[SECURITY] IDOR attempt: cookie_uid={cookie_uid[:20]}, requested={user_id[:20]}")
+                raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Defense-in-depth: IP binding
     bind_user_ip(user_id, request)
     
     db = db_manager
@@ -179,7 +194,15 @@ async def get_history_sessions(request: Request, user_id: str = "web_portal_user
     if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
         raise HTTPException(status_code=400, detail="Invalid user_id format")
     
-    # Security: Bind user_id to the IP that first used it
+    # P0 Fix: Validate user_id against signed cookie
+    cookie_uid = request.cookies.get(_USER_ID_COOKIE)
+    cookie_sig = request.cookies.get(_USER_ID_SIG_COOKIE)
+    if cookie_uid and cookie_sig:
+        expected_sig = _sign_user_id(cookie_uid)
+        if hmac.compare_digest(cookie_sig, expected_sig) and user_id != cookie_uid:
+            logger.warning(f"[SECURITY] IDOR attempt on sessions: cookie_uid={cookie_uid[:20]}, requested={user_id[:20]}")
+            raise HTTPException(status_code=403, detail="Access denied")
+    
     bind_user_ip(user_id, request)
     
     db = db_manager

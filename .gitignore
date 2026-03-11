@@ -75,10 +75,13 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Deployment
+# Deployment artifacts (P0: may contain .env with live secrets)
 docker-compose.override.yml
 *.backup
 *.bak
+deploy.zip
+deploy_fix.tar
+deploy_fix.tar.gz
 
 knowledge.zip
 

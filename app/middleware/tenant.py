@@ -96,10 +96,24 @@ class TenantMiddleware(BaseHTTPMiddleware):
             TenantContext.clear()
 
     def _resolve_tenant(self, request: Request) -> str:
-        """Resolve tenant_id from multiple sources."""
+        """Resolve tenant_id from multiple sources with input validation."""
         
+        # P0 Fix: Validate tenant_id format to prevent injection
+        def _validate_tenant_id(tid: str) -> str:
+            """Ensure tenant_id is alphanumeric + hyphens/underscores only (max 64 chars)."""
+            if not tid:
+                return None
+            tid = tid.strip()
+            if len(tid) > 64:
+                logger.warning(f"[SECURITY] Oversized tenant_id rejected: {tid[:20]}...")
+                return None
+            if not re.match(r'^[a-zA-Z0-9_-]+$', tid):
+                logger.warning(f"[SECURITY] Invalid tenant_id format rejected: {tid[:30]}")
+                return None
+            return tid
+
         # 1. Explicit header
-        tenant_id = request.headers.get("X-Tenant-ID")
+        tenant_id = _validate_tenant_id(request.headers.get("X-Tenant-ID"))
         if tenant_id:
             return tenant_id
 
@@ -115,7 +129,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
             return tenant_from_subdomain
 
         # 4. Query parameter (for portal widget embedding)
-        tenant_id = request.query_params.get("tenant_id")
+        tenant_id = _validate_tenant_id(request.query_params.get("tenant_id"))
         if tenant_id:
             return tenant_id
 

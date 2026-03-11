@@ -253,11 +253,17 @@ async def _init_saas_layer(app: FastAPI):
             )
             
             try:
-                from app.models.tenant_models import Base as TenantBase
-                TenantBase.metadata.create_all(db_manager.engine)
-                logger.debug("SaaS tables verified.")
+                # P0 Fix: Don't use metadata.create_all() in production.
+                # SaaS tables should be managed via Alembic migrations.
+                from app.models.models import IS_SQLITE
+                if IS_SQLITE:
+                    from app.models.tenant_models import Base as TenantBase
+                    TenantBase.metadata.create_all(db_manager.engine)
+                    logger.debug("SaaS tables auto-created (SQLite dev mode).")
+                else:
+                    logger.debug("SaaS tables managed by Alembic. Run 'alembic upgrade head' for schema changes.")
             except Exception as e:
-                logger.warning(f"SaaS table creation skipped: {e}")
+                logger.warning(f"SaaS table verification skipped: {e}")
     except Exception as e:
         logger.warning(f"SaaS layer init error: {e}")
 

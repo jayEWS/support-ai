@@ -35,6 +35,13 @@ def is_allowed_file(filename: str) -> bool:
     return ext in ALL_ALLOWED
 
 
+# Maximum file sizes (defense-in-depth; routes should also enforce)
+MAX_UPLOAD_SIZES = {
+    "chat": 10 * 1024 * 1024,       # 10 MB for chat attachments
+    "knowledge": 20 * 1024 * 1024,  # 20 MB for knowledge documents
+}
+
+
 def save_upload(file_bytes: bytes, original_filename: str, destination: str = "chat") -> dict:
     """
     Save an uploaded file and return metadata.
@@ -46,7 +53,25 @@ def save_upload(file_bytes: bytes, original_filename: str, destination: str = "c
     
     Returns:
         dict with file metadata: filename, path, url, category, size
+    
+    Raises:
+        ValueError: If file exceeds size limit or has disallowed extension
     """
+    # P0 Fix: Enforce file size limits
+    max_size = MAX_UPLOAD_SIZES.get(destination, MAX_UPLOAD_SIZES["chat"])
+    if len(file_bytes) > max_size:
+        raise ValueError(
+            f"File '{original_filename}' ({len(file_bytes) / (1024*1024):.1f}MB) "
+            f"exceeds the {max_size // (1024*1024)}MB limit for {destination} uploads."
+        )
+
+    # P0 Fix: Validate file extension
+    if not is_allowed_file(original_filename):
+        raise ValueError(
+            f"File type not allowed: {original_filename}. "
+            f"Allowed extensions: {', '.join(ALL_ALLOWED)}"
+        )
+
     if destination == "knowledge":
         upload_dir = KNOWLEDGE_UPLOAD_DIR
     else:

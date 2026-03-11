@@ -33,6 +33,12 @@ async def list_knowledge(
     return db_manager.get_all_knowledge()
 
 
+# Maximum file size for knowledge uploads (20 MB)
+MAX_KNOWLEDGE_FILE_SIZE = 20 * 1024 * 1024
+# Maximum file size for chat uploads (10 MB)
+MAX_CHAT_FILE_SIZE = 10 * 1024 * 1024
+
+
 @router.post("/upload")
 async def upload_knowledge(
     request: Request,
@@ -45,6 +51,13 @@ async def upload_knowledge(
         for file in files:
             sanitized = validate_knowledge_file(file.filename)
             file_bytes = await file.read()
+
+            # P0 Fix: Enforce file size limit to prevent resource exhaustion
+            if len(file_bytes) > MAX_KNOWLEDGE_FILE_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File '{file.filename}' exceeds maximum size of {MAX_KNOWLEDGE_FILE_SIZE // (1024*1024)}MB"
+                )
 
             dest_path = os.path.join(settings.KNOWLEDGE_DIR, sanitized)
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
