@@ -84,3 +84,7 @@ knowledge.zip
 
 Customer/
 *.tar.gz
+*.zip
+*.tar.gz
+deploy-code.*
+support-ai-deployment.*
