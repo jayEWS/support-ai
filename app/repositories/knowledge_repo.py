@@ -99,3 +99,11 @@ class KnowledgeRepository(BaseRepository):
                 session.delete(meta)
                 return True
             return False
+
+    def get_all_unprocessed(self) -> List[str]:
+        """Get list of knowledge files that are not 'Completed'."""
+        with self.session_scope() as session:
+            q = session.query(KnowledgeMetadata).filter(KnowledgeMetadata.status != 'Completed')
+            q = self._apply_tenant_filter(q, KnowledgeMetadata)
+            items = q.all()
+            return [k.filename for k in items]
