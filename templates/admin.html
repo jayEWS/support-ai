@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agent Dashboard | Support Portal Edgeworks</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232563eb'/%3E%3Cstop offset='100%25' stop-color='%237c3aed'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M32 16c-8.8 0-16 6.3-16 14 0 4.5 2.5 8.5 6.4 11.2L20 48l7.5-3.8c1.4.4 3 .6 4.5.6 8.8 0 16-6.3 16-14S40.8 16 32 16z' fill='white' opacity='.95'/%3E%3Ccircle cx='24' cy='30' r='2.5' fill='%232563eb'/%3E%3Ccircle cx='32' cy='30' r='2.5' fill='%237c3aed'/%3E%3Ccircle cx='40' cy='30' r='2.5' fill='%232563eb'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%232563eb'/%3E%3Cpath d='M90 45c-24.8 0-45 17.7-45 39.5 0 12.7 7 24 17.9 31.5L55 135l21.2-10.7c4 1.1 8.4 1.7 13.8 1.7 24.8 0 45-17.7 45-39.5S114.8 45 90 45z' fill='white' opacity='.95'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -460,13 +462,20 @@
     <!-- Sidebar -->
     <aside
         class="w-72 bg-white/90 backdrop-blur-xl border-r border-gray-100/50 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-        <div class="p-8 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <div
-                    class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/30">
-                    <i class="fas fa-headset text-white text-xs"></i>
+        <div class="p-6 pb-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30" style="background: linear-gradient(135deg, #2563eb, #7c3aed)">
+                    <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/>
+                        <circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/>
+                        <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/>
+                    </svg>
                 </div>
-                <span class="tracking-tight">Support <span class="text-blue-600">Portal</span></span>
+                <div class="leading-tight">
+                    <span class="tracking-tight block">Edgeworks</span>
+                    <span class="text-[10px] font-bold tracking-widest uppercase" style="background: linear-gradient(135deg, #2563eb, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Support AI</span>
+                </div>
             </h1>
         </div>
 
@@ -1175,9 +1184,8 @@
                 <div class="bg-white p-6 rounded-2xl border border-dashed border-gray-200 hover:border-blue-400 transition-all cursor-pointer group"
                     onclick="document.getElementById('kb-upload-input').click()">
                     <div class="text-center">
-                        <div
-                            class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition">
-                            <i class="fas fa-cloud-upload-alt text-blue-500 text-xl"></i>
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-md" style="background: linear-gradient(135deg, #3b82f6, #2563eb)">
+                            <i class="fas fa-cloud-upload-alt text-white text-2xl"></i>
                         </div>
                         <p class="text-sm font-bold text-gray-700">Upload Documents</p>
                         <p class="text-[10px] text-gray-400 mt-1">Any file type — AI will learn from it</p>
@@ -1187,8 +1195,8 @@
                 <!-- URL Fetch -->
                 <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
-                            <i class="fas fa-globe text-green-500 text-xl"></i>
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-md flex-shrink-0" style="background: linear-gradient(135deg, #22c55e, #16a34a)">
+                            <i class="fas fa-globe text-white text-2xl"></i>
                         </div>
                         <div>
                             <p class="text-sm font-bold text-gray-700">Fetch from URL</p>
@@ -1208,9 +1216,8 @@
                 <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer group"
                     onclick="togglePastePanel()">
                     <div class="text-center">
-                        <div
-                            class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-100 transition">
-                            <i class="fas fa-paste text-amber-500 text-xl"></i>
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-md" style="background: linear-gradient(135deg, #f59e0b, #d97706)">
+                            <i class="fas fa-paste text-white text-2xl"></i>
                         </div>
                         <p class="text-sm font-bold text-gray-700">Paste Text</p>
                         <p class="text-[10px] text-gray-400 mt-1">Type or paste content to convert into KB</p>
