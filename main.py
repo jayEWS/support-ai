@@ -1053,10 +1053,10 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     chat_svc = getattr(app.state, 'chat_service', None)
     
     # Check onboarding state and handle (also detects language for complete users)
-    state_info = chat_svc._get_user_state(message.sender) if chat_svc else {'state': 'complete'}
+    state_info = (await chat_svc._get_user_state_async(message.sender)) if chat_svc else {'state': 'complete'}
     onboarding_response = None
     if chat_svc:
-        onboarding_response = chat_svc._handle_onboarding(message.sender, message.text, state_info)
+        onboarding_response = await chat_svc._handle_onboarding(message.sender, message.text, state_info)
     
     # Re-read language AFTER onboarding (may have been updated by language detection)
     user_lang = chat_svc.get_user_language(message.sender) if chat_svc else 'en'
@@ -1339,10 +1339,10 @@ async def simulate_whatsapp_inbound(data: dict, agent: Annotated[dict, Depends(g
         chat_svc = getattr(app.state, 'chat_service', None)
         
         # Check onboarding state and handle (also detects language for complete users)
-        state_info = chat_svc._get_user_state(phone) if chat_svc else {'state': 'complete'}
+        state_info = (await chat_svc._get_user_state_async(phone)) if chat_svc else {'state': 'complete'}
         onboarding_response = None
         if chat_svc:
-            onboarding_response = chat_svc._handle_onboarding(phone, message_text, state_info)
+            onboarding_response = await chat_svc._handle_onboarding(phone, message_text, state_info)
         
         # Re-read language AFTER onboarding (may have been updated by language detection)
         user_lang = chat_svc.get_user_language(phone) if chat_svc else 'en'

@@ -162,7 +162,7 @@ class ChatService:
 
         return {'company': company, 'outlet': outlet, 'phone': phone, 'email': email}
 
-    def _handle_onboarding(self, user_id: str, query: str, state_info: dict) -> Optional[str]:
+    async def _handle_onboarding(self, user_id: str, query: str, state_info: dict) -> Optional[str]:
         state = state_info['state']
         user = state_info.get('user', {})
         lang = (user.get('language') if user else None) or 'en'
@@ -179,26 +179,26 @@ class ChatService:
         # If user hasn't finished onboarding but starts with a generic greeting, restart flow
         if is_greeting and state not in ('new', 'asking_language'):
             state = 'new'
-            db_manager.create_or_update_user(user_id, state='new')
+            await run_sync(db_manager.create_or_update_user, user_id, state='new')
 
         if state == 'new':
             detected = self.detect_language(query)
             if detected:
-                db_manager.create_or_update_user(user_id, state='asking_name', language=detected)
+                await run_sync(db_manager.create_or_update_user, user_id, state='asking_name', language=detected)
                 return self._get_lang_str(detected, 'ask_name')
-            db_manager.create_or_update_user(user_id, state='asking_language')
+            await run_sync(db_manager.create_or_update_user, user_id, state='asking_language')
             return self._get_lang_str('en', 'ask_language')
 
         if state == 'asking_language':
             detected = self.detect_language(query)
             if not detected: return self._get_lang_str('en', 'ask_language')
-            db_manager.create_or_update_user(user_id, state='asking_name', language=detected)
+            await run_sync(db_manager.create_or_update_user, user_id, state='asking_name', language=detected)
             return self._get_lang_str(detected, 'ask_name')
 
         if state == 'asking_name':
             name = query.strip().title()
             if len(name) < 2: return self._get_lang_str(lang, 'invalid_name')
-            db_manager.create_or_update_user(user_id, name=name, state='asking_details', language=lang)
+            await run_sync(db_manager.create_or_update_user, user_id, name=name, state='asking_details', language=lang)
             return self._get_lang_str(lang, 'ask_details', name=name)
 
         if state in ('asking_details', 'asking_company'):
@@ -214,7 +214,7 @@ class ChatService:
 
             name = user.get('name', 'Customer')
             # Save pending data and ask for confirmation
-            db_manager.create_or_update_user(user_id, company=company, outlet_pos=outlet, mobile=phone, email=email, state='confirming_details', language=lang)
+            await run_sync(db_manager.create_or_update_user, user_id, company=company, outlet_pos=outlet, mobile=phone, email=email, state='confirming_details', language=lang)
             return self._get_lang_str(lang, 'confirm_details',
                                       name=name, company=company, outlet=outlet, phone=phone, email=email)
 
@@ -236,16 +236,16 @@ class ChatService:
             
             # If both are matched (e.g., "tidak benar"), default to No.
             if is_no:
-                db_manager.create_or_update_user(user_id, company="", outlet_pos="", mobile="", email="", state='asking_details', language=lang)
+                await run_sync(db_manager.create_or_update_user, user_id, company="", outlet_pos="", mobile="", email="", state='asking_details', language=lang)
                 return self._get_lang_str(lang, 'confirm_retry')
             elif is_yes:
                 company = user.get('company')
                 if not company:
                     # Fallback: re-ask if DB data lost
-                    db_manager.create_or_update_user(user_id, state='asking_details', language=lang)
+                    await run_sync(db_manager.create_or_update_user, user_id, state='asking_details', language=lang)
                     return self._get_lang_str(lang, 'confirm_retry')
                 
-                db_manager.create_or_update_user(
+                await run_sync(db_manager.create_or_update_user,
                     user_id, state='complete', language=lang
                 )
                 return self._get_lang_str(lang, 'onboard_complete', name=name)
@@ -258,6 +258,7 @@ class ChatService:
 
     def get_user_language(self, user_id: str) -> str:
         user = db_manager.get_user(user_id)
+        return (user.get('language') if user else None) or 'en'
 
     # ── Smart Category Detection ────────────────────────────────────
 
@@ -331,10 +332,9 @@ class ChatService:
                 if kw in q_lower:
                     return category
         return "diagnose"
-        return (user.get('language') if user else None) or 'en'
 
-    def _log_ai_interaction(self, user_id: str, query: str, response_data: dict, rag_res: Any):
-        """Self-Learning Pipeline: Log every AI interaction for future review/extraction."""
+    def _log_ai_interaction_sync(self, user_id: str, query: str, response_data: dict, rag_res: Any):
+        """Self-Learning Pipeline: Log every AI interaction for future review/extraction (sync, run via run_sync)."""
         try:
             from app.repositories.base import TenantContext
             session = db_manager.get_session()
@@ -355,6 +355,10 @@ class ChatService:
         finally:
             db_manager.Session.remove()
 
+    async def _log_ai_interaction(self, user_id: str, query: str, response_data: dict, rag_res: Any):
+        """Async wrapper for AI interaction logging."""
+        await run_sync(self._log_ai_interaction_sync, user_id, query, response_data, rag_res)
+
     async def process_portal_message(self, query: str, user_id: str, file: Optional[UploadFile] = None, language: str = None):
         with LogLatency("chat_service", "process_portal_message"):
             attachment_meta = None
@@ -374,7 +378,7 @@ class ChatService:
             await run_sync(db_manager.save_message, user_id, "user", query, None if not attachment_meta else json.dumps([attachment_meta]))
 
             state_info = await self._get_user_state_async(user_id)
-            onboarding_response = self._handle_onboarding(user_id, query, state_info)
+            onboarding_response = await self._handle_onboarding(user_id, query, state_info)
             if onboarding_response:
                 await run_sync(db_manager.save_message, user_id, "bot", onboarding_response)
                 return {"answer": onboarding_response, "confidence": 1.0, "onboarding": True}, 200
@@ -441,7 +445,7 @@ class ChatService:
             }
 
             # 5. Log for Self-Learning
-            self._log_ai_interaction(user_id, query, response_data, rag_res)
+            await self._log_ai_interaction(user_id, query, response_data, rag_res)
 
             return response_data, 200
 
