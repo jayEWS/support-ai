@@ -15,6 +15,8 @@ from app.core.logging import logger
 # Endpoints that consume plan-limited resources
 ENFORCED_ENDPOINTS = {
     "POST:/api/chat": "ai_messages",
+    "POST:/api/portal/chat": "ai_messages",       # P0 Fix: Portal chat also consumes AI quota
+    "POST:/api/portal/kb/query": "ai_messages",   # P0 Fix: KB query also consumes AI quota
     "POST:/api/knowledge/upload": "knowledge_files",
     "POST:/api/tickets": "tickets",
 }

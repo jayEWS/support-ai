@@ -307,7 +307,12 @@ async def delete_customer(
     try:
         session = db.get_session()
         from app.models.models import User
-        u = session.get(User, identifier)
+        # P0 Fix: Use tenant-scoped query instead of session.get() to prevent cross-tenant deletion
+        query = session.query(User).filter_by(identifier=identifier)
+        tenant_id = getattr(session, '_tenant_id', None)
+        if hasattr(User, 'tenant_id') and agent.get('tenant_id'):
+            query = query.filter(User.tenant_id == agent['tenant_id'])
+        u = query.first()
         if u:
             session.delete(u)
             session.commit()

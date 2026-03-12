@@ -171,6 +171,11 @@ async def portal_websocket(websocket: WebSocket, user_id: str):
             if msg.get("event") == "message":
                 content = msg.get("content", "").strip()[:5000]
                 if content:
+                    # P2 Fix: Validate WS messages against prompt injection
+                    from app.services.guardrail_service import guardrail_service as _gs
+                    if not _gs.validate_input(content):
+                        await websocket.send_json({"event": "error", "message": "Message could not be processed. Please rephrase."})
+                        continue
                     db_manager.save_message(user_id, "user", content)
                     await portal_manager.send_to_admins(user_id, {
                         "event": "message",

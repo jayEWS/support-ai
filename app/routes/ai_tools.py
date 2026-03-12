@@ -32,15 +32,24 @@ async def get_ai_metrics(agent: Annotated[dict, Depends(require_agent)]):
     """Enterprise AI Performance Summary. Requires authenticated agent."""
     session = db_manager.get_session()
     try:
+        # P0 Fix: Scope metrics to agent's tenant to prevent cross-tenant data leak
+        tenant_id = agent.get("tenant_id")
+        base_query = session.query(AIInteraction)
+        if tenant_id:
+            base_query = base_query.filter(AIInteraction.tenant_id == tenant_id)
+
         # Total interactions
-        total = session.query(func.count(AIInteraction.id)).scalar() or 0
+        total = base_query.count() or 0
         
-        # Resolution Rate (Simple Mock: % of interactions with confidence > 0.7)
-        resolved = session.query(func.count(AIInteraction.id)).filter(AIInteraction.confidence > 0.7).scalar() or 0
+        # Resolution Rate (% of interactions with confidence > 0.7)
+        resolved = base_query.filter(AIInteraction.confidence > 0.7).count() or 0
         resolution_rate = (resolved / total * 100) if total > 0 else 0
         
         # Average Confidence
-        avg_conf = session.query(func.avg(AIInteraction.confidence)).scalar() or 0
+        avg_conf = session.query(func.avg(AIInteraction.confidence))
+        if tenant_id:
+            avg_conf = avg_conf.filter(AIInteraction.tenant_id == tenant_id)
+        avg_conf = avg_conf.scalar() or 0
         
         return {
             "total_interactions": total,
@@ -59,7 +68,12 @@ async def list_ai_interactions(agent: Annotated[dict, Depends(require_agent)], l
     limit = min(limit, 100)
     session = db_manager.get_session()
     try:
-        results = session.query(AIInteraction).order_by(desc(AIInteraction.created_at)).limit(limit).all()
+        # P0 Fix: Scope interactions to agent's tenant
+        query = session.query(AIInteraction)
+        tenant_id = agent.get("tenant_id")
+        if tenant_id:
+            query = query.filter(AIInteraction.tenant_id == tenant_id)
+        results = query.order_by(desc(AIInteraction.created_at)).limit(limit).all()
         return [{
             "id": r.id,
             "query": r.query,
@@ -78,6 +92,11 @@ async def submit_ai_feedback(interaction_id: int, req: FeedbackRequest, agent: A
     try:
         log = session.get(AIInteraction, interaction_id)
         if not log:
+            raise HTTPException(status_code=404, detail="Interaction not found")
+        
+        # P0 Fix: Verify interaction belongs to agent's tenant
+        tenant_id = agent.get("tenant_id")
+        if tenant_id and hasattr(log, 'tenant_id') and log.tenant_id and log.tenant_id != tenant_id:
             raise HTTPException(status_code=404, detail="Interaction not found")
         
         log.resolution_status = "solved" if req.is_correct else "correction_needed"

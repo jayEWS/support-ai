@@ -89,4 +89,12 @@ class BaseRepository:
         tid = tenant_id or self.tenant_id
         if tid and hasattr(model_class, "tenant_id"):
             return query.filter(model_class.tenant_id == tid)
+        # P0 Safety: Warn if multi-tenant is enabled but no tenant context is set
+        if hasattr(model_class, "tenant_id") and not tid:
+            from app.core.config import settings as _settings
+            if getattr(_settings, 'MULTI_TENANT_ENABLED', False):
+                logger.warning(
+                    f"[SECURITY] No tenant context for {model_class.__name__} query. "
+                    f"Data may leak across tenants. Set TenantContext before querying."
+                )
         return query

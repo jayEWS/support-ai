@@ -222,8 +222,12 @@ class WhatsAppWebhookService:
         """
         app_secret = settings.WHATSAPP_APP_SECRET
         if not app_secret:
-            logger.warning("[SECURITY] WHATSAPP_APP_SECRET not configured — webhook signature validation SKIPPED")
-            return True  # Allow if not configured (dev mode), but warn loudly
+            # P0 Security Fix: Only bypass in explicit test mode; fail closed in production
+            if getattr(settings, 'WHATSAPP_TEST_MODE', False):
+                logger.warning("[SECURITY] WHATSAPP_APP_SECRET not configured — signature validation SKIPPED (test mode)")
+                return True
+            logger.error("[SECURITY] WHATSAPP_APP_SECRET not configured — rejecting webhook (set WHATSAPP_TEST_MODE=True for dev)")
+            return False
 
         if not signature or not signature.startswith("sha256="):
             logger.warning("[SECURITY] Missing or malformed webhook signature")

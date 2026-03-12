@@ -183,7 +183,12 @@ async def get_analytics(agent: Annotated[dict, Depends(get_current_agent)]):
         if len(top_topics) < 3:
             keywords = ["Closing Counter", "NETS Payment", "Refund", "KDS Setup", "foodpanda", "Xero"]
             for kw in keywords:
-                count = session.query(AIInteraction).filter(AIInteraction.query.like(f"%{kw}%")).count()
+                ai_q = session.query(AIInteraction).filter(AIInteraction.query.like(f"%{kw}%"))
+                # P1 Fix: Scope AI interaction queries to agent's tenant
+                agent_tid = agent.get("tenant_id")
+                if agent_tid and hasattr(AIInteraction, "tenant_id"):
+                    ai_q = ai_q.filter(AIInteraction.tenant_id == agent_tid)
+                count = ai_q.count()
                 if count > 0:
                     top_topics.append({"topic": kw, "count": count, "trend": "stable"})
     except Exception as e:
@@ -399,10 +404,10 @@ async def sql_expert_query(request: Request, agent: Annotated[dict, Depends(get_
             # Only allow SELECT queries (read-only)
             safe_query = script.strip().rstrip(';')
             q_upper = safe_query.upper().strip()
-            if not q_upper.startswith("SELECT") and not q_upper.startswith("WITH") and not q_upper.startswith("EXEC"):
-                raise HTTPException(status_code=400, detail="Only SELECT/WITH/EXEC read queries are allowed")
-            # Block dangerous keywords
-            dangerous = ['DROP', 'DELETE', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'GRANT', 'REVOKE']
+            if not q_upper.startswith("SELECT") and not q_upper.startswith("WITH"):
+                raise HTTPException(status_code=400, detail="Only SELECT/WITH read queries are allowed")
+            # Block dangerous keywords (P1 Fix: Added EXEC to prevent stored procedure mutation)
+            dangerous = ['DROP', 'DELETE', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'GRANT', 'REVOKE', 'EXEC']
             for d in dangerous:
                 if d in q_upper.split('--')[0]:  # ignore comments
                     raise HTTPException(status_code=400, detail=f"'{d}' statements are not allowed in read-only mode")

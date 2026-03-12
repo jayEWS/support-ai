@@ -15,6 +15,8 @@ from app.core.logging import logger
 # Map API paths to trackable resource types
 TRACKED_ENDPOINTS = {
     "/api/chat": "ai_messages",
+    "/api/portal/chat": "ai_messages",       # P0 Fix: Track portal AI usage for billing
+    "/api/portal/kb/query": "ai_messages",   # P0 Fix: Track KB query usage for billing
     "/api/knowledge/upload": "knowledge_files",
     "/webhook/whatsapp": "whatsapp_messages",
 }

@@ -22,6 +22,7 @@ from app.utils.security import bind_user_ip
 from app.utils.async_db import run_sync
 from app.utils.file_handler import save_upload
 from app.services.websocket_manager import portal_manager
+from app.services.guardrail_service import guardrail_service
 from datetime import datetime, timezone
 from pydantic import BaseModel
 
@@ -66,7 +67,14 @@ async def portal_kb_query(request: Request):
         
         if not query:
             return JSONResponse({"error": "Query is required"}, status_code=400)
-            
+
+        # P0 Fix: Validate input against prompt injection before sending to RAG
+        if not guardrail_service.validate_input(query):
+            return JSONResponse(
+                {"answer": "I'm sorry, I couldn't process that request. Could you rephrase your question?", "confidence": 0, "sources": []},
+                status_code=200
+            )
+
         rag = _require_rag(request)
         rag_v2 = getattr(request.app.state, 'rag_service_v2', None)
         
@@ -78,6 +86,8 @@ async def portal_kb_query(request: Request):
                 result = await rag.query(text=query, threshold=0.4, language=language)
         
         answer = result.answer
+        # P1 Fix: Sanitize AI output (PII masking, hallucination detection)
+        answer = guardrail_service.validate_output(answer)
         if not is_agent:
             # P1 Fix: Rigorous anonymization for public portal
             answer = re.sub(r"Internal[\s:]*", "", answer, flags=re.IGNORECASE)

@@ -43,8 +43,18 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # ── Target metadata for autogenerate ──
-# Combine both app and tenant model metadata
-target_metadata = AppBase.metadata
+# P0 Fix: Combine both app AND tenant model metadata so Alembic detects all schema changes
+from sqlalchemy import MetaData
+if TenantBase is not None:
+    _combined = MetaData()
+    for table in AppBase.metadata.tables.values():
+        table.tometadata(_combined)
+    for table in TenantBase.metadata.tables.values():
+        if table.key not in _combined.tables:
+            table.tometadata(_combined)
+    target_metadata = _combined
+else:
+    target_metadata = AppBase.metadata
 
 
 def include_name(name, type_, parent_names):

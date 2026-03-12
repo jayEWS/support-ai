@@ -263,6 +263,7 @@ class ChatService:
     def _log_ai_interaction(self, user_id: str, query: str, response_data: dict, rag_res: Any):
         """Self-Learning Pipeline: Log every AI interaction for future review/extraction."""
         try:
+            from app.repositories.base import TenantContext
             session = db_manager.get_session()
             log = AIInteraction(
                 user_id=user_id,
@@ -272,7 +273,7 @@ class ChatService:
                 tools_used=json.dumps(response_data.get("tools_used", [])),
                 confidence=response_data.get("confidence", 0.0),
                 resolution_status="pending",
-                tenant_id=getattr(db_manager, 'current_tenant_id', None)
+                tenant_id=TenantContext.get()  # P1 Fix: Use TenantContext instead of nonexistent attribute
             )
             session.add(log)
             session.commit()

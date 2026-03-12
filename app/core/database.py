@@ -965,7 +965,8 @@ class DatabaseManager:
                 "user_id": a.user_id, "name": a.name, "email": a.email, 
                 "department": a.department, "hashed_password": a.hashed_password,
                 "active_chat_count": p.active_chat_count if p else 0,
-                "roles": roles, "role": legacy_role, "permissions": permissions
+                "roles": roles, "role": legacy_role, "permissions": permissions,
+                "tenant_id": a.tenant_id  # P1 Fix: Include tenant_id for downstream tenant scoping
             }
         finally:
             self.Session.remove()
@@ -977,7 +978,7 @@ class DatabaseManager:
             if not a: return None
             roles = [r.name for r in a.roles]
             legacy_role = "admin" if ("System Admin" in roles or "Admin" in roles) else "agent"
-            return { "user_id": a.user_id, "email": a.email, "hashed_password": a.hashed_password, "role": legacy_role }
+            return { "user_id": a.user_id, "email": a.email, "hashed_password": a.hashed_password, "role": legacy_role, "tenant_id": a.tenant_id }
         finally:
             self.Session.remove()
 
@@ -997,7 +998,8 @@ class DatabaseManager:
                     "availability_status": p.status if p else "Available",
                     "skills": getattr(a, 'skills', '[]') or '[]',
                     "role": [r.name for r in a.roles][0] if a.roles else 'Agent',
-                    "roles": [r.name for r in a.roles]
+                    "roles": [r.name for r in a.roles],
+                    "tenant_id": a.tenant_id  # P1 Fix: Include tenant_id
                 })
             return result
         finally:
