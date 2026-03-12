@@ -92,12 +92,11 @@ class RAGService:
             return None
 
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=4), reraise=True)
-    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en', system_prompt: Optional[str] = None) -> RAGResponse:
+    async def query(self, text: str, threshold: float = 0.5, use_hybrid: bool = True, language: str = 'en', system_prompt: Optional[str] = None, conversation_history: Optional[List[Dict]] = None) -> RAGResponse:
         logger.info(f"RAG Query: {text[:50]}")
         try:
             # 0. Empty/Media Message Check
             if not text or text.strip() == "" or text.startswith("["):
-                # If it's just media like "[Image Received]", don't try to query RAG
                 ans = "I received your file/media. How can I help you with it?"
                 if language == 'id': ans = "Saya telah menerima file/media Anda. Ada yang bisa saya bantu terkait hal tersebut?"
                 elif language == 'zh': ans = "我收到了您的文件/媒体。有什么我可以帮您的吗？"
@@ -108,56 +107,171 @@ class RAGService:
                 logger.info("Greeting detected")
                 return await self._handle_greeting(text, language)
 
-            # 2. Cache Check
+            # 2. Cache Check (skip cache when conversation context present)
             cache_key = f"{text.lower().strip()}_{language}_{hash(system_prompt) if system_prompt else 'default'}"
-            if cache_key in self._cache:
+            if not conversation_history and cache_key in self._cache:
                 if (datetime.now().timestamp() - self._cache[cache_key]['timestamp']) < self._cache_ttl:
                     return self._cache[cache_key]['response']
 
-            # 3. Retrieval
-            retrieval_result = await self.retriever.retrieve(original_query=text, k_final=5)
+            # 3. Smart Query Expansion — enrich short/vague queries
+            expanded_query = self._expand_query(text, conversation_history)
+
+            # 4. Retrieval with expanded query
+            retrieval_result = await self.retriever.retrieve(
+                original_query=text,
+                expanded_query=expanded_query if expanded_query != text else None,
+                k_final=6
+            )
             context = retrieval_result.context_text
             confidence = retrieval_result.confidence
-            
-            # 4. LLM using centralized LLMService (Much faster)
-            # P1 Fix: Use injected LLM service instead of circular import from main
+
+            # 5. Build structured LLM prompt
             llm_svc = self._llm_service
-            
-            if system_prompt:
-                prompt = f"{system_prompt}\n\nDOCUMENT CONTEXT:\n{context}\n\nUSER QUESTION: {text}\n\nGenerate your response based on your identity and the context provided above. Be natural and engaging."
-            else:
-                prompt = f"Context: {context}\n\nQuestion: {text}\n\nAnswer concisely in {language}:"
-            
+            prompt = self._build_llm_prompt(
+                system_prompt=system_prompt,
+                context=context,
+                question=text,
+                language=language,
+                conversation_history=conversation_history,
+                confidence=confidence
+            )
+
             if llm_svc and llm_svc.llm:
-                # Use centralized instance which is already warmed up
-                res = await asyncio.wait_for(llm_svc.llm.ainvoke(prompt), timeout=15.0)
+                res = await asyncio.wait_for(llm_svc.llm.ainvoke(prompt), timeout=20.0)
                 answer = self._sanitize_text(res.content)
             else:
-                # No LLM configured — return retrieval-only answer
                 if context and context.strip():
                     answer = f"Based on our knowledge base:\n\n{context[:1500]}"
                 else:
                     answer = "I found related information but I'm unable to generate a detailed response right now. Please try again later or contact a support agent."
                 logger.warning("No LLM provider available — returning raw context or fallback")
-            
+
             # Guard against empty LLM responses
             if not answer or answer.strip() == "":
                 logger.warning(f"LLM returned empty response for query: {text[:50]}")
                 answer = "I'm processing that, but I'm having a bit of trouble finding the right words. Could you rephrase your question?"
                 if language == 'id': answer = "Saya sedang memprosesnya, tetapi saya kesulitan menemukan kata-kata yang tepat. Bisa tolong ulangi pertanyaannya?"
-            
+
             result = RAGResponse(
-                answer=answer, confidence=confidence, 
+                answer=answer, confidence=confidence,
                 source_documents=[c['file'] for c in retrieval_result.source_citations],
                 retrieval_method="advanced_hybrid"
             )
-            
-            self._cache[cache_key] = {'response': result, 'timestamp': datetime.now().timestamp()}
+
+            if not conversation_history:
+                self._cache[cache_key] = {'response': result, 'timestamp': datetime.now().timestamp()}
             return result
 
         except Exception as e:
             logger.error(f"RAG query failed: {e}")
             return RAGResponse(answer="I'm sorry, I'm having trouble connecting to my brain. Please try again later.", confidence=0, source_documents=[])
+
+    # ── Query Expansion ──────────────────────────────────────────────────────
+
+    def _expand_query(self, query: str, conversation_history: Optional[List[Dict]] = None) -> str:
+        """
+        Expand short or ambiguous queries using conversation context.
+        E.g. "how to fix it?" → "how to fix printer not printing receipt POS"
+        """
+        words = query.strip().split()
+
+        # Only expand if query is very short or contains pronouns
+        pronouns = {'it', 'this', 'that', 'they', 'them', 'its', 'itu', 'ini', 'nya'}
+        needs_expansion = len(words) <= 4 or bool(set(w.lower() for w in words) & pronouns)
+
+        if not needs_expansion:
+            return query
+
+        if not conversation_history:
+            return query
+
+        # Pull topic keywords from last 3 messages
+        recent_texts = []
+        for msg in conversation_history[-3:]:
+            content = msg.get('content', '')
+            if content and len(content) > 5:
+                recent_texts.append(content)
+
+        if not recent_texts:
+            return query
+
+        # Extract key nouns/topics from conversation (simple keyword extraction)
+        import re
+        all_words = []
+        stop = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'to', 'of', 'in',
+                'for', 'on', 'with', 'at', 'by', 'it', 'this', 'that', 'i', 'you', 'we', 'my',
+                'your', 'can', 'do', 'did', 'have', 'has', 'had', 'will', 'would', 'could',
+                'should', 'may', 'not', 'yes', 'no', 'ok', 'hi', 'hello', 'thanks', 'thank',
+                'dan', 'di', 'ke', 'dari', 'yang', 'ini', 'itu', 'untuk', 'dengan', 'ada',
+                'pada', 'atau', 'tidak', 'sudah', 'bisa', 'akan', 'saya', 'kami'}
+        for text in recent_texts:
+            for w in re.split(r'\W+', text.lower()):
+                if len(w) > 2 and w not in stop:
+                    all_words.append(w)
+
+        # Get top-5 most frequent topic words
+        from collections import Counter
+        top_keywords = [w for w, _ in Counter(all_words).most_common(5)]
+
+        if top_keywords:
+            expanded = f"{query} ({' '.join(top_keywords)})"
+            logger.info(f"[QueryExpansion] '{query}' → '{expanded}'")
+            return expanded
+
+        return query
+
+    # ── Structured LLM Prompt Builder ────────────────────────────────────────
+
+    def _build_llm_prompt(self, system_prompt: Optional[str], context: str, question: str,
+                          language: str, conversation_history: Optional[List[Dict]],
+                          confidence: float) -> str:
+        """
+        Build a well-structured prompt that grounds the LLM in documents,
+        includes conversation history for context, and handles low-confidence
+        scenarios gracefully.
+        """
+        parts = []
+
+        # 1. System prompt (persona)
+        if system_prompt:
+            parts.append(system_prompt)
+
+        # 2. Conversation history (last 6 messages for context)
+        if conversation_history:
+            recent = conversation_history[-6:]
+            history_lines = []
+            for msg in recent:
+                role = msg.get('role', 'user').upper()
+                content = msg.get('content', '')[:300]  # Truncate long messages
+                if content.strip():
+                    history_lines.append(f"[{role}]: {content}")
+            if history_lines:
+                parts.append(f"CONVERSATION HISTORY:\n" + "\n".join(history_lines))
+
+        # 3. Document context with confidence signal
+        if context and context.strip():
+            parts.append(f"DOCUMENT CONTEXT (retrieval confidence: {confidence:.0%}):\n{context}")
+        else:
+            parts.append("DOCUMENT CONTEXT: No relevant documents found.")
+
+        # 4. Confidence-aware instruction
+        if confidence < 0.3:
+            parts.append(
+                "⚠️ LOW CONFIDENCE: The retrieved documents may not be relevant. "
+                "Be honest that you don't have specific information. Offer general "
+                "troubleshooting advice and suggest contacting a human agent if needed."
+            )
+
+        # 5. The user's question
+        parts.append(f"USER QUESTION: {question}")
+
+        # 6. Generation instruction
+        parts.append(
+            f"Reply in the same language as the user's question. "
+            f"Be natural, concise, and helpful. Base your answer on the DOCUMENT CONTEXT when available."
+        )
+
+        return "\n\n".join(parts)
 
     # ── Knowledge Management Methods ─────────────────────────────────────────
 
@@ -384,33 +498,99 @@ class RAGService:
 
     @staticmethod
     def _chunk_text(text: str, filename: str) -> list:
-        """Split text into overlapping chunks."""
+        """
+        Paragraph-aware chunking: splits on natural boundaries (headers,
+        double-newlines, numbered sections) instead of fixed character offsets.
+        Preserves semantic coherence within each chunk.
+        """
+        import re
         text = text.strip()
         if not text:
             return []
 
+        # Step 1: Split into semantic paragraphs/sections
+        # Split on markdown headers, numbered sections, or double newlines
+        section_splits = re.split(
+            r'(?:\n\s*\n)|'            # Double newline (paragraph break)
+            r'(?=\n#{1,3}\s)|'         # Markdown headers
+            r'(?=\n\d+\.\s)|'          # Numbered list items at root level
+            r'(?=\n-{3,})|'            # Horizontal rules
+            r'(?=\n={3,})',            # Section separators
+            text
+        )
+
+        # Clean up and filter empty sections
+        paragraphs = [p.strip() for p in section_splits if p and p.strip()]
+
+        # Step 2: Merge small paragraphs and split oversized ones
         chunks = []
-        start = 0
+        current_chunk = ""
         idx = 0
 
-        while start < len(text):
-            end = min(start + CHUNK_SIZE, len(text))
-            content = text[start:end].strip()
-            if content:
-                chunk_id = hashlib.md5(f"{filename}:{idx}:{content[:50]}".encode()).hexdigest()[:12]
-                chunks.append({
-                    "content": content,
-                    "filename": filename,
-                    "chunk_index": idx,
-                    "chunk_id": chunk_id,
-                    "source": filename,
-                    "category": RAGService._guess_category(filename),
-                })
-                idx += 1
+        for para in paragraphs:
+            # If adding this paragraph keeps us under the limit, merge
+            if len(current_chunk) + len(para) + 2 <= CHUNK_SIZE:
+                current_chunk = f"{current_chunk}\n\n{para}".strip() if current_chunk else para
+            else:
+                # Save current chunk if it has content
+                if current_chunk:
+                    chunk_id = hashlib.md5(f"{filename}:{idx}:{current_chunk[:50]}".encode()).hexdigest()[:12]
+                    chunks.append({
+                        "content": current_chunk,
+                        "filename": filename,
+                        "chunk_index": idx,
+                        "chunk_id": chunk_id,
+                        "source": filename,
+                        "category": RAGService._guess_category(filename),
+                    })
+                    idx += 1
 
-            if end == len(text):
-                break
-            start = end - CHUNK_OVERLAP
+                # Handle oversized paragraphs — split with overlap
+                if len(para) > CHUNK_SIZE:
+                    start = 0
+                    while start < len(para):
+                        # Try to break at sentence boundary
+                        end = min(start + CHUNK_SIZE, len(para))
+                        if end < len(para):
+                            # Look for sentence boundary near the end
+                            for sep in ['. ', '.\n', '! ', '? ', '\n']:
+                                boundary = para[start:end].rfind(sep)
+                                if boundary > CHUNK_SIZE * 0.5:
+                                    end = start + boundary + len(sep)
+                                    break
+
+                        content = para[start:end].strip()
+                        if content:
+                            chunk_id = hashlib.md5(f"{filename}:{idx}:{content[:50]}".encode()).hexdigest()[:12]
+                            chunks.append({
+                                "content": content,
+                                "filename": filename,
+                                "chunk_index": idx,
+                                "chunk_id": chunk_id,
+                                "source": filename,
+                                "category": RAGService._guess_category(filename),
+                            })
+                            idx += 1
+
+                        if end >= len(para):
+                            break
+                        start = max(end - CHUNK_OVERLAP, start + 1)
+
+                    current_chunk = ""
+                else:
+                    current_chunk = para
+
+        # Don't forget the last chunk
+        if current_chunk:
+            chunk_id = hashlib.md5(f"{filename}:{idx}:{current_chunk[:50]}".encode()).hexdigest()[:12]
+            chunks.append({
+                "content": current_chunk,
+                "filename": filename,
+                "chunk_index": idx,
+                "chunk_id": chunk_id,
+                "source": filename,
+                "category": RAGService._guess_category(filename),
+            })
 
         return chunks
 

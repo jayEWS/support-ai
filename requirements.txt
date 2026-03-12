@@ -1,74 +1,107 @@
+# ============================================================
+# Edgeworks AI Support Portal — Python Dependencies
+# Runtime: Python 3.11 | Framework: FastAPI + Gunicorn/Uvicorn
+# Last updated: 2026-03-12
+# ============================================================
+
+# ── Web Framework & Server ──────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+gunicorn==22.0.0
+starlette==0.37.2
+python-multipart==0.0.9
+websockets==13.1
 aiofiles
 aiohttp==3.11.12
+
+# ── Database (SQL Server + PostgreSQL) ──────────────────────
+SQLAlchemy==2.0.38
 alembic>=1.18.0
-annotated-types==0.7.0
-anyio==4.12.1
-appdirs==1.4.4
-attrs==25.4.0
-backoff==2.2.1
-bcrypt==5.0.0
-beautifulsoup4==4.14.3
-certifi==2026.2.25
-cffi==2.0.0
-charset-normalizer==3.4.4
-click==8.3.1
-colorama==0.4.6
-cryptography==46.0.5
-fastapi==0.111.0
-filelock==3.24.3
-google-auth==2.48.0
+pyodbc>=5.1.0
+psycopg2-binary==2.9.11
+
+# ── AI / LLM Providers ─────────────────────────────────────
+openai==1.58.1
+langchain==0.3.18
+langchain-core==0.3.37
+langchain-community==0.3.17
+langchain-openai==0.3.5
+langchain-google-genai==2.0.11
+langchain-google-vertexai==2.0.12
+langchain-groq==0.2.4
+langchain-text-splitters==0.3.6
 groq>=0.37.1
-gunicorn==22.0.0
-h11==0.16.0
-httptools==0.7.1
+tiktoken==0.8.0
+
+# ── Embeddings & Vector Search ──────────────────────────────
+langchain-huggingface==0.1.2
+sentence-transformers==3.4.1
+huggingface_hub==0.36.2
+qdrant-client==1.7.3
+rank-bm25==0.2.2
+numpy==1.26.4
+
+# ── Auth & Security ─────────────────────────────────────────
+bcrypt==5.0.0
+PyJWT==2.8.0
+cryptography==46.0.5
+
+# ── HTTP & Networking ───────────────────────────────────────
 httpx>=0.28.0
 httpx-sse==0.4.3
-huggingface_hub==0.36.2
+requests==2.32.5
+certifi==2026.2.25
 idna==3.11
+charset-normalizer==3.4.4
+h11==0.16.0
+httptools==0.7.1
+
+# ── Data Processing ────────────────────────────────────────
+pandas==2.2.3
+openpyxl==3.1.5
+beautifulsoup4==4.14.3
+lxml==6.0.2
+Markdown==3.10.2
+
+# ── Config & Utilities ──────────────────────────────────────
+pydantic==2.12.5
+pydantic-settings==2.13.1
+python-dotenv==1.0.1
+PyYAML==6.0.3
 Jinja2==3.1.4
+markupSafe==3.0.3
+click==8.3.1
+colorama==0.4.6
+tqdm==4.67.1
+filelock==3.24.3
+appdirs==1.4.4
+python-dateutil==2.9.0.post0
+annotated-types==0.7.0
+anyio==4.12.1
+
+# ── Resilience & Rate Limiting ──────────────────────────────
+tenacity==8.5.0
+slowapi==0.1.9
+limits==5.8.0
+backoff==2.2.1
+
+# ── Caching & Real-Time ────────────────────────────────────
+redis>=5.0.1
+fakeredis>=2.21.0
+
+# ── Observability ──────────────────────────────────────────
+prometheus-fastapi-instrumentator==7.0.0
+
+# ── Language Detection ──────────────────────────────────────
+langdetect==1.0.9
+
+# ── Cloud Storage ──────────────────────────────────────────
+google-auth==2.48.0
+google-cloud-storage==2.19.0
+
+# ── JSON Utilities ─────────────────────────────────────────
 jsonpatch==1.33
 jsonpointer==3.0.0
 jsonschema==4.26.0
-langchain==0.3.18
-langchain-community==0.3.17
-langchain-core==0.3.37
-langchain-groq==0.2.4
-langchain-huggingface==0.1.2
-langchain-google-genai==2.0.11
-langchain-google-vertexai==2.0.12
-langchain-openai==0.3.5
-langchain-text-splitters==0.3.6
-google-cloud-storage==2.19.0
-sentence-transformers==3.4.1
-langdetect==1.0.9
-limits==5.8.0
-lxml==6.0.2
-Markdown==3.10.2
-markupSafe==3.0.3
-numpy==1.26.4
-openai==1.58.1
-openpyxl==3.1.5
-pandas==2.2.3
-psycopg2-binary==2.9.11
-pydantic==2.12.5
-pydantic-settings==2.13.1
-python-dateutil==2.9.0.post0
-python-dotenv==1.0.1
-PyJWT==2.8.0
-python-multipart==0.0.9
-PyYAML==6.0.3
-rank-bm25==0.2.2
-requests==2.32.5
-slowapi==0.1.9
-SQLAlchemy==2.0.38
-starlette==0.37.2
-tenacity==8.5.0
-tiktoken==0.8.0
-tqdm==4.67.1
-uvicorn[standard]==0.30.1
-websockets==13.1
-redis>=5.0.1
-fakeredis>=2.21.0
-pyodbc>=5.1.0
-prometheus-fastapi-instrumentator==7.0.0
-qdrant-client==1.7.3
+attrs==25.4.0
+cffi==2.0.0

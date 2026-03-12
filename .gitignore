@@ -75,19 +75,32 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Deployment artifacts (P0: may contain .env with live secrets)
+# Deployment artifacts
 docker-compose.override.yml
 *.backup
 *.bak
+*.bak.*
 deploy.zip
 deploy_fix.tar
 deploy_fix.tar.gz
-
+deploy/
 knowledge.zip
-
 Customer/
 *.tar.gz
 *.zip
-*.tar.gz
 deploy-code.*
 support-ai-deployment.*
+
+# AI tool configs (Cline, Gemini, etc.)
+.cline/
+.agents/
+.clineignore
+.geminiignore
+.geminirules
+improvement/
+
+# One-off debug files
+test_api.py
+test_upload.py
+Caddyfile.tmp
+quick-deploy-commands.txt

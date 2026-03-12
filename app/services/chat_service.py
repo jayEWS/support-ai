@@ -258,6 +258,42 @@ class ChatService:
 
     def get_user_language(self, user_id: str) -> str:
         user = db_manager.get_user(user_id)
+
+    # ── Smart Category Detection ────────────────────────────────────
+
+    # Keyword → category mapping (checked in priority order)
+    _CATEGORY_RULES = [
+        # Special personas (exact triggers)
+        ({"pos-guardian", "pos guardian"}, "pos_guardian"),
+        ({"heart-guardian", "heart guardian"}, "heart_guardian"),
+        ({"relationship-comms", "comms assistant"}, "relationship_comms"),
+        ({"love-agent", "love agent", "relationship coach"}, "love_agent"),
+        # Hardware
+        ({"printer", "print", "receipt", "cetak", "struk", "kds", "display", "kiosk",
+          "scanner", "barcode", "cash drawer", "laci"}, "printer"),
+        # Payment
+        ({"payment", "transaction", "bayar", "refund", "void", "nets", "fomopay",
+          "edc", "terminal", "pembayaran", "transaksi", "charge", "settlement"}, "payment"),
+        # Voucher/Promo
+        ({"voucher", "kupon", "promo", "discount", "diskon", "reward", "loyalty",
+          "redeem", "coupon", "campaign"}, "voucher"),
+        # Inventory
+        ({"inventory", "stock", "stok", "barang", "item", "produk", "product",
+          "recipe", "bom", "restock"}, "diagnose"),
+    ]
+
+    @classmethod
+    def _detect_category(cls, query: str) -> str:
+        """
+        Detect the intent category from the user's query using multi-keyword
+        matching. More keywords = more accurate routing.
+        """
+        q_lower = query.lower()
+        for keywords, category in cls._CATEGORY_RULES:
+            for kw in keywords:
+                if kw in q_lower:
+                    return category
+        return "diagnose"
         return (user.get('language') if user else None) or 'en'
 
     def _log_ai_interaction(self, user_id: str, query: str, response_data: dict, rag_res: Any):
@@ -319,23 +355,8 @@ class ChatService:
                 "position": user.get('position', 'Staff')
             }
 
-            # 1. Intent/Category Detection for Persona Switching
-            category = "diagnose"
-            q_lower = query.lower()
-            if "pos-guardian" in q_lower or "pos guardian" in q_lower: 
-                category = "pos_guardian"
-            elif "heart-guardian" in q_lower or "heart guardian" in q_lower: 
-                category = "heart_guardian"
-            elif "relationship-comms" in q_lower or "comms assistant" in q_lower:
-                category = "relationship_comms"
-            elif "love-agent" in q_lower or "relationship coach" in q_lower or "love agent" in q_lower:
-                category = "love_agent"
-            elif "printer" in q_lower: 
-                category = "printer"
-            elif any(x in q_lower for x in ["payment", "transaction", "bayar"]): 
-                category = "payment"
-            elif any(x in q_lower for x in ["voucher", "kupon", "promo"]): 
-                category = "voucher"
+            # 1. Smart Intent/Category Detection for Persona Switching
+            category = self._detect_category(query)
 
             # 2. Get Advanced System Prompt
             system_msg = prompt_service.get_system_message(category, user_context)
@@ -349,7 +370,17 @@ class ChatService:
             if len(query.split()) > 3 and category not in ("pos_guardian", "heart_guardian", "relationship_comms", "love_agent"):
                 query_to_send += f" (Context: {user_context['company']} - {user_context['outlet']})"
 
-            rag_res = await self.rag_service.query(query_to_send, language=user_lang, system_prompt=system_msg)            # 4. LLM Completion
+            # Fetch recent conversation history for context-aware AI responses
+            conversation_history = await run_sync(db_manager.get_messages, user_id)
+            # Limit to last 8 messages to keep prompt size manageable
+            recent_history = conversation_history[-8:] if conversation_history else []
+
+            rag_res = await self.rag_service.query(
+                query_to_send,
+                language=user_lang,
+                system_prompt=system_msg,
+                conversation_history=recent_history
+            )            # 4. LLM Completion
             answer = _sanitize_text(rag_res.answer)
             
             # --- Guardrail: Output Validation ---
