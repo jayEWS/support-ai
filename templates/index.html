@@ -1172,8 +1172,8 @@
 
                 <form id="chat-form" class="relative">
                     <div class="input-box flex items-center rounded-2xl p-1.5 pl-5">
-                        <input type="text" id="user-input" placeholder="Type your message..."
-                            class="input-field flex-1 text-[15px] py-3" />
+                        <textarea id="user-input" rows="1" placeholder="Type your message..."
+                            class="input-field flex-1 text-[15px] py-3 resize-none outline-none overflow-y-auto bg-transparent border-none focus:ring-0" style="min-height: 48px; max-height: 120px; box-sizing: border-box;"></textarea>
 
                         <div class="flex items-center gap-1">
                             <!-- File attach -->
@@ -1671,6 +1671,26 @@
             }
         });
 
+        // Textarea auto-resize and Enter to send
+        userInput.addEventListener('input', function() {
+            this.style.height = '48px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const sendBtn = document.querySelector('#chat-form button[type="submit"]');
+                if (sendBtn && !sendBtn.disabled) {
+                    if (typeof chatForm.requestSubmit === 'function') {
+                        chatForm.requestSubmit();
+                    } else {
+                        chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    }
+                }
+            }
+        });
+
         // File helpers
         function getFileIcon(category) {
             return { document: '📄', image: '🖼️', audio: '🎵', video: '🎬' }[category] || '📎';
@@ -1848,6 +1868,7 @@
 
             addMessage(message || `📎 ${pendingFile.name}`, 'user', attachmentInfo);
             userInput.value = '';
+            userInput.style.height = '48px';
 
             showTypingIndicator();
 
