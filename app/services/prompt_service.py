@@ -152,8 +152,8 @@ Inform the user you are escalating to a human specialist."""
         # If context is provided (e.g. user details), inject them
         user_context = ""
         if context:
-            user_context = f"\n\nUser Context:\nName: {context.get('name')}\nOutlet: {context.get('outlet')}\nPosition: {context.get('position')}"
-            
+            user_context = f"\n\nUser Context:\nName: {context.get('name', 'Unknown')}\nCompany: {context.get('company', 'Unknown')}\nOutlet: {context.get('outlet', 'Unknown')}\nPosition: {context.get('position', 'Staff')}"
+
         return f"{cls.BASE_PERSONA}\n\n{instructions}{user_context}"
 
 prompt_service = PromptService()

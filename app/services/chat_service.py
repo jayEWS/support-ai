@@ -27,37 +27,37 @@ class ChatService:
     # --- Language Support ---
     LANG_STRINGS = {
         'id': {
-            'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
-            'ask_name': "Siapa nama kamu? 😊",
-            'invalid_name': "Hmm, boleh tulis nama lengkap kamu? 😊",
-            'ask_details': "Hai {name}! 👋\nMohon lengkapi data berikut ya (ketik sesuai format):\n\n🏢 Perusahaan/Outlet:\n📱 No. HP:\n📧 Email:\n\nContoh:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
-            'invalid_details': "Mohon lengkapi ketiga data berikut ya 🙏\n\n🏢 Perusahaan/Outlet:\n📱 No. HP:\n📧 Email:\n\nKetik 3 baris, contoh:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
-            'confirm_details': "Mohon konfirmasi data berikut:\n\n👤 Nama: {name}\n🏢 Outlet: {company}\n📱 HP: {phone}\n📧 Email: {email}\n\nApakah sudah benar? Ketik *Ya* atau *Tidak*",
-            'onboard_complete': "Terima kasih {name}! ✅\nData kamu sudah disimpan.\n\nSekarang, ada yang bisa saya bantu hari ini? 😊",
-            'confirm_retry': "Baik, silakan kirim ulang data kamu:\n\n🏢 Perusahaan/Outlet:\n📱 No. HP:\n📧 Email:",
-            'welcome_back': "Selamat datang kembali, {name}! 👋\nAda yang bisa saya bantu hari ini? 😊",
+            'ask_language': "Halo! 👋 Selamat datang di *Edgeworks Support*.\n\nSecara default kami menggunakan Bahasa Indonesia, namun Anda bisa mengubahnya:\n*Please select your preferred language:*\n*请选择您的语言：*\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nBalas dengan angka / Reply with 1, 2, or 3 😊",
+            'ask_name': "Boleh kami tahu dengan siapa kami berbicara (Nama Anda)? 😊",
+            'invalid_name': "Mohon maaf, boleh ketikkan nama lengkap Anda? 😊",
+            'ask_details': "Salam kenal, {name}! 👋\nAgar kami bisa membantu dengan lebih baik, boleh minta tolong lengkapi data berikut? (Silakan ketik dalam 4 baris ya):\n\n🏢 Nama Perusahaan:\n🏬 Nama Outlet:\n📱 No. HP (WhatsApp):\n📧 Email:\n\nContoh:\nEdgeworks\nBugis\n08123456789\nhalo@email.com",
+            'invalid_details': "Mohon maaf, sepertinya datanya belum lengkap 🙏\nBoleh minta tolong ketik ulang informasi ini dalam 4 baris bersusun?\n\n🏢 Nama Perusahaan:\n🏬 Nama Outlet:\n📱 No. HP (WhatsApp):\n📧 Email:\n\nContoh:\nEdgeworks\nBugis\n08123456789\nhalo@email.com",
+            'confirm_details': "Terima kasih! Boleh kami pastikan datanya sudah benar?\n\n👤 Nama: {name}\n🏢 Perusahaan: {company}\n🏬 Outlet: {outlet}\n📱 HP: {phone}\n📧 Email: {email}\n\nKetik *Ya* jika sudah benar, atau *Tidak* jika mau diubah.",
+            'onboard_complete': "Terima kasih, {name}! ✅\nData Anda sudah kami simpan.\n\nSekarang, ada yang bisa kami bantu hari ini? 😊",
+            'confirm_retry': "Baik, mohon ketik ulang data Anda ya:\n\n🏢 Nama Perusahaan:\n🏬 Nama Outlet:\n📱 No. HP (WhatsApp):\n📧 Email:",
+            'welcome_back': "Halo {name} dari {company}! 👋\nSelamat datang kembali di Edgeworks Support.\nAda yang bisa kami bantu hari ini? 😊",
         },
         'en': {
-            'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
-            'ask_name': "What is your name? 😊",
-            'invalid_name': "Could you please type your full name? 😊",
-            'ask_details': "Hi {name}! 👋\nPlease provide the following details (type in this format):\n\n🏢 Company/Outlet:\n📱 Mobile Number:\n📧 Email:\n\nExample:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
-            'invalid_details': "Please provide all three details 🙏\n\n🏢 Company/Outlet:\n📱 Mobile Number:\n📧 Email:\n\nType 3 lines, example:\nPT Jaya Wijaya\n08123456789\nandru@email.com",
-            'confirm_details': "Please confirm your details:\n\n👤 Name: {name}\n🏢 Outlet: {company}\n📱 Mobile: {phone}\n📧 Email: {email}\n\nIs this correct? Type *Yes* or *No*",
-            'onboard_complete': "Thank you {name}! ✅\nYour data has been saved.\n\nHow can I help you today? 😊",
-            'confirm_retry': "OK, please resend your details:\n\n🏢 Company/Outlet:\n📱 Mobile Number:\n📧 Email:",
-            'welcome_back': "Welcome back, {name}! 👋\nHow can I help you today? 😊",
+            'ask_language': "Hello! 👋 Welcome to *Edgeworks Support*.\n\nPlease select your preferred language:\n*Silakan pilih bahasa Anda:*\n*请选择您的语言：*\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
+            'ask_name': "May I know your name please? 😊",
+            'invalid_name': "Could you please tell us your full name? 😊",
+            'ask_details': "Nice to meet you, {name}! 👋\nTo help us assist you better, could you please provide these details in 4 lines?\n\n🏢 Company Name:\n🏬 Outlet Name:\n📱 Mobile Number (WhatsApp):\n📧 Email Address:\n\nExample:\nEdgeworks\nBugis\n+6581234567\nhello@email.com",
+            'invalid_details': "Sorry, it seems we missed some details 🙏\nCould you please type them out in 4 lines?\n\n🏢 Company Name:\n🏬 Outlet Name:\n📱 Mobile Number (WhatsApp):\n📧 Email Address:\n\nExample:\nEdgeworks\nBugis\n+6581234567\nhello@email.com",
+            'confirm_details': "Thank you! Just to confirm, are these details correct?\n\n👤 Name: {name}\n🏢 Company: {company}\n🏬 Outlet: {outlet}\n📱 Mobile: {phone}\n📧 Email: {email}\n\nPlease type *Yes* or *No*.",
+            'onboard_complete': "Thank you, {name}! ✅\nYour details have been saved.\n\nHow can we help you today? 😊",
+            'confirm_retry': "No problem, please resend your details:\n\n🏢 Company Name:\n🏬 Outlet Name:\n📱 Mobile Number (WhatsApp):\n📧 Email Address:",
+            'welcome_back': "Welcome back, {name} from {company}! 👋\nHow can we help you today? 😊",
         },
         'zh': {
-            'ask_language': "👋 Welcome to *Edgeworks Support*!\n\nPlease select your preferred language:\nSilakan pilih bahasa Anda:\n请选择您的语言：\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\nReply with 1, 2, or 3 😊",
-            'ask_name': "请问您的名字是？😊",
-            'invalid_name': "请输入您的全名 😊",
-            'ask_details': "{name} 您好！👋\n请提供以下信息（按格式输入）：\n\n🏢 公司/门店名称：\n📱 手机号码：\n📧 电子邮箱：\n\n例如：\nPT Jaya Wijaya\n08123456789\nandru@email.com",
-            'invalid_details': "请提供以下三项信息 🙏\n\n🏢 公司/门店：\n📱 手机号码：\n📧 邮箱：\n\n输入3行，例如：\nPT Jaya Wijaya\n08123456789\nandru@email.com",
-            'confirm_details': "请确认以下信息：\n\n👤 姓名：{name}\n🏢 门店：{company}\n📱 手机：{phone}\n📧 邮箱：{email}\n\n是否正确？输入 *是* 或 *否*",
-            'onboard_complete': "谢谢 {name}！✅\n您的信息已保存。\n\n请问今天有什么可以帮助您的？😊",
-            'confirm_retry': "好的，请重新发送您的信息：\n\n🏢 公司/门店：\n📱 手机号码：\n📧 邮箱：",
-            'welcome_back': "欢迎回来，{name}！👋\n请问今天有什么可以帮助您的？😊",
+            'ask_language': "您好！👋 欢迎来到 *Edgeworks Support*。\n\n请选择您的语言：\n*Silakan pilih bahasa Anda:*\n*Please select your preferred language:*\n\n1️⃣ Bahasa Indonesia\n2️⃣ English\n3️⃣ 中文\n\n请回复 / Reply with 1, 2, or 3 😊",
+            'ask_name': "请问怎么称呼您？😊",
+            'invalid_name': "抱歉，可以请您输入全名吗？😊",
+            'ask_details': "很高兴认识您，{name}！👋\n为了更好地协助您，请分4行提供以下信息：\n\n🏢 公司名称：\n🏬 门店名称：\n📱 手机号码 (WhatsApp)：\n📧 电子邮箱：\n\n例如：\nEdgeworks\nBugis\n+6581234567\nhello@email.com",
+            'invalid_details': "抱歉，好像缺少了一些信息 🙏\n请分4行提供以下完整信息：\n\n🏢 公司名称：\n🏬 门店名称：\n📱 手机号码 (WhatsApp)：\n📧 电子邮箱：\n\n例如：\nEdgeworks\nBugis\n+6581234567\nhello@email.com",
+            'confirm_details': "谢谢！请确认您的信息是否正确：\n\n👤 姓名：{name}\n🏢 公司：{company}\n🏬 门店：{outlet}\n📱 手机：{phone}\n📧 邮箱：{email}\n\n如果正确请输入 *是 (Yes)*，如果不正确请输入 *否 (No)*。",
+            'onboard_complete': "谢谢您，{name}！✅\n您的信息已保存。\n\n请问今天有什么我可以帮您的？😊",
+            'confirm_retry': "没问题，请重新发送您的信息：\n\n🏢 公司名称：\n🏬 门店名称：\n📱 手机号码 (WhatsApp)：\n📧 电子邮箱：",
+            'welcome_back': "欢迎回来，{company} 的 {name}！👋\n请问今天有什么可以帮您的？😊",
         }
     }
 
@@ -108,60 +108,74 @@ class ChatService:
     @staticmethod
     def _parse_contact_details(text: str) -> dict:
         """
-        Parse company, phone, and email from user's multi-line response.
+        Parse company, outlet, phone, and email from user's multi-line response.
         Supports formats like:
-          PT Jaya Wijaya
+          Edgeworks
+          Bugis
           08123456789
-          andru@email.com
-        Also handles labeled formats like:
-          Company: PT Jaya
-          Phone: 0812...
-          Email: a@b.com
+          hello@email.com
         """
         lines = [l.strip() for l in text.strip().split('\n') if l.strip()]
-        
+
         company = None
+        outlet = None
         phone = None
         email = None
         remaining_lines = []
-        
+
         # Label prefix patterns to strip
-        label_re = re.compile(r'^(?:🏢|📱|📧|company|outlet|perusahaan|hp|phone|mobile|no\.?\s*hp|telepon|email|e-mail)[:\s/]*', re.IGNORECASE)
-        
+        label_re = re.compile(r'^(?:🏢|🏬|📱|📧|company|outlet|perusahaan|hp|phone|mobile|no\.?\s*hp|telepon|email|e-mail)[:\s/]*', re.IGNORECASE)
+
         for line in lines:
             cleaned = label_re.sub('', line).strip()
             if not cleaned:
                 continue
-            
-            # Detect email (contains @)
+
+            # Detect email (contains @ and .)
             email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.]+', cleaned)
             if email_match and not email:
                 email = email_match.group(0).lower()
                 continue
-            
+
             # Detect phone (starts with 0, +, or is mostly digits)
             phone_match = re.search(r'(?:\+?\d[\d\s\-().]{6,})', cleaned)
             if phone_match and not phone:
                 phone = re.sub(r'[\s\-().]+', '', phone_match.group(0))
                 continue
-            
-            # Otherwise it's the company name
+
+            # Otherwise it's company or outlet
             remaining_lines.append(cleaned)
-        
-        if remaining_lines and not company:
-            company = ' '.join(remaining_lines)
-        
-        return {'company': company, 'phone': phone, 'email': email}
+
+        if len(remaining_lines) >= 1:
+            company = remaining_lines[0]
+        if len(remaining_lines) >= 2:
+            outlet = remaining_lines[1]
+        elif len(remaining_lines) == 1:
+            if '/' in company:
+                parts = company.split('/', 1)
+                company = parts[0].strip()
+                outlet = parts[1].strip()
+            elif '-' in company:
+                parts = company.split('-', 1)
+                company = parts[0].strip()
+                outlet = parts[1].strip()
+            else:
+                outlet = company # Default to company name if outlet is not specified separately
+
+        return {'company': company, 'outlet': outlet, 'phone': phone, 'email': email}
 
     def _handle_onboarding(self, user_id: str, query: str, state_info: dict) -> Optional[str]:
         state = state_info['state']
-        user = state_info.get('user')
+        user = state_info.get('user', {})
         lang = (user.get('language') if user else None) or 'en'
-        
+
         # ── Returning user: skip all onboarding ──
         if state == 'complete':
+            quick_greetings = {'hi', 'halo', 'hello', 'hey', 'p', 'ping', 'test', 'tes', 'hai', 'hy', 'hola'}
+            if query.strip().lower() in quick_greetings:
+                return self._get_lang_str(lang, 'welcome_back', name=user.get('name', 'User'), company=user.get('company', ''))
             return None  # Go straight to AI
-        
+
         if state == 'new':
             detected = self.detect_language(query)
             if detected:
@@ -169,13 +183,13 @@ class ChatService:
                 return self._get_lang_str(detected, 'ask_name')
             db_manager.create_or_update_user(user_id, state='asking_language')
             return self._get_lang_str('en', 'ask_language')
-        
+
         if state == 'asking_language':
             detected = self.detect_language(query)
             if not detected: return self._get_lang_str('en', 'ask_language')
             db_manager.create_or_update_user(user_id, state='asking_name', language=detected)
             return self._get_lang_str(detected, 'ask_name')
-        
+
         if state == 'asking_name':
             name = query.strip().title()
             if len(name) < 2: return self._get_lang_str(lang, 'invalid_name')
@@ -183,56 +197,58 @@ class ChatService:
             return self._get_lang_str(lang, 'ask_details', name=name)
 
         if state in ('asking_details', 'asking_company'):
-            # Parse company, phone, email from the response
+            # Parse company, outlet, phone, email from the response
             parsed = self._parse_contact_details(query)
             company = parsed.get('company')
+            outlet = parsed.get('outlet')
             phone = parsed.get('phone')
             email = parsed.get('email')
-            
-            if not company or not phone or not email:
+
+            if not company or not outlet or not phone or not email:
                 return self._get_lang_str(lang, 'invalid_details')
-            
+
             name = user.get('name', 'Customer')
-            # Store pending data and ask for confirmation
-            self._sessions[user_id] = {'pending_company': company, 'pending_phone': phone, 'pending_email': email}
-            db_manager.create_or_update_user(user_id, state='confirming_details', language=lang)
+            # Save pending data and ask for confirmation
+            db_manager.create_or_update_user(user_id, company=company, outlet_pos=outlet, mobile=phone, email=email, state='confirming_details', language=lang)
             return self._get_lang_str(lang, 'confirm_details',
-                                      name=name, company=company, phone=phone, email=email)
+                                      name=name, company=company, outlet=outlet, phone=phone, email=email)
 
         if state == 'confirming_details':
             answer = query.strip().lower()
             name = user.get('name', 'Customer')
-            yes_words = ('ya', 'yes', 'y', 'ok', 'oke', 'benar', 'betul', 'correct', 'yep', 'yup', 'sure', 'confirm', '是', '对', 'iya', 'si', 'iya benar', 'sudah benar')
-            no_words = ('no', 'tidak', 'salah', 'wrong', 'bukan', 'nope', 'nah', '否', '不对', 'belum', 'koreksi', 'ubah', 'ganti')
             
-            if answer in yes_words:
-                # Save the confirmed data
-                pending = self._sessions.pop(user_id, {})
-                company = pending.get('pending_company', '')
-                phone = pending.get('pending_phone', '')
-                email = pending.get('pending_email', '')
+            # Using broader acceptance lists for yes/no
+            yes_words = {'ya', 'yes', 'y', 'ok', 'oke', 'benar', 'betul', 'correct', 'yep', 'yup', 'sure', 'confirm', '是', '对', 'iya', 'si', 'iya benar', 'sudah benar', 'betul sekali', 'okay'}
+            no_words = {'no', 'tidak', 'salah', 'wrong', 'bukan', 'nope', 'nah', '否', '不对', 'belum', 'koreksi', 'ubah', 'ganti', 'ngga', 'nggak'}
+            
+            # Clean string for word matching
+            clean_answer = re.sub(r'[^\w\s]', '', answer)
+            words = set(clean_answer.split())
+            
+            # Quick check exact matches first
+            is_yes = answer in yes_words or words.intersection(yes_words)
+            is_no = answer in no_words or words.intersection(no_words)
+            
+            # If both are matched (e.g., "tidak benar"), default to No.
+            if is_no:
+                db_manager.create_or_update_user(user_id, company="", outlet_pos="", mobile="", email="", state='asking_details', language=lang)
+                return self._get_lang_str(lang, 'confirm_retry')
+            elif is_yes:
+                company = user.get('company')
                 if not company:
-                    # Fallback: re-ask if session data lost
+                    # Fallback: re-ask if DB data lost
                     db_manager.create_or_update_user(user_id, state='asking_details', language=lang)
                     return self._get_lang_str(lang, 'confirm_retry')
+                
                 db_manager.create_or_update_user(
-                    user_id, name=name, company=company, outlet_pos=company,
-                    mobile=phone, email=email, state='complete', language=lang
+                    user_id, state='complete', language=lang
                 )
                 return self._get_lang_str(lang, 'onboard_complete', name=name)
-            elif answer in no_words:
-                self._sessions.pop(user_id, None)
-                db_manager.create_or_update_user(user_id, state='asking_details', language=lang)
-                return self._get_lang_str(lang, 'confirm_retry')
             else:
                 # Unrecognized — show confirmation again
-                pending = self._sessions.get(user_id, {})
-                company = pending.get('pending_company', '?')
-                phone = pending.get('pending_phone', '?')
-                email = pending.get('pending_email', '?')
                 return self._get_lang_str(lang, 'confirm_details',
-                                          name=name, company=company, phone=phone, email=email)
-        
+                                          name=name, company=user.get('company', '?'), outlet=user.get('outlet_pos', '?'), phone=user.get('mobile', '?'), email=user.get('email', '?'))
+
         return None
 
     def get_user_language(self, user_id: str) -> str:
@@ -285,10 +301,15 @@ class ChatService:
                 return {"answer": onboarding_response, "confidence": 1.0, "onboarding": True}, 200
 
             # --- Enterprise Agentic Flow ---
-            user = state_info.get('user', {})
+            user = state_info.get('user', {}) if isinstance(state_info, dict) else {}
+            # Fallback if state_info missing user
+            if not user and state_info.get('state') != 'new':
+                user = db_manager.get_user(user_id) or {}
+                
             user_context = {
                 "name": user.get('name', 'User'),
-                "outlet": user.get('company', 'Unknown'),
+                "company": user.get('company', 'Unknown'),
+                "outlet": user.get('outlet_pos', 'Unknown'),
                 "position": user.get('position', 'Staff')
             }
 
@@ -320,11 +341,9 @@ class ChatService:
             # Keep greetings "clean" so they hit the fast path in RAGService
             query_to_send = query
             if len(query.split()) > 3 and category not in ("pos_guardian", "heart_guardian", "relationship_comms", "love_agent"):
-                query_to_send += f" (Context: {user_context['outlet']})"
-                
-            rag_res = await self.rag_service.query(query_to_send, language=user_lang, system_prompt=system_msg)
-            
-            # 4. LLM Completion
+                query_to_send += f" (Context: {user_context['company']} - {user_context['outlet']})"
+
+            rag_res = await self.rag_service.query(query_to_send, language=user_lang, system_prompt=system_msg)            # 4. LLM Completion
             answer = _sanitize_text(rag_res.answer)
             
             # --- Guardrail: Output Validation ---
