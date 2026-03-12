@@ -23,6 +23,7 @@ from app.utils.async_db import run_sync
 from app.utils.file_handler import save_upload
 from app.services.websocket_manager import portal_manager
 from datetime import datetime, timezone
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/portal", tags=["Portal"])
 
@@ -261,19 +262,22 @@ async def analyze_portal_recording(request: Request):
         "error": result.get("error", False)
     }
 
+class CloseSessionRequest(BaseModel):
+    user_id: str
+    option: str = "close"
+
 @router.post("/session/close")
-async def close_portal_session(request: Request):
+async def close_portal_session(request: Request, body: CloseSessionRequest):
     """Close a chat session and optionally create a ticket."""
-    data = await request.json()
-    user_id = data.get("user_id", "web_portal_user")
-    option = data.get("option", "close")
+    user_id = body.user_id
+    option = body.option
     
     if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
         raise HTTPException(status_code=400, detail="Invalid user_id")
-        
+
     chat_service = getattr(request.app.state, 'chat_service', None)
     if not chat_service:
         raise HTTPException(status_code=503, detail="Service unavailable")
-        
+
     result = await chat_service.close_chat(user_id, option)
     return result
