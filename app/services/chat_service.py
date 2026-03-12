@@ -81,15 +81,13 @@ class ChatService:
         user = db_manager.get_user(user_id)
         if not user: return {'state': 'new', 'user': None}
         db_state = user.get('state', '')
-        
+
         # Active onboarding states
-        if db_state in ('asking_language', 'asking_name', 'asking_details', 'asking_company', 'confirming_details'):
+        if db_state in ('new', 'asking_language', 'asking_name', 'asking_details', 'asking_company', 'confirming_details'):
             # Migrate old 'asking_company' state to new 'asking_details'
             if db_state == 'asking_company':
                 db_state = 'asking_details'
-            return {'state': db_state, 'user': user}
-        
-        # Returning user: already completed onboarding (state=complete/idle/ready)
+            return {'state': db_state, 'user': user}        # Returning user: already completed onboarding (state=complete/idle/ready)
         # These users should NOT be re-asked for language/name/company
         if user.get('name') and user.get('company'):
             return {'state': 'complete', 'user': user}
@@ -169,12 +167,19 @@ class ChatService:
         user = state_info.get('user', {})
         lang = (user.get('language') if user else None) or 'en'
 
-        # ── Returning user: skip all onboarding ──
+        quick_greetings = {'hi', 'halo', 'hello', 'hey', 'p', 'ping', 'test', 'tes', 'hai', 'hy', 'hola', 'start'}
+        is_greeting = query.strip().lower() in quick_greetings
+
+        # ── Complete user: quick greeting or bypass ──
         if state == 'complete':
-            quick_greetings = {'hi', 'halo', 'hello', 'hey', 'p', 'ping', 'test', 'tes', 'hai', 'hy', 'hola'}
-            if query.strip().lower() in quick_greetings:
+            if is_greeting:
                 return self._get_lang_str(lang, 'welcome_back', name=user.get('name', 'User'), company=user.get('company', ''))
             return None  # Go straight to AI
+            
+        # If user hasn't finished onboarding but starts with a generic greeting, restart flow
+        if is_greeting and state not in ('new', 'asking_language'):
+            state = 'new'
+            db_manager.create_or_update_user(user_id, state='new')
 
         if state == 'new':
             detected = self.detect_language(query)
