@@ -282,6 +282,43 @@ class ChatService:
           "recipe", "bom", "restock"}, "diagnose"),
     ]
 
+    @staticmethod
+    def _detect_message_language(text: str) -> Optional[str]:
+        """
+        Detect the language of the CURRENT message, not the onboarding preference.
+        This ensures the AI replies in the same language the user is typing in.
+        Returns 'en', 'id', 'zh', or None if uncertain.
+        """
+        if not text or len(text.strip()) < 3:
+            return None
+
+        t = text.lower().strip()
+
+        # Chinese detection: any CJK characters
+        for ch in t:
+            if '\u4e00' <= ch <= '\u9fff':
+                return 'zh'
+
+        # Bahasa Indonesia markers (common words that don't appear in English)
+        id_markers = {
+            'bagaimana', 'tolong', 'bisa', 'tidak', 'sudah', 'belum', 'mohon',
+            'terima', 'kasih', 'silakan', 'cara', 'kenapa', 'dimana', 'kapan',
+            'apakah', 'saya', 'kami', 'anda', 'punya', 'mau', 'harus', 'perlu',
+            'masalah', 'error', 'gimana', 'gak', 'gk', 'nga', 'dong', 'deh',
+            'lagi', 'udah', 'blm', 'minta', 'bantu', 'apa', 'ini', 'itu',
+            'sedang', 'dengan', 'dari', 'untuk', 'atau', 'juga', 'masih',
+            'caranya', 'settingnya', 'printnya', 'bayarnya',
+        }
+        words = set(re.split(r'\W+', t))
+        id_count = len(words & id_markers)
+
+        # If more than 1 Bahasa word detected (or it's a short message with 1), it's Indonesian
+        if id_count >= 2 or (id_count >= 1 and len(words) <= 4):
+            return 'id'
+
+        # Default to English for Latin-script messages
+        return 'en'
+
     @classmethod
     def _detect_category(cls, query: str) -> str:
         """
@@ -362,7 +399,10 @@ class ChatService:
             system_msg = prompt_service.get_system_message(category, user_context)
 
             # 3. RAG Query (Advanced Retriever: Hybrid + Rerank)
-            user_lang = language or self.get_user_language(user_id)
+            # Detect language from the CURRENT message (not just onboarding preference)
+            # This ensures if user types in English, AI replies in English even if they onboarded in Bahasa
+            detected_lang = self._detect_message_language(query)
+            user_lang = language or detected_lang or self.get_user_language(user_id)
             
             # Smart context injection: Only append context if the message is long/technical
             # Keep greetings "clean" so they hit the fast path in RAGService
