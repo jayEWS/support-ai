@@ -16,6 +16,7 @@ from app.core.auth_deps import get_current_agent
 from app.core.config import settings
 from app.core.logging import logger
 from app.utils.security import safe_filename, safe_path, validate_url_or_raise, validate_knowledge_file
+from app.utils.async_db import run_sync
 
 router = APIRouter(prefix="/api/knowledge", tags=["Knowledge"])
 
@@ -30,7 +31,7 @@ async def list_knowledge(
     agent: Annotated[dict, Depends(get_current_agent)]
 ):
     """List all knowledge base documents with metadata."""
-    return db_manager.get_all_knowledge()
+    return await run_sync(db_manager.get_all_knowledge)
 
 
 # Maximum file size for knowledge uploads (20 MB)
@@ -59,19 +60,19 @@ async def upload_knowledge(
                     detail=f"File '{file.filename}' exceeds maximum size of {MAX_KNOWLEDGE_FILE_SIZE // (1024*1024)}MB"
                 )
 
-            dest_path = os.path.join(settings.KNOWLEDGE_DIR, sanitized)
+            dest_path = os.path.join(settings.KNOWLEDGE_DIR, sanitized)       
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             with open(dest_path, "wb") as f:
                 f.write(file_bytes)
 
-            db_manager.save_knowledge_metadata(
+            await run_sync(
+                db_manager.save_knowledge_metadata,
                 filename=sanitized,
                 file_path=dest_path,
                 uploaded_by=agent["user_id"],
                 status="Processing"
             )
             saved_files.append(sanitized)
-
         rag = getattr(request.app.state, 'rag_service', None)
         if rag and hasattr(rag, 'reload_knowledge'):
             asyncio.create_task(rag.reload_knowledge())
@@ -119,7 +120,8 @@ async def paste_knowledge(
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(content)
 
-    db_manager.save_knowledge_metadata(
+    await run_sync(
+        db_manager.save_knowledge_metadata,
         filename=sanitized_title,
         file_path=dest_path,
         uploaded_by=agent["user_id"],
@@ -156,7 +158,7 @@ async def get_knowledge_stats(
 ):
     """Knowledge base performance & file metrics."""
     db = db_manager
-    all_kb = db.get_all_knowledge()
+    all_kb = await run_sync(db.get_all_knowledge)
     rag_svc = getattr(request.app.state, 'rag_service', None)
     rag_v2 = getattr(request.app.state, 'rag_service_v2', None)
     
@@ -205,10 +207,9 @@ async def delete_knowledge(
 ):
     """Delete a document from KB."""
     rag = _require_rag(request)
-    # The original rag_eng reference in main.py was a bug, we use rag_service
-    rag.delete_knowledge_document(filename)
+    # The original rag_eng reference in main.py was a bug, we use rag_service 
+    await run_sync(rag.delete_knowledge_document, filename)
     return {"status": "success", "message": f"Deleted {filename}"}
-
 @router.post("/batch-delete")
 async def batch_delete_knowledge(
     request: Request,
@@ -218,12 +219,11 @@ async def batch_delete_knowledge(
     data = await request.json()
     filenames = data.get("filenames", [])
     if not filenames:
-        raise HTTPException(status_code=400, detail="No filenames provided")
-        
-    rag = _require_rag(request)
-    rag.delete_knowledge_documents(filenames)
-    return {"status": "success", "message": f"Deleted {len(filenames)} files"}
+        raise HTTPException(status_code=400, detail="No filenames provided")  
 
+    rag = _require_rag(request)
+    await run_sync(rag.delete_knowledge_documents, filenames)
+    return {"status": "success", "message": f"Deleted {len(filenames)} files"}
 @router.get("/{filename}/content")
 async def get_knowledge_content(
     filename: str, 
@@ -270,10 +270,10 @@ async def update_knowledge_content(
     # Save content
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
-        
+
     # Update DB status
-    db_manager.update_knowledge_status(sanitized, 'Processing')
-    
+    await run_sync(db_manager.update_knowledge_status, sanitized, 'Processing')
+
     # Background task to re-index (AI Training feature)
     rag = _require_rag(request)
     background_tasks.add_task(rag.reload_knowledge)
