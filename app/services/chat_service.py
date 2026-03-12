@@ -454,21 +454,25 @@ class ChatService:
           - "ticket_and_notify": Create a ticket and send notification.
         """
         try:
-            # 1. Get history for ticket creation if needed
-            # Support both Portal (Message) and WhatsApp (WhatsAppMessage) history
-            history_objs = db_manager.get_messages(user_id)
-            wa_history = db_manager.get_whatsapp_messages(user_id, per_page=100)
-            
+            # 1. Get portal message history (non-blocking)
+            history_objs = await run_sync(db_manager.get_messages, user_id)
+
+            # Only fetch WhatsApp history if user_id looks like a phone number
+            import re as _re
+            wa_history = {"messages": []}
+            if _re.match(r'^\+?\d{8,15}$', user_id.replace(' ', '')):
+                wa_history = await run_sync(db_manager.get_whatsapp_messages, user_id, per_page=100)
+
             transcript_parts = []
             if history_objs:
                 transcript_parts.append("--- PORTAL HISTORY ---")
                 transcript_parts.append("\n".join([f"[{m['role'].upper()}] {m['content']}" for m in history_objs]))
-            
+
             if wa_history.get("messages"):
                 transcript_parts.append("--- WHATSAPP HISTORY ---")
                 transcript_parts.append("\n".join([f"[{m['direction'].upper()}] {m['content']}" for m in wa_history["messages"]]))
 
-            transcript = "\n\n".join(transcript_parts)
+            transcript = "\n\n".join(transcript_parts) if transcript_parts else "No messages"
 
             # 2. Handle options
             ticket_id = None
@@ -480,21 +484,23 @@ class ChatService:
                 if summary_source:
                     last_msg = summary_source[-1]
                     last_msg_content = last_msg.get('content', 'Chat Session') if isinstance(last_msg, dict) else getattr(last_msg, 'content', 'Chat Session')
-                
+
                 summary = f"[Support] {str(last_msg_content)[:100]}"
-                
+
                 ticket_res = await TicketService.create_ticket(user_id, summary, transcript)
                 ticket_id = ticket_res.id
-                
-                # Link WA messages to ticket if they exist
-                if wa_history.get("messages"):
-                    db_manager.link_whatsapp_messages_to_ticket(user_id, ticket_id)
 
-            # 3. ALWAYS Clear portal messages after closing
-            db_manager.clear_messages(user_id)
-            
-            # 4. Reset user state to idle
-            db_manager.create_or_update_user(user_id, state='idle')
+                # Link WA messages to ticket if they exist (only for phone-number users)
+                if wa_history.get("messages"):
+                    await run_sync(db_manager.link_whatsapp_messages_to_ticket, user_id, ticket_id)
+
+            # 3. ALWAYS Clear portal messages after closing (non-blocking)
+            await run_sync(db_manager.clear_messages, user_id)
+
+            # 4. Reset user state to idle (non-blocking)
+            await run_sync(db_manager.create_or_update_user, user_id, state='idle')
+
+            logger.info(f"Chat closed for {user_id} with option={option}, ticket={ticket_id}")
 
             return {
                 "status": "closed",
@@ -504,5 +510,11 @@ class ChatService:
                 "message": "Chat session ended successfully"
             }
         except Exception as e:
-            logger.error(f"Error closing chat for {user_id}: {e}")
-            return {"status": "error", "message": str(e)}
+            logger.error(f"Error closing chat for {user_id}: {e}", exc_info=True)
+            # Still try to clear messages and reset state on error
+            try:
+                await run_sync(db_manager.clear_messages, user_id)
+                await run_sync(db_manager.create_or_update_user, user_id, state='idle')
+            except Exception:
+                pass
+            return {"status": "closed", "option": option, "ticket_id": None, "ticket_created": False, "message": "Chat ended (with partial error)"}
