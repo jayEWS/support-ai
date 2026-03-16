@@ -102,13 +102,17 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
 
+    # Detect dialect for schema configuration
+    url = str(connectable.url)
+    is_mssql = "mssql" in url
+    
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            include_schemas=True,
-            include_name=include_name,
-            version_table_schema="app",
+            include_schemas=is_mssql,
+            include_name=include_name if is_mssql else None,
+            version_table_schema="app" if is_mssql else None,
         )
 
         with context.begin_transaction():
