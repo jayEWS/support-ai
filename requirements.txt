@@ -20,18 +20,14 @@ alembic>=1.18.0
 psycopg2-binary==2.9.11
 # pyodbc removed for cloud (PostgreSQL only)
 
-# ── AI / LLM Providers ─────────────────────────────────────
+# ── AI / LLM Providers (Cloud Only) ─────────────────────────
 openai==1.58.1
-langchain==0.3.18
 langchain-core==0.3.37
 langchain-community==0.3.17
-langchain-openai==0.3.5
-langchain-google-genai==2.0.11
-langchain-google-vertexai==2.0.12
 langchain-groq==0.2.4
-langchain-text-splitters==0.3.6
 groq>=0.37.1
 tiktoken==0.8.0
+# Heavy langchain packages removed
 
 # ── Embeddings (API-Based or Light) ─────────────────────────
 # sentence-transformers and huggingface_hub removed to save RAM on Render Free
@@ -54,9 +50,8 @@ charset-normalizer==3.4.4
 h11==0.16.0
 httptools==0.7.1
 
-# ── Data Processing ────────────────────────────────────────
-pandas==2.2.3
-openpyxl==3.1.5
+# ── Data Processing (Minimal) ────────────────────────
+# pandas and openpyxl removed to save 200MB+ RAM on Render Free
 beautifulsoup4==4.14.3
 lxml==6.0.2
 Markdown==3.10.2
