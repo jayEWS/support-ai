@@ -32,16 +32,29 @@ class QdrantVectorStore:
     def _connect(self):
         """Initialize Qdrant client connection"""
         try:
-            self.client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT,
-                api_key=settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None,
-                timeout=30
-            )
+            if settings.QDRANT_URL:
+                self.client = QdrantClient(
+                    url=settings.QDRANT_URL,
+                    api_key=settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None,
+                    timeout=30
+                )
+                logger.info(f"[Qdrant] Connected to {settings.QDRANT_URL}")
+            elif settings.QDRANT_HOST == "local":
+                # Ensure directory exists
+                os.makedirs("data/qdrant_storage", exist_ok=True)
+                self.client = QdrantClient(path="data/qdrant_storage")
+                logger.info("[Qdrant] Using local file-based storage at data/qdrant_storage")
+            else:
+                self.client = QdrantClient(
+                    host=settings.QDRANT_HOST,
+                    port=settings.QDRANT_PORT,
+                    api_key=settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None,
+                    timeout=30
+                )
+                logger.info(f"[Qdrant] Connected to {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
             
             # Ensure collection exists
             self._ensure_collection()
-            logger.info(f"[Qdrant] Connected to {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
             
         except Exception as e:
             logger.error(f"[Qdrant] Connection failed: {e}")

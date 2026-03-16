@@ -1,0 +1,35 @@
+# .dockerignore for Hugging Face Spaces
+# Only ignore truly unnecessary files
+
+# Git
+.git
+.gitattributes
+
+# Python bytecode
+__pycache__
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv
+venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Large unnecessary files
+*.zip
+*.tar
+*.tar.gz
+deploy.zip
+
+# Dev-only files
+.claude
+.agents
+.devcontainer
+improvement/
+monitoring/

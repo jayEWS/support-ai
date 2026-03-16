@@ -1,0 +1,28 @@
+{
+  "id": "Ch4plin/support-ai-portal",
+  "runtime": {
+    "stage": "RUNTIME_ERROR",
+    "requested_hardware": "cpu-basic",
+    "sleep_time": 172800,
+    "storage": {},
+    "raw": {
+      "stage": "RUNTIME_ERROR",
+      "hardware": {
+        "requested": "cpu-basic"
+      },
+      "storage": {},
+      "gcTimeout": 172800,
+      "errorMessage": "Exit code: 3. Reason:       ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py\", line 58, in load\n    return self.load_wsgiapp()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py\", line 48, in load_wsgiapp\n    return util.import_app(self.app_uri)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/gunicorn/util.py\", line 371, in import_app\n    mod = importlib.import_module(module)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/app/main.py\", line 22, in <module>\n    from app.core.config import settings\n  File \"/app/app/core/config.py\", line 161, in <module>\n    settings = Settings()\n               ^^^^^^^^^^\n  File \"/app/app/core/config.py\", line 131, in __init__\n    self._validate_production_settings()\n  File \"/app/app/core/config.py\", line 144, in _validate_production_settings\n    raise ValueError(\"CRITICAL: API_SECRET_KEY is weak or missing in PRODUCTION mode!\")\nValueError: CRITICAL: API_SECRET_KEY is weak or missing in PRODUCTION mode!\n[2026-03-15 13:28:33 +0000] [7] [INFO] Worker exiting (pid: 7)\n[2026-03-15 13:28:33 +0000] [1] [ERROR] Worker (pid:8) exited with code 3\n[2026-03-15 13:28:33 +0000] [1] [ERROR] Worker (pid:7) was sent SIGTERM!\n[2026-03-15 13:28:33 +0000] [1] [ERROR] Shutting down: Master\n[2026-03-15 13:28:33 +0000] [1] [ERROR] Reason: Worker failed to boot.\n",
+      "replicas": {
+        "requested": 1
+      },
+      "devMode": false,
+      "domains": [
+        {
+          "domain": "ch4plin-support-ai-portal.hf.space",
+          "stage": "READY"
+        }
+      ]
+    }
+  }
+}

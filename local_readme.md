@@ -85,8 +85,6 @@ app/
 
 ## Quick Start
 
-For the simplest, $0/month setup, see **[README_FREE.md](README_FREE.md)** first!
-
 ```bash
 # 1. Clone & venv
 git clone https://github.com/jayEWS/support-ai.git
@@ -97,17 +95,18 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # 3. Configure
-# Copy .env.example, or just set GOOGLE_GEMINI_API_KEY for free mode
-cp .env.example .env
+cp .env.example .env   # Edit with your DB, LLM keys, Redis URL
 
-# 4. Run (Auto-uses SQLite + Local Vector Store in Free Mode)
+# 4. Migrate DB
+alembic upgrade head
+
+# 5. Run
 uvicorn main:app --reload --port 8001
 ```
 
 ## Production Deployment (Free / GCP)
 
-- **[README_FREE.md](README_FREE.md)** — **New! The easiest way to run for free.** Using SQLite + Local Qdrant + Gemini Free Tier.
-- **[FREE_HOSTING_GUIDE.md](FREE_HOSTING_GUIDE.md)** — Legacy guide for Hugging Face + Supabase/SQL Server.
+- **[FREE_HOSTING_GUIDE.md](FREE_HOSTING_GUIDE.md)** — **Recommended 🚀** $0/month deployment strategy using Hugging Face + Supabase.
 - [DEPLOYMENT_GCP_VM.md](DEPLOYMENT_GCP_VM.md) — Paid GCP VM deployment guide.
 
 ```bash

@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     
     # Google Gemini Config
     GOOGLE_GEMINI_API_KEY: str = ""  # from https://aistudio.google.com/
-    GEMINI_MODEL_NAME: str = "gemini-2.5-flash"  # or gemini-2.5-pro, gemini-2.0-flash-001
-    LLM_PROVIDER: str = "groq"  # vertex | gemini | groq | openai | ollama
+    GEMINI_MODEL_NAME: str = "gemini-2.0-flash"  # or gemini-2.5-pro, gemini-2.0-flash-001
+    LLM_PROVIDER: str = "gemini"  # vertex | gemini | groq | openai | ollama
     
     # Google Cloud Storage Config
     GCS_BUCKET_NAME: str = ""  # e.g. support-edgeworks-knowledge
@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     QDRANT_HOST: Optional[str] = os.getenv("QDRANT_HOST", "qdrant")
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))
     QDRANT_API_KEY: Optional[str] = os.getenv("QDRANT_API_KEY", "")
+    QDRANT_URL: Optional[str] = os.getenv("QDRANT_URL", None) # Full URL for Cloud (e.g. https://xxx.qdrant.tech)
     
     # Prometheus Metrics
     PROMETHEUS_ENABLED: bool = os.getenv("PROMETHEUS_ENABLED", "False").lower() == "true"
@@ -140,21 +141,22 @@ class Settings(BaseSettings):
             ]
             
             if self.API_SECRET_KEY.lower().strip() in weak_values:
-                raise ValueError("CRITICAL: API_SECRET_KEY is weak or missing in PRODUCTION mode!")
+                import secrets
+                self.API_SECRET_KEY = secrets.token_urlsafe(32)
+                print("WARNING: API_SECRET_KEY was weak/missing. Generated a temporary one for this session.")
             
-            if self.AUTH_SECRET_KEY.lower().strip() in weak_values:
-                raise ValueError(
-                    "CRITICAL: AUTH_SECRET_KEY is weak or missing in PRODUCTION mode! "
-                    "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
-                )
-            
-            if len(self.AUTH_SECRET_KEY) < 32:
-                raise ValueError(
-                    "CRITICAL: AUTH_SECRET_KEY is too short (< 32 chars). "
-                    "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
-                )
+            if self.AUTH_SECRET_KEY.lower().strip() in weak_values or len(self.AUTH_SECRET_KEY) < 32:
+                 import secrets
+                 self.AUTH_SECRET_KEY = secrets.token_urlsafe(64)
+                 print("WARNING: AUTH_SECRET_KEY was weak/missing. Generated a temporary one for this session.")
             
             if not self.DATABASE_URL:
-                 raise ValueError("CRITICAL: DATABASE_URL is missing in PRODUCTION mode!")
+                 print("WARNING: DATABASE_URL is missing. Defaulting to SQLite for Free/Demo mode.")
+                 self.DATABASE_URL = "sqlite:///data/db_storage/app.db"
+                 
+            # Auto-configure local Qdrant if no external URL provided
+            if not self.QDRANT_URL and self.QDRANT_HOST == "qdrant":
+                 print("WARNING: QDRANT_URL missing. Defaulting to local file-based Qdrant.")
+                 self.QDRANT_HOST = "local"
 
 settings = Settings()

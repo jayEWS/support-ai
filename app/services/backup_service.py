@@ -55,11 +55,10 @@ class BackupService:
                 
                 logger.info(f"[Backup] Initiating SQL Server Full Backup for '{db_name}'...")
                 
-                with db_manager.engine.connect() as conn:
+                with db_manager.engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
                     # Identifier is quoted with [] for MSSQL safety
                     stmt = text(f"BACKUP DATABASE [{db_name}] TO DISK = :path WITH FORMAT")
                     conn.execute(stmt, {"path": backup_filename})
-                    conn.commit()
                 
                 logger.info(f"[Backup] SQL Server backup successful: {backup_filename}")
             except Exception as e:
