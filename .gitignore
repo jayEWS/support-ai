@@ -99,8 +99,17 @@ support-ai-deployment.*
 .geminirules
 improvement/
 
+# HuggingFace model cache
+.cache/
+
+# User Guide / Knowledge base PDFs (too large for git)
+User Guide/
+
 # One-off debug files
 test_api.py
 test_upload.py
 Caddyfile.tmp
 quick-deploy-commands.txt
+
+# Cloudflare tunnel
+.cloudflared/

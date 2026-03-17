@@ -112,26 +112,10 @@ async def submit_ai_feedback(interaction_id: int, req: FeedbackRequest, agent: A
 @router.post("/db_query")
 async def tool_db_query(req: DBQueryRequest, agent: Annotated[dict, Depends(require_admin)]):
     """
-    Tool for AI to query internal database tables safely.
-    Requires ADMIN authentication.
-    Tables: tickets, users, messages, audit_logs
+    ✅ DISABLED: Arbitrary SQL execution removed for security
+    Use whitelist endpoints instead: /check_voucher, /redeem_voucher, etc.
     """
-    try:
-        # Security: Cap limit to prevent massive data dumps
-        safe_limit = min(req.limit, 100)
-        # P0 Fix: Pass tenant_id for isolation
-        results = db_manager.execute_safe_query(
-            table_name=req.table_name,
-            filters=req.filters,
-            limit=safe_limit,
-            tenant_id=agent.get("tenant_id")
-        )
-        return {"status": "success", "count": len(results), "data": results}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"AI DB Query failed: {e}")
-        raise HTTPException(status_code=500, detail="Database query failed")
+    raise HTTPException(403, "SQL query tool disabled for security reasons")
 
 @router.post("/check_voucher")
 async def tool_check_voucher(

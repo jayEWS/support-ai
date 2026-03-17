@@ -129,16 +129,16 @@ class TicketRepository(BaseRepository):
     def get_queue(self) -> List[dict]:
         """Get unassigned queue, scoped by tenant (IDOR fix)."""
         with self.session_scope() as session:
-            # TicketQueue itself might need mapping to Ticket to enforce tenant_id
             # JOIN with Ticket to ensure the ticket belongs to this tenant
-            items = (
+            query = (
                 session.query(TicketQueue)
                 .join(Ticket, Ticket.id == TicketQueue.ticket_id)
                 .filter(TicketQueue.assigned_at == None)
-                .filter(Ticket.tenant_id == self.tenant_id) # P1 Fix
-                .order_by(TicketQueue.priority_level.desc(), TicketQueue.queued_at.asc())
-                .all()
             )
+            query = self._apply_tenant_filter(query, Ticket)
+            items = query \
+                .order_by(TicketQueue.priority_level.desc(), TicketQueue.queued_at.asc()) \
+                .all()
             return [
                 {
                     "queue_id": q.id,

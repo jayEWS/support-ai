@@ -966,7 +966,7 @@ class DatabaseManager:
                 "department": a.department, "hashed_password": a.hashed_password,
                 "active_chat_count": p.active_chat_count if p else 0,
                 "roles": roles, "role": legacy_role, "permissions": permissions,
-                "tenant_id": a.tenant_id  # P1 Fix: Include tenant_id for downstream tenant scoping
+                "tenant_id": getattr(a, 'tenant_id', None)
             }
         finally:
             self.Session.remove()
@@ -978,7 +978,7 @@ class DatabaseManager:
             if not a: return None
             roles = [r.name for r in a.roles]
             legacy_role = "admin" if ("System Admin" in roles or "Admin" in roles) else "agent"
-            return { "user_id": a.user_id, "email": a.email, "hashed_password": a.hashed_password, "role": legacy_role, "tenant_id": a.tenant_id }
+            return { "user_id": a.user_id, "email": a.email, "hashed_password": a.hashed_password, "role": legacy_role, "tenant_id": getattr(a, 'tenant_id', None) }
         finally:
             self.Session.remove()
 
@@ -999,7 +999,7 @@ class DatabaseManager:
                     "skills": getattr(a, 'skills', '[]') or '[]',
                     "role": [r.name for r in a.roles][0] if a.roles else 'Agent',
                     "roles": [r.name for r in a.roles],
-                    "tenant_id": a.tenant_id  # P1 Fix: Include tenant_id
+                    "tenant_id": getattr(a, 'tenant_id', None)
                 })
             return result
         finally:
@@ -1474,8 +1474,9 @@ class DatabaseManager:
             model = allowed_tables[table_name]
             query = session.query(model)
             
-            # P0 Fix: Enforce Tenant Isolation
-            if hasattr(model, "tenant_id"):
+            # P0 Fix: Enforce Tenant Isolation (only when multi-tenancy is active)
+            from app.core.config import settings as _settings
+            if getattr(_settings, "MULTI_TENANT_ENABLED", False) and hasattr(model, "tenant_id") and model.tenant_id is not None:
                 if not tenant_id:
                     # In multi-tenant mode, tenant_id is mandatory. 
                     # If missing, we return nothing rather than everything.

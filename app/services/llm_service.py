@@ -1,7 +1,8 @@
 import asyncio
 import os
 from app.core.config import settings
-from langchain_openai import ChatOpenAI
+# ✅ FIXED: Use Groq ChatGroq instead of OpenAI
+from langchain_groq import ChatGroq
 from app.core.logging import logger, LogLatency
 
 class LLMService:
@@ -11,8 +12,19 @@ class LLMService:
         self.circuit_open = False
 
     def _init_llm(self):
-        """Initialize LLM with provider selection: vertex > gemini > groq > openai"""
-        provider = getattr(settings, 'LLM_PROVIDER', os.getenv('LLM_PROVIDER', 'openai')).lower()
+        """Initialize LLM with provider selection: groq (primary), vertex > gemini > openai (fallback)"""
+        provider = getattr(settings, 'LLM_PROVIDER', os.getenv('LLM_PROVIDER', 'groq')).lower()
+        
+        if provider == "groq":
+            try:
+                groq_api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY", "")
+                if not groq_api_key:
+                    logger.warning("[LLMService] GROQ_API_KEY not configured. Falling back to Vertex AI.")
+                else:
+                    logger.info(f"[LLMService] Using Groq: {settings.MODEL_NAME}")
+                    return ChatGroq(model=settings.MODEL_NAME, api_key=groq_api_key, temperature=settings.TEMPERATURE)
+            except Exception as e:
+                logger.warning(f"[LLMService] Groq initialization failed ({e}). Trying Vertex AI...")
         
         if provider == "vertex":
             try:
@@ -43,28 +55,27 @@ class LLMService:
                     return ChatGoogleGenerativeAI(
                         model=settings.GEMINI_MODEL_NAME,
                         google_api_key=api_key,
-                        temperature=0.2,
-                        convert_system_message_to_human=True,
+                        temperature=0.1,
+                        max_retries=3
                     )
                 else:
                     logger.warning("GOOGLE_GEMINI_API_KEY not set, falling back")
             except Exception as e:
                 logger.warning(f"Gemini init failed: {e}, falling back")
         
-        if provider in ("groq", "vertex", "gemini"):  # fallback chain
-            try:
-                from langchain_groq import ChatGroq
-                groq_key = os.getenv("GROQ_API_KEY", "")
-                if groq_key:
-                    logger.info(f"LLMService using Groq: {settings.MODEL_NAME}")
-                    return ChatGroq(
-                        model=settings.MODEL_NAME,
-                        api_key=groq_key,
-                        temperature=0.2,
-                    )
-            except Exception as e:
-                logger.warning(f"Groq init failed: {e}, falling back to OpenAI")
-        
+        # Fallback for free tier: Llama 3 70B (Fast and Powerful)
+        try:
+            groq_key = os.getenv("GROQ_API_KEY")
+            if groq_key:
+                logger.info("LLMService fallback: Groq (Llama-3.3-70b-versatile)")
+                return ChatGroq(
+                    model="llama-3.3-70b-versatile",
+                    api_key=groq_key,
+                    temperature=0.1,
+                )
+        except Exception as e:
+            logger.warning(f"Groq init failed: {e}")
+
         if settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("sk-your"):
             logger.info(f"LLMService using OpenAI: {settings.MODEL_NAME}")
             return ChatOpenAI(

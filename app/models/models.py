@@ -17,6 +17,21 @@ def get_db_type_info():
 
 IS_SQLITE, IS_POSTGRES, IS_MSSQL, USE_APP_SCHEMA = get_db_type_info()
 
+# ── Multi-Tenant Column Helper ────────────────────────────────────────
+# When MULTI_TENANT_ENABLED=False, do NOT map the TenantID column
+# (the column may not exist in the database at all).
+def _check_multi_tenant():
+    from app.core.config import settings
+    return getattr(settings, "MULTI_TENANT_ENABLED", False)
+
+_MULTI_TENANT = _check_multi_tenant()
+
+def tenant_id_column():
+    """Return a TenantID Column only if multi-tenancy is enabled, else None."""
+    if _MULTI_TENANT:
+        return Column("TenantID", Unicode(36), index=True, nullable=True)
+    return None
+
 # 1. Group-User Association (Many-to-Many)
 user_roles = Table(
     "UserRoles", Base.metadata,
@@ -44,7 +59,7 @@ user_permissions = Table(
 class Permission(Base):
     __tablename__ = "Permissions"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("PermissionID", Integer, primary_key=True, autoincrement=True)
     name = Column("Name", Unicode(100), unique=True) # e.g., 'knowledge.upload'
     category = Column("Category", Unicode(50), default="General") # e.g., 'System', 'Chat', 'KB'
@@ -53,7 +68,7 @@ class Permission(Base):
 class Role(Base):
     __tablename__ = "Roles"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("RoleID", Integer, primary_key=True, autoincrement=True)
     name = Column("Name", Unicode(100), unique=True) # Group Name
     description = Column("Description", Unicode(255))
@@ -65,7 +80,7 @@ class Agent(Base):
     """The User Master (usermst) Table"""
     __tablename__ = "Agents"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     agent_id = Column("AgentID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("Username", Unicode(100), unique=True, index=True)
     name = Column("FullName", Unicode(255))
@@ -83,7 +98,7 @@ class Agent(Base):
 class AuthMFAChallenge(Base):
     __tablename__ = "AuthMFAChallenges"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("ChallengeID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("Username", Unicode(100), index=True)
     code_hash = Column("CodeHash", Unicode(128))
@@ -97,7 +112,7 @@ class AuthRefreshToken(Base):
         Index("ix_refreshtoken_user_active", "Username", "RevokedAt"),  # Fast active-token lookup
         {"schema": "app"} if USE_APP_SCHEMA else {}
     )
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("TokenID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("Username", Unicode(100), index=True)
     token_hash = Column("TokenHash", Unicode(128), unique=True, index=True)
@@ -109,7 +124,7 @@ class AuthRefreshToken(Base):
 class AuthMagicLink(Base):
     __tablename__ = "AuthMagicLinks"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("LinkID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("Username", Unicode(100), index=True)
     token_hash = Column("TokenHash", Unicode(128), unique=True, index=True)
@@ -124,7 +139,7 @@ class Outlet(Base):
     location = Column("Location", Unicode(255))
     timezone = Column("Timezone", Unicode(50), default="Asia/Singapore")
     pos_version = Column("POSVersion", Unicode(20))
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class POSDevice(Base):
     __tablename__ = "pos_devices"
@@ -136,7 +151,7 @@ class POSDevice(Base):
     status = Column("Status", Unicode(20), default="online")
     last_seen = Column("LastSeen", DateTime, server_default=func.now())
     ip_address = Column("IPAddress", Unicode(45))
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class POSTransaction(Base):
     __tablename__ = "pos_transactions"
@@ -149,7 +164,7 @@ class POSTransaction(Base):
     tax_amount = Column("TaxAmount", Float)
     payment_method = Column("PaymentMethod", Unicode(50))
     status = Column("Status", Unicode(20)) # completed, failed, void
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class Voucher(Base):
     __tablename__ = "vouchers"
@@ -160,7 +175,7 @@ class Voucher(Base):
     expiry_date = Column("ExpiryDate", DateTime)
     usage_limit = Column("UsageLimit", Integer, default=1)
     usage_count = Column("UsageCount", Integer, default=0)
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class Membership(Base):
     __tablename__ = "memberships"
@@ -170,7 +185,7 @@ class Membership(Base):
     points_balance = Column("PointsBalance", Integer, default=0)
     tier = Column("Tier", Unicode(20), default="Bronze")
     created_at = Column("CreatedAt", DateTime, server_default=func.now())
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class InventoryItem(Base):
     __tablename__ = "inventory_items"
@@ -180,7 +195,7 @@ class InventoryItem(Base):
     category = Column("Category", Unicode(50))
     price = Column("Price", Float)
     status = Column("Status", Unicode(20), default="active")
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class AIInteraction(Base):
     __tablename__ = "ai_interactions"
@@ -195,7 +210,7 @@ class AIInteraction(Base):
     resolution_status = Column("ResolutionStatus", Unicode(20), default="pending") # solved, escalated, correction_needed
     human_correction = Column("HumanCorrection", Text, nullable=True)
     created_at = Column("CreatedAt", DateTime, server_default=func.now())
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class POSIssue(Base):
     """Knowledge Base entry for an AI Support issue (as defined in knowledge_base_schema.md)"""
@@ -215,12 +230,12 @@ class POSIssue(Base):
     verification_steps = Column("VerificationSteps", Text)
     created_at = Column("CreatedAt", DateTime, server_default=func.now())
     updated_at = Column("UpdatedAt", DateTime, server_default=func.now(), onupdate=func.now())
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)
+    tenant_id = tenant_id_column()
 
 class User(Base):
     __tablename__ = "Users"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     identifier = Column("UserID", Unicode(100), primary_key=True)
     account_id = Column("AccountID", Unicode(20), index=True, nullable=True)  # EWS1, EWS2, ...
     name = Column("DisplayName", Unicode(255))
@@ -242,7 +257,7 @@ class Message(Base):
         Index("ix_msg_user_role", "UserID", "Role"),            # Fast role-filtered queries
         {"schema": "app"} if USE_APP_SCHEMA else {}
     )
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("UserID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"), index=True)
     role = Column("Role", Unicode(20))
@@ -259,7 +274,7 @@ class Ticket(Base):
         Index("ix_ticket_due_status", "DueAt", "Status"),                 # SLA/overdue checks
         {"schema": "app"} if USE_APP_SCHEMA else {}
     )
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("TicketID", Integer, primary_key=True, autoincrement=True)
     user_id = Column("CustomerID", Unicode(100), ForeignKey("app.Users.UserID" if USE_APP_SCHEMA else "Users.UserID"), index=True)
     summary = Column("Summary", UnicodeText)
@@ -279,7 +294,7 @@ class AuditLog(Base):
         Index("ix_audit_agent", "AgentID"),         # Per-agent audit trail
         {"schema": "app"} if USE_APP_SCHEMA else {}
     )
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("LogID", Integer, primary_key=True, autoincrement=True)
     agent_id = Column("AgentID", Unicode(100))
     action = Column("Action", Unicode(100))
@@ -291,7 +306,7 @@ class AuditLog(Base):
 class KnowledgeMetadata(Base):
     __tablename__ = "KnowledgeMetadata"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("KnowledgeID", Integer, primary_key=True, autoincrement=True)
     filename = Column("Filename", Unicode(255), unique=True)
     file_path = Column("FilePath", Unicode(512))
@@ -303,7 +318,7 @@ class KnowledgeMetadata(Base):
 class Macro(Base):
     __tablename__ = "Macros"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("MacroID", Integer, primary_key=True, autoincrement=True)
     name = Column("Name", Unicode(100), unique=True)
     content = Column("Content", UnicodeText)
@@ -313,7 +328,7 @@ class Macro(Base):
 class AgentPresence(Base):
     __tablename__ = "AgentPresence"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("PresenceID", Integer, primary_key=True, autoincrement=True)
     agent_id = Column("Username", Unicode(100), ForeignKey("app.Agents.Username" if USE_APP_SCHEMA else "Agents.Username"), unique=True)
     status = Column("Status", Unicode(20), default="available")
@@ -323,7 +338,7 @@ class AgentPresence(Base):
 class CSATSurvey(Base):
     __tablename__ = "CSATSurveys"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("SurveyID", Integer, primary_key=True, autoincrement=True)
     ticket_id = Column("TicketID", Integer, ForeignKey("app.Tickets.TicketID" if USE_APP_SCHEMA else "Tickets.TicketID"), unique=True)
     rating = Column("Rating", Integer)
@@ -333,7 +348,7 @@ class CSATSurvey(Base):
 class ChatSession(Base):
     __tablename__ = "ChatSessions"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("SessionID", Integer, primary_key=True, autoincrement=True)
     ticket_id = Column("TicketID", Integer, ForeignKey("app.Tickets.TicketID" if USE_APP_SCHEMA else "Tickets.TicketID"))
     agent_id = Column("AgentID", Unicode(100), ForeignKey("app.Agents.Username" if USE_APP_SCHEMA else "Agents.Username"))
@@ -344,7 +359,7 @@ class ChatSession(Base):
 class ChatMessage(Base):
     __tablename__ = "ChatMessages"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("ChatMessageID", Integer, primary_key=True, autoincrement=True)
     session_id = Column("SessionID", Integer, ForeignKey("app.ChatSessions.SessionID" if USE_APP_SCHEMA else "ChatSessions.SessionID"))
     sender_id = Column("SenderID", Unicode(100))
@@ -356,7 +371,7 @@ class ChatMessage(Base):
 class SLARule(Base):
     __tablename__ = "SLARules"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("RuleID", Integer, primary_key=True, autoincrement=True)
     name = Column("RuleName", Unicode(100))
     priority = Column("Priority", Unicode(20), unique=True)
@@ -367,7 +382,7 @@ class SLARule(Base):
 class TicketQueue(Base):
     __tablename__ = "TicketQueue"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("QueueID", Integer, primary_key=True, autoincrement=True)
     ticket_id = Column("TicketID", Integer, ForeignKey("app.Tickets.TicketID" if USE_APP_SCHEMA else "Tickets.TicketID"), unique=True)
     priority_level = Column("PriorityLevel", Integer, default=1)
@@ -385,7 +400,7 @@ class WhatsAppMessage(Base):
         Index("ix_wa_ticket", "TicketID"),                           # Linked ticket lookup
         {"schema": "app"} if USE_APP_SCHEMA else {}
     )
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     id = Column("MessageID", Integer, primary_key=True, autoincrement=True)
     external_message_id = Column("ExternalMessageID", Unicode(255), unique=True, nullable=True)
     phone_number = Column("PhoneNumber", Unicode(20), index=True, nullable=False)
@@ -400,7 +415,7 @@ class SystemSetting(Base):
     """Key-value store for system settings (e.g. ticket notification email)."""
     __tablename__ = "SystemSettings"
     __table_args__ = {"schema": "app"} if USE_APP_SCHEMA else {}
-    tenant_id = Column("TenantID", Unicode(36), index=True, nullable=True)  # Multi-tenant isolation
+    tenant_id = tenant_id_column()
     key = Column("SettingKey", Unicode(100), primary_key=True)
     value = Column("SettingValue", UnicodeText, nullable=True)
     updated_at = Column("UpdatedAt", DateTime, server_default=func.now(), onupdate=func.now())

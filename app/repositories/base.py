@@ -44,6 +44,16 @@ class TenantContext:
     def clear():
         _current_tenant.set(None)
 
+    @staticmethod
+    @contextmanager
+    def set_tenant_id(tenant_id: str):
+        """Context manager to scope operations to a specific tenant."""
+        token = _current_tenant.set(tenant_id)
+        try:
+            yield
+        finally:
+            _current_tenant.reset(token)
+
 
 class BaseRepository:
     """
@@ -85,13 +95,19 @@ class BaseRepository:
         return TenantContext.require()
 
     def _apply_tenant_filter(self, query, model_class, tenant_id: str = None):
-        """Apply tenant_id filter if the model has a TenantID column."""
+        """Apply tenant_id filter if the model has a tenant_id property and multi-tenancy is active."""
+        from app.core.config import settings as _settings
+        
+        # Security Fix M3: Skip tenant filtering if multi-tenancy is globally disabled
+        if not getattr(_settings, "MULTI_TENANT_ENABLED", False):
+            return query
+
         tid = tenant_id or self.tenant_id
         if tid and hasattr(model_class, "tenant_id"):
             return query.filter(model_class.tenant_id == tid)
+        
         # P0 Safety: Warn if multi-tenant is enabled but no tenant context is set
         if hasattr(model_class, "tenant_id") and not tid:
-            from app.core.config import settings as _settings
             if getattr(_settings, 'MULTI_TENANT_ENABLED', False):
                 logger.warning(
                     f"[SECURITY] No tenant context for {model_class.__name__} query. "

@@ -5,14 +5,17 @@ import os
 class Settings(BaseSettings):
     # AI Config
     OPENAI_API_KEY: str = ""
-    MODEL_NAME: str = "gpt-4o-mini"
+    MODEL_NAME: str = "llama-3.3-70b-versatile"  # Groq default; override in .env
     AI_BASE_URL: Optional[str] = None
     TEMPERATURE: float = 0.1
     
     # Google Gemini Config
     GOOGLE_GEMINI_API_KEY: str = ""  # from https://aistudio.google.com/
     GEMINI_MODEL_NAME: str = "gemini-2.0-flash"  # or gemini-2.5-pro, gemini-2.0-flash-001
-    LLM_PROVIDER: str = "gemini"  # vertex | gemini | groq | openai | ollama
+    LLM_PROVIDER: str = "groq"  # vertex | gemini | groq | openai | ollama
+    
+    # Groq Config
+    GROQ_API_KEY: str = "" # from https://console.groq.com/
     
     # Google Cloud Storage Config
     GCS_BUCKET_NAME: str = ""  # e.g. support-edgeworks-knowledge
@@ -85,7 +88,11 @@ class Settings(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/auth/google/callback"
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/auth/google/callback")
+    
+    # NEW: Multitenancy (Disabled for free/local mode)
+    MULTI_TENANT_ENABLED: bool = False
+    DEFAULT_TENANT_ID: str = "default"
     
     # Magic Link
     MAGIC_LINK_EXPIRE_MINUTES: int = 15

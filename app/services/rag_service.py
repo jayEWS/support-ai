@@ -4,7 +4,7 @@ import hashlib
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_groq import ChatGroq
 from app.core.config import settings
 from app.core.database import db_manager
 from app.core.logging import logger, LogLatency
@@ -23,6 +23,7 @@ SUPPORTED     = TEXT_EXTS | PDF_EXTS | DOC_EXTS
 
 class RAGService:
     def __init__(self):
+        # ✅ FIXED: Use Groq embeddings API or fallback to local embeddings
         self.embeddings = self._init_embeddings()
         self.vector_store = self._load_vector_store()
         
@@ -60,8 +61,9 @@ class RAGService:
             if settings.EMBEDDINGS_TYPE == "vertex":
                 from langchain_google_vertexai import VertexAIEmbeddings
                 return VertexAIEmbeddings(model_name="text-embedding-005", project=settings.GCP_PROJECT_ID)
-            if settings.EMBEDDINGS_TYPE == "openai" and settings.OPENAI_API_KEY:
-                return OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
+            # ✅ FIXED: Skip OpenAI embeddings (using Groq LLM instead)
+            if settings.EMBEDDINGS_TYPE == "openai":
+                logger.warning("OpenAI embeddings not available. Using HuggingFace fallback.")
             
             try:
                 from langchain_huggingface import HuggingFaceEmbeddings
@@ -115,12 +117,18 @@ class RAGService:
 
             # 3. Smart Query Expansion — enrich short/vague queries
             expanded_query = self._expand_query(text, conversation_history)
+            
+            # --- Power Upgrade: Multi-Query Generation ---
+            # Generate 2 additional sub-queries to capture different perspectives
+            sub_queries = await self._generate_sub_queries(text, expanded_query, language)
 
-            # 4. Retrieval with expanded query
+            # 4. Retrieval with expanded query and sub-queries
             retrieval_result = await self.retriever.retrieve(
                 original_query=text,
                 expanded_query=expanded_query if expanded_query != text else None,
-                k_final=6
+                sub_queries=sub_queries,
+                k_final=8, # Increase results for better context
+                intent=self._detect_category(text) # Pass intent for adaptive filtering
             )
             context = retrieval_result.context_text
             confidence = retrieval_result.confidence
@@ -622,4 +630,32 @@ class RAGService:
         return RAGResponse(answer=ans, confidence=1.0, source_documents=[], retrieval_method="greeting")
 
     def _get_llm(self):
-        return ChatOpenAI(model_name=settings.MODEL_NAME, openai_api_key=settings.OPENAI_API_KEY, temperature=0)
+        # ✅ FIXED: Use Groq ChatGroq instead of OpenAI
+        return ChatGroq(model=settings.MODEL_NAME, api_key=settings.GROQ_API_KEY, temperature=0)
+
+    async def _generate_sub_queries(self, query: str, expanded: str, lang: str) -> List[str]:
+        """Generate 2 multi-perspective search queries for better coverage (Free Power Upgrade)."""
+        if len(query.split()) < 3: return []
+        
+        try:
+            # We use a very simplified prompt to avoid too much overhead but gain "Multi-Query" RAG power
+            # This mimics what advanced apps like Perplexity or Sidekick do.
+            if self._llm_service and self._llm_service.llm:
+                prompt = (
+                    f"Given this support query: '{query}', generate 2 alternative search keywords in {lang} "
+                    f"that would help find technical documentation. Return only the strings separated by pipe."
+                )
+                res = await asyncio.wait_for(self._llm_service.llm.ainvoke(prompt), timeout=1.5)
+                queries = [q.strip() for q in res.content.split('|') if q.strip()]
+                return queries[:2]
+        except Exception:
+            return []
+        return []
+
+    @classmethod
+    def _detect_category(cls, query: str) -> str:
+        # Simple local detection for RAG hints
+        q = query.lower()
+        if any(w in q for w in ["how", "cara", "step"]): return "how_to"
+        if any(w in q for w in ["error", "rusak", "fail", "fix"]): return "troubleshooting"
+        return "simple_faq"

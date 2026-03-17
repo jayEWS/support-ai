@@ -43,6 +43,9 @@ async def require_agent(request: Request) -> dict:
     if not agent:
         raise HTTPException(status_code=401, detail="Agent not found")
 
+    # ✅ FIXED: Role is already fetched from DB in get_agent() (not from JWT)
+    # agent["role"] is set by DatabaseManager.get_agent() from DB roles table
+    
     return agent
 
 get_current_agent = require_agent

@@ -10,12 +10,14 @@ class SLAService:
     @staticmethod
     def calculate_due_date(priority: str, tenant_id: str = None) -> datetime:
         """
-        Calculates the due date based on SLA rules, scoped by tenant.
+        Calculates the due date based on SLA rules.
         """
+        from app.core.config import settings
         session = db_manager.get_session()
         try:
             q = session.query(SLARule).filter_by(priority=priority)
-            if tenant_id:
+            # Only filter by tenant if multi-tenancy enabled and column exists
+            if tenant_id and getattr(settings, "MULTI_TENANT_ENABLED", False) and hasattr(SLARule, 'tenant_id') and SLARule.tenant_id is not None:
                 q = q.filter_by(tenant_id=tenant_id)
             rule = q.first()
             if rule:
@@ -39,6 +41,8 @@ class SLAService:
         """
         Periodic task to check for overdue tickets and log breaches.
         """
+        from app.core.config import settings
+        
         while True:
             try:
                 session = db_manager.get_session()
@@ -53,9 +57,12 @@ class SLAService:
                 audit_repo = AuditRepository(db_manager.Session)
 
                 for ticket in overdue_tickets:
+                    # Resolve tenant_id: use ticket's tenant_id (if column exists) OR the default
+                    tenant_id = getattr(ticket, 'tenant_id', None) or getattr(settings, "DEFAULT_TENANT_ID", "default")
+                    
                     # Securely associate breach with the correct tenant
-                    with TenantContext.set_tenant_id(ticket.tenant_id):
-                        logger.warning(f"SLA BREACH: Ticket #{ticket.id} is overdue for tenant {ticket.tenant_id}!")
+                    with TenantContext.set_tenant_id(tenant_id):
+                        logger.warning(f"SLA BREACH: Ticket #{ticket.id} is overdue!")
                         
                         audit_repo.log_action(
                             agent_id="System", 

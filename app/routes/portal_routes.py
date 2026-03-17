@@ -116,58 +116,65 @@ async def portal_chat(
     file: Optional[UploadFile] = File(None)
 ):
     """Direct portal chat with Level-1 AI agent."""
-    # Security: Bind user_id to IP to prevent IDOR enumeration
-    bind_user_ip(user_id, request)
-    
-    chat_service = getattr(request.app.state, 'chat_service', None)
-    if not chat_service:
-        raise HTTPException(status_code=503, detail="Chat service unavailable")
-
-    god_mode_enabled = (await run_sync(db_manager.get_setting, _god_mode_key(user_id), "0")) == "1"
-
-    if god_mode_enabled:
-        attachment_meta = None
-        if file:
-            file_bytes = await file.read()
-            attachment_meta = save_upload(file_bytes, file.filename, destination="chat")
-
-        if not message and attachment_meta:
-            message = f"[Uploaded {attachment_meta['category']}: {attachment_meta['original_name']}]"
-
-        if not message:
-            raise HTTPException(status_code=400, detail="Message or file is required")
-
-        await run_sync(
-            db_manager.save_message,
-            user_id,
-            "user",
-            message,
-            None if not attachment_meta else json.dumps([attachment_meta])
-        )
-
-        await portal_manager.send_to_admins(user_id, {
-            "event": "message",
-            "role": "user",
-            "content": message,
-            "user_id": user_id,
-            "god_mode": True,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
-
-        return {
-            "answer": "✅ Received. A human resolver is handling your case now.",
-            "god_mode": True,
-            "resolver": "human"
-        }
+    try:
+        # Security: Bind user_id to IP to prevent IDOR enumeration
+        bind_user_ip(user_id, request)
         
-    async with AI_SEMAPHORE:
-        response_data, status_code = await chat_service.process_portal_message(
-            query=message, user_id=user_id, file=file, language=language
+        chat_service = getattr(request.app.state, 'chat_service', None)
+        if not chat_service:
+            raise HTTPException(status_code=503, detail="Chat service unavailable")
+
+        god_mode_enabled = (await run_sync(db_manager.get_setting, _god_mode_key(user_id), "0")) == "1"
+
+        if god_mode_enabled:
+            attachment_meta = None
+            if file:
+                file_bytes = await file.read()
+                attachment_meta = save_upload(file_bytes, file.filename, destination="chat")
+
+            if not message and attachment_meta:
+                message = f"[Uploaded {attachment_meta['category']}: {attachment_meta['original_name']}]"
+
+            if not message:
+                raise HTTPException(status_code=400, detail="Message or file is required")
+
+            await run_sync(
+                db_manager.save_message,
+                user_id,
+                "user",
+                message,
+                None if not attachment_meta else json.dumps([attachment_meta])
+            )
+
+            await portal_manager.send_to_admins(user_id, {
+                "event": "message",
+                "role": "user",
+                "content": message,
+                "user_id": user_id,
+                "god_mode": True,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+
+            return {
+                "answer": "✅ Received. A human resolver is handling your case now.",
+                "god_mode": True,
+                "resolver": "human"
+            }
+            
+        async with AI_SEMAPHORE:
+            response_data, status_code = await chat_service.process_portal_message(
+                query=message, user_id=user_id, file=file, language=language
+            )
+            
+        # Unicode sanitization
+        safe_json = json.dumps(response_data, ensure_ascii=False, default=str).encode('utf-8', errors='replace').decode('utf-8')
+        return Response(content=safe_json, status_code=status_code, media_type="application/json")
+    except Exception as e:
+        logger.error(f"Portal chat error: {e}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal server error: {str(e)}"}
         )
-        
-    # Unicode sanitization
-    safe_json = json.dumps(response_data, ensure_ascii=False, default=str).encode('utf-8', errors='replace').decode('utf-8')
-    return Response(content=safe_json, status_code=status_code, media_type="application/json")
 
 @router.get("/history")
 @limiter.limit("30/minute")

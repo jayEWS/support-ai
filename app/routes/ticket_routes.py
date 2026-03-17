@@ -45,6 +45,11 @@ async def get_ticket_details(
     ticket = repo.get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found or access denied")
+    
+    # ✅ FIXED: Verify ownership to prevent IDOR
+    if ticket.get("assigned_to") != agent["user_id"] and agent.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     return ticket
 
 @router.get("/{ticket_id}/history")

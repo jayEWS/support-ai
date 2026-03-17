@@ -1,7 +1,8 @@
 # ============================================================
 # Edgeworks AI Support Portal — Python Dependencies
-# Runtime: Python 3.11 | Framework: FastAPI + Gunicorn/Uvicorn
-# Last updated: 2026-03-12
+# Runtime: Python 3.11+ | Framework: FastAPI + Uvicorn
+# Stack:   Groq Llama-3.3 70B | Neon PostgreSQL | Qdrant Local
+# Updated: 2026-03-17
 # ============================================================
 
 # ── Web Framework & Server ──────────────────────────────────
@@ -14,23 +15,23 @@ websockets==13.1
 aiofiles
 aiohttp==3.11.12
 
-# ── Database (PostgreSQL Cloud) ──────────────────────
+# ── Database (Neon Cloud PostgreSQL) ────────────────────────
 SQLAlchemy==2.0.38
 alembic>=1.18.0
 psycopg2-binary==2.9.11
-# pyodbc removed for cloud (PostgreSQL only)
 
-# ── AI / LLM Providers (Cloud Only) ─────────────────────────
-openai==1.58.1
+# ── AI / LLM (Groq — Free Tier) ────────────────────────────
 langchain-core==0.3.37
 langchain-community==0.3.17
 langchain-groq==0.2.4
 groq>=0.37.1
 tiktoken==0.8.0
-# Heavy langchain packages removed
 
-# ── Embeddings (API-Based or Light) ─────────────────────────
-# sentence-transformers and huggingface_hub removed to save RAM on Render Free
+# ── Embeddings (Local HuggingFace — Zero Cost) ─────────────
+langchain-huggingface>=0.1.2
+sentence-transformers>=3.0.0
+
+# ── Vector Store (Qdrant Local — File-Based) ────────────────
 qdrant-client==1.7.3
 rank-bm25==0.2.2
 numpy==1.26.4
@@ -44,57 +45,38 @@ cryptography==46.0.5
 httpx>=0.28.0
 httpx-sse==0.4.3
 requests==2.32.5
-certifi==2026.2.25
-idna==3.11
-charset-normalizer==3.4.4
-h11==0.16.0
-httptools==0.7.1
+certifi>=2024.0.0
 
-# ── Data Processing (Minimal) ────────────────────────
-# pandas and openpyxl removed to save 200MB+ RAM on Render Free
-beautifulsoup4==4.14.3
-lxml==6.0.2
-Markdown==3.10.2
+# ── Document Processing ────────────────────────────────────
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+Markdown>=3.5.0
 
 # ── Config & Utilities ──────────────────────────────────────
 pydantic==2.12.5
 pydantic-settings==2.13.1
 python-dotenv==1.0.1
-PyYAML==6.0.3
+PyYAML>=6.0.0
 Jinja2==3.1.4
-markupSafe==3.0.3
-click==8.3.1
-colorama==0.4.6
-tqdm==4.67.1
-filelock==3.24.3
-appdirs==1.4.4
-python-dateutil==2.9.0.post0
-annotated-types==0.7.0
-anyio==4.12.1
+tqdm>=4.60.0
+python-dateutil>=2.9.0
 
 # ── Resilience & Rate Limiting ──────────────────────────────
 tenacity==8.5.0
 slowapi==0.1.9
-limits==5.8.0
-backoff==2.2.1
+limits>=5.0.0
+backoff>=2.0.0
 
-# ── Caching & Real-Time ────────────────────────────────────
+# ── Caching (Optional — Redis disabled by default) ─────────
 redis>=5.0.1
 fakeredis>=2.21.0
 
-# ── Observability ──────────────────────────────────────────
-prometheus-fastapi-instrumentator==7.0.0
+# ── Observability (Optional) ───────────────────────────────
+prometheus-fastapi-instrumentator>=7.0.0
 
 # ── Language Detection ──────────────────────────────────────
 langdetect==1.0.9
 
-# ── Cloud Storage ──────────────────────────────────────────
-google-auth==2.48.0
-google-cloud-storage==2.19.0
-
-# ── JSON Utilities ─────────────────────────────────────────
-jsonpatch==1.33
-jsonpointer==3.0.0
-jsonschema==4.26.0
-attrs==25.4.0
-cffi==2.0.0
+# ── Google OAuth & Cloud Storage (Optional) ─────────────────
+google-auth>=2.20.0
+google-cloud-storage>=2.10.0

@@ -884,6 +884,7 @@ async def request_magic_link(request: Request, background_tasks: BackgroundTasks
         raise HTTPException(status_code=500, detail="Failed to create magic link")
 
 @app.get("/api/auth/magic-link/verify")
+@limiter.limit("5/minute")  # ✅ FIXED: Rate limit to prevent brute force
 async def verify_magic_link(token: str, email: str, request: Request):
     """Verify magic link and log in user"""
     import urllib.parse as _up
