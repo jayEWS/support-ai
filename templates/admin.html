@@ -2634,7 +2634,7 @@ WHERE sh.SalesDate = GETDATE()"
         let volumeChart = null, priorityChart = null;
 
         // --- Persistent Menu Logic ---
-        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'knowledge', 'operations', 'settings'];
+        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'operations', 'settings'];
         let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
         // Clean up stale menu items from previous layout
         const validMenus = new Set(DEFAULT_MENU_ORDER);
@@ -2734,7 +2734,6 @@ WHERE sh.SalesDate = GETDATE()"
                 team: { icon: 'fa-user-friends', label: 'Team', isDropdown: true, id: 'team' },
                 tickets: { icon: 'fa-ticket-alt', label: 'Tickets', isDropdown: true, id: 'tickets' },
                 customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
-                knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
                 operations: { icon: 'fa-satellite-dish', label: 'AI Operations', isDropdown: true, id: 'operations' },
                 settings: { icon: 'fa-cog', label: 'Settings', isDropdown: true, id: 'settings' }
             };
@@ -2811,6 +2810,7 @@ WHERE sh.SalesDate = GETDATE()"
                 <a href="#" onclick="switchTab('ops_twins')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-store text-violet-500'></i> Digital Twins</span></a>
                 <a href="#" onclick="switchTab('ops_automation')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-robot text-blue-500'></i> Automation</span></a>
                 <a href="#" onclick="switchTab('ops_agent')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-astronaut text-indigo-500'></i> AI Engineer</span></a>
+                <a href="#" onclick="switchTab('knowledge')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-brain text-purple-500'></i> Self Learning & Help</span></a>
             `;
             if (id === 'settings') {
                 const isAdmin = currentUser?.role === 'admin';
@@ -2823,7 +2823,6 @@ WHERE sh.SalesDate = GETDATE()"
                 <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-users-cog text-blue-400/80'></i> Group Privileges</span></a>
                 <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-key text-blue-400/80'></i> Privilege Setup</span></a>` : ''}
                 <a href="#" onclick="switchTab('macros')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-bolt text-amber-400/80'></i> Macros</span></a>
-                <a href="#" onclick="switchTab('knowledge')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-brain text-purple-400/80'></i> Knowledge Base</span></a>
                 ${isAdmin ? `<a href="#" onclick="switchTab('audit')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-shield-alt text-red-400/80'></i> Audit Logs</span></a>` : ''}
                 `;
             }
