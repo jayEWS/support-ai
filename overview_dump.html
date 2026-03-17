@@ -1,0 +1,94 @@
+<section id="overview-view" class="p-10 overflow-y-auto flex-1 hidden">
+            <div class="mb-10">
+                <h2 class="text-2xl font-bold tracking-tight">Performance Command Center</h2>
+                <p class="text-gray-500 mt-1">Real-time analytics and strategic insights for your support ecosystem.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10" id="overview-stats"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <div
+                    class="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100/50 hover:shadow-md transition-shadow duration-300">
+                    <h3 class="font-bold text-gray-800 mb-8 flex items-center gap-2 text-sm tracking-wide">
+                        <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-blue-600"></i>
+                        </div>
+                        Conversation Volume
+                    </h3><canvas id="volumeChart" height="150"></canvas>
+                </div>
+                <div
+                    class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100/50 hover:shadow-md transition-shadow duration-300">
+                    <h3 class="font-bold text-gray-800 mb-8 flex items-center gap-2 text-sm tracking-wide">
+                        <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-pie text-indigo-600"></i>
+                        </div>
+                        Priorities
+                    </h3><canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+            </div>
+
+            <!-- Frequent Inquiries Section -->
+            <div class="mb-8">
+                <div
+                    class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="font-bold text-gray-800 flex items-center gap-2 text-sm tracking-wide">
+                            <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-fire text-purple-600"></i>
+                            </div>
+                            Frequent Customer Inquiries
+                        </h3>
+                        <span
+                            class="text-[10px] font-bold text-purple-500 bg-purple-50 px-2 py-1 rounded-full uppercase tracking-widest">Real-time
+                            Summary</span>
+                    </div>
+                    <div id="freq-topics" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div
+                    class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100/50 hover:shadow-md transition-shadow duration-300">
+                    <h3 class="font-bold text-gray-800 mb-8 flex items-center gap-2 text-sm tracking-wide">
+                        <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-trophy text-amber-500"></i>
+                        </div>
+                        Leaderboard
+                    </h3>
+                    <div class="overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50/50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-gray-400">Agent</th>
+                                    <th class="px-4 py-3 text-center text-[11px] font-semibold text-gray-400">Tickets
+                                    </th>
+                                    <th class="px-4 py-3 text-right text-[11px] font-semibold text-gray-400">CSAT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agent-leaderboard" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                    <div
+                        class="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-blue-600/20 transition-colors duration-500">
+                    </div>
+                    <div
+                        class="absolute bottom-0 left-0 w-32 h-32 bg-indigo-600/10 rounded-full -ml-16 -mb-16 blur-2xl">
+                    </div>
+
+                    <h3 class="font-bold mb-8 flex items-center gap-3 relative z-10 text-sm tracking-wide">
+                        <div
+                            class="w-10 h-10 bg-blue-500/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/10">
+                            <i class="fas fa-brain text-blue-400"></i>
+                        </div>
+                        AI Strategic Insights
+                    </h3>
+                    <div id="ai-trends"
+                        class="text-sm text-blue-100/80 leading-relaxed whitespace-pre-wrap relative z-10">Analyzing...
+                    </div>
+                </div>
+            </div>
+        </section>
