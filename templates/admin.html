@@ -687,7 +687,7 @@
         <!-- View: Overview -->
         <section id="overview-view" class="p-10 overflow-y-auto flex-1 hidden">
             <div class="mb-10">
-                <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Performance Command Center</h2>
+                <h2 class="text-2xl font-bold tracking-tight">Performance Command Center</h2>
                 <p class="text-gray-500 mt-1">Real-time analytics and strategic insights for your support ecosystem.</p>
             </div>
 
@@ -1027,7 +1027,7 @@
         <!-- View: Team -->
         <section id="team-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Team Insights: <span
+                <h2 class="text-2xl font-bold tracking-tight text-gray-900">Team Insights: <span
                         id="current-dept-label" class="text-blue-600">All</span></h2><span
                     class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-bold tracking-wide"
                     id="member-count">0 Members</span>
@@ -1340,22 +1340,22 @@
                 <div
                     class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
                     <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Total Documents</p>
-                    <p class="text-3xl font-extrabold text-blue-600" id="kb-stat-files">--</p>
+                    <p class="text-2xl font-bold text-blue-600" id="kb-stat-files">--</p>
                 </div>
                 <div
                     class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
                     <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Indexed</p>
-                    <p class="text-3xl font-extrabold text-green-600" id="kb-stat-indexed">--</p>
+                    <p class="text-2xl font-bold text-green-600" id="kb-stat-indexed">--</p>
                 </div>
                 <div
                     class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
                     <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">AI Chunks</p>
-                    <p class="text-3xl font-extrabold text-purple-600" id="kb-stat-chunks">--</p>
+                    <p class="text-2xl font-bold text-purple-600" id="kb-stat-chunks">--</p>
                 </div>
                 <div
                     class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
                     <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Vector Store</p>
-                    <p class="text-3xl font-extrabold text-slate-800" id="kb-stat-vector">--</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kb-stat-vector">--</p>
                 </div>
             </div>
 
@@ -1630,7 +1630,7 @@ WHERE sh.SalesDate = GETDATE()"
         <section id="customers-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Customer Intelligence</h2>
+                    <h2 class="text-2xl font-bold tracking-tight text-gray-900">Customer Intelligence</h2>
                     <p class="text-sm text-gray-500 mt-1">Unified view of your customer base and their interaction
                         history.</p>
                 </div>
@@ -1658,17 +1658,17 @@ WHERE sh.SalesDate = GETDATE()"
                 <div
                     class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
                     <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Total Customers</p>
-                    <p class="text-3xl font-extrabold text-blue-600" id="cust-stat-total">--</p>
+                    <p class="text-2xl font-bold text-blue-600" id="cust-stat-total">--</p>
                 </div>
                 <div
                     class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
                     <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Onboarded</p>
-                    <p class="text-3xl font-extrabold text-green-600" id="cust-stat-onboarded">--</p>
+                    <p class="text-2xl font-bold text-green-600" id="cust-stat-onboarded">--</p>
                 </div>
                 <div
                     class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
                     <p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Pending Onboard</p>
-                    <p class="text-3xl font-extrabold text-amber-500" id="cust-stat-pending">--</p>
+                    <p class="text-2xl font-bold text-amber-500" id="cust-stat-pending">--</p>
                 </div>
             </div>
 
@@ -1735,34 +1735,68 @@ WHERE sh.SalesDate = GETDATE()"
 
         <!-- User Master View -->
         <section id="usermst-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-3xl font-extrabold mb-8 tracking-tight text-gray-900">User Master</h2>
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-100">
-                    <thead class="bg-gray-50/50">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Agent</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Email</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Roles
-                                (Groups)</th>
-                            <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 tracking-wide">Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="usermst-list" class="divide-y divide-gray-50"></tbody>
-                </table>
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold tracking-tight">User Master</h2>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-blue-700 transition flex items-center gap-2">
+                    <i class="fas fa-user-plus"></i> Add User
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-3xl border shadow-sm overflow-hidden mb-8">
+                <div class="p-6 border-b border-gray-100 bg-gray-50/50 flex place-content-between items-center">
+                    <h3 class="font-bold text-gray-800 text-xs tracking-wide flex items-center gap-2">
+                        <i class="fas fa-users text-blue-500"></i> Manage System Agents
+                    </h3>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <input type="text" placeholder="Search users..." class="py-2 pl-8 pr-4 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 w-64">
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-500 tracking-wider uppercase">Agent</th>
+                                <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-500 tracking-wider uppercase">Email</th>
+                                <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-500 tracking-wider uppercase">Roles / Groups</th>
+                                <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-500 tracking-wider uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usermst-list" class="divide-y divide-gray-50 bg-white"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
         <!-- Group Privileges View -->
         <section id="groupperms-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-3xl font-extrabold mb-8 tracking-tight text-gray-900">Role & Group Privileges</h2>
-            <div id="roles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold tracking-tight">Group Privileges</h2>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-blue-700 transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i> New Group
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-3xl border shadow-sm p-8">
+                <div class="mb-6 flex items-center gap-2">
+                    <h3 class="font-bold text-gray-800 text-xs tracking-wide flex items-center gap-2">
+                        <i class="fas fa-users-cog text-purple-500"></i> Role & Group Allocations
+                    </h3>
+                </div>
+                <div id="roles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
         </section>
 
         <!-- Privilege Setup View -->
         <section id="privsetup-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <h2 class="text-3xl font-extrabold mb-8 tracking-tight text-gray-900">System Privilege Setup</h2>
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">Privilege Setup</h2>
+            
+            <div class="bg-white rounded-3xl border shadow-sm p-8">
+                <div class="mb-6 flex items-center gap-2 border-b pb-4">
+                    <h3 class="font-bold text-gray-800 text-xs tracking-wide flex items-center gap-2">
+                        <i class="fas fa-key text-amber-500"></i> System Access Rights Configuration
+                    </h3>
+                </div>
                 <div class="space-y-8" id="perms-category-list"></div>
             </div>
         </section>
@@ -1901,18 +1935,447 @@ WHERE sh.SalesDate = GETDATE()"
                 </div>
             </div>
         </section>
+
+        <!-- Admin Settings -->
+        <section id="settings_admin-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">Admin Settings</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Company Profile -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-building text-blue-600"></i> Company Profile
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Company Name</label>
+                                <input type="text" value="Edgeworks Solutions" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Support Portal Title</label>
+                                <input type="text" value="Edgeworks Support AI" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Timezone</label>
+                                <select class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option>Asia/Singapore (+08:00)</option>
+                                    <option>Asia/Jakarta (+07:00)</option>
+                                    <option>UTC (00:00)</option>
+                                </select>
+                            </div>
+                            <div class="pt-2">
+                                <button class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wide hover:bg-blue-700 transition shadow-sm">
+                                    <i class="fas fa-save mr-1"></i> Save Profile
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Hours -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-clock text-amber-500"></i> Support Hours
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">24/7 Support</p>
+                                    <p class="text-xs text-gray-400">Agents are always online</p>
+                                </div>
+                                <input type="checkbox" class="w-10 h-5 rounded-full bg-gray-300 appearance-none cursor-pointer relative checked:bg-blue-600 checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Start Time</label>
+                                    <input type="time" value="09:00" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">End Time</label>
+                                    <input type="time" value="18:00" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                                </div>
+                            </div>
+                            <div class="pt-2">
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Offline Message</label>
+                                <textarea rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none resize-none">Our team is currently offline. We will reply as soon as we're back!</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Support Settings -->
+        <section id="settings_support-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">Support Settings</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Ticket Configuration -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-ticket-alt text-green-600"></i> Ticket Configuration
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Default SLA (Hours)</label>
+                                <input type="number" value="24" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                            </div>
+                            <div class="flex items-center justify-between pt-2">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Auto-Assign Tickets</p>
+                                    <p class="text-xs text-gray-400">Round-robin assignment to active agents</p>
+                                </div>
+                                <input type="checkbox" checked class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                            <div class="flex items-center justify-between pt-2">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Auto-Close Tickets</p>
+                                    <p class="text-xs text-gray-400">Close resolved tickets after 3 days</p>
+                                </div>
+                                <input type="checkbox" checked class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Satisfaction (CSAT) -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-star text-yellow-500"></i> CSAT Feedback
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Request CSAT Score</p>
+                                    <p class="text-xs text-gray-400">Ask for rating when ticket is resolved</p>
+                                </div>
+                                <input type="checkbox" checked class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                            <div class="pt-2">
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">CSAT Email Template</label>
+                                <textarea rows="3" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none resize-none">We'd love to hear your feedback on our support! Please rate your experience...</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Admin Settings -->
+        <section id="settings_system_admin-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">System Admin</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Database Status -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-database text-indigo-600"></i> Database Storage
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 p-4 rounded-xl flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">PostgreSQL Status</p>
+                                    <p class="text-sm font-bold text-emerald-600 flex items-center gap-1"><i class="fas fa-circle text-[8px]"></i> Online</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Size</p>
+                                    <p class="text-sm font-bold text-gray-800">482 MB</p>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-xl flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Vector DB (Qdrant)</p>
+                                    <p class="text-sm font-bold text-emerald-600 flex items-center gap-1"><i class="fas fa-circle text-[8px]"></i> Online</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Vectors</p>
+                                    <p class="text-sm font-bold text-gray-800">12,450</p>
+                                </div>
+                            </div>
+                            <div class="pt-2 flex gap-3">
+                                <button class="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-100 transition">
+                                    <i class="fas fa-download mr-1"></i> Trigger Backup
+                                </button>
+                                <button class="px-4 py-2 bg-gray-50 text-gray-600 border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-100 transition">
+                                    <i class="fas fa-broom mr-1"></i> Clear Cache
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API & Integrations -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-plug text-blue-500"></i> API Integrations
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Support Portal Webhook URL</label>
+                                <div class="flex">
+                                    <input type="text" readonly value="https://api.edgeworks.com.sg/webhook" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-l-xl text-sm text-gray-500 focus:outline-none" />
+                                    <button class="px-4 py-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-xl text-gray-600 hover:bg-gray-200"><i class="fas fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Groq LLM Usage</label>
+                                <div class="w-full bg-gray-100 rounded-full h-2 mb-1">
+                                    <div class="bg-blue-500 h-2 rounded-full" style="width: 45%"></div>
+                                </div>
+                                <p class="text-xs text-gray-400">45% of monthly quota</p>
+                            </div>
+                            <div class="pt-2">
+                                <button class="px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-slate-800 transition">
+                                    <i class="fas fa-key mr-1"></i> Manage API Keys
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Settings -->
+        <section id="settings_admin-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">Admin Settings</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Company Profile -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-building text-blue-600"></i> Company Profile
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Company Name</label>
+                                <input type="text" value="Edgeworks Solutions" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Support Portal Title</label>
+                                <input type="text" value="Edgeworks Support AI" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Timezone</label>
+                                <select class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option>Asia/Singapore (+08:00)</option>
+                                    <option>Asia/Jakarta (+07:00)</option>
+                                    <option>UTC (00:00)</option>
+                                </select>
+                            </div>
+                            <div class="pt-2">
+                                <button class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wide hover:bg-blue-700 transition shadow-sm">
+                                    <i class="fas fa-save mr-1"></i> Save Profile
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Hours -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-clock text-amber-500"></i> Support Hours
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">24/7 Support</p>
+                                    <p class="text-xs text-gray-400">Agents are always online</p>
+                                </div>
+                                <input type="checkbox" class="w-10 h-5 rounded-full bg-gray-300 appearance-none cursor-pointer relative checked:bg-blue-600 checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Start Time</label>
+                                    <input type="time" value="09:00" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">End Time</label>
+                                    <input type="time" value="18:00" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                                </div>
+                            </div>
+                            <div class="pt-2">
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Offline Message</label>
+                                <textarea rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none resize-none">Our team is currently offline. We will reply as soon as we're back!</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Support Settings -->
+        <section id="settings_support-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">Support Settings</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Ticket Configuration -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-ticket-alt text-green-600"></i> Ticket Configuration
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Default SLA (Hours)</label>
+                                <input type="number" value="24" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
+                            </div>
+                            <div class="flex items-center justify-between pt-2">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Auto-Assign Tickets</p>
+                                    <p class="text-xs text-gray-400">Round-robin assignment to active agents</p>
+                                </div>
+                                <input type="checkbox" checked class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                            <div class="flex items-center justify-between pt-2">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Auto-Close Tickets</p>
+                                    <p class="text-xs text-gray-400">Close resolved tickets after 3 days</p>
+                                </div>
+                                <input type="checkbox" checked class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Satisfaction (CSAT) -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-star text-yellow-500"></i> CSAT Feedback
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-gray-700">Request CSAT Score</p>
+                                    <p class="text-xs text-gray-400">Ask for rating when ticket is resolved</p>
+                                </div>
+                                <input type="checkbox" checked class="w-10 h-5 rounded-full bg-blue-600 appearance-none cursor-pointer relative checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:w-4 after:h-4 after:rounded-full after:transition-all">
+                            </div>
+                            <div class="pt-2">
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">CSAT Email Template</label>
+                                <textarea rows="3" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none resize-none">We'd love to hear your feedback on our support! Please rate your experience...</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Admin Settings -->
+        <section id="settings_system_admin-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <h2 class="text-2xl font-bold mb-8 tracking-tight">System Admin</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Database Status -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-database text-indigo-600"></i> Database Storage
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 p-4 rounded-xl flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">PostgreSQL Status</p>
+                                    <p class="text-sm font-bold text-emerald-600 flex items-center gap-1"><i class="fas fa-circle text-[8px]"></i> Online</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Size</p>
+                                    <p class="text-sm font-bold text-gray-800">482 MB</p>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-xl flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Vector DB (Qdrant)</p>
+                                    <p class="text-sm font-bold text-emerald-600 flex items-center gap-1"><i class="fas fa-circle text-[8px]"></i> Online</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Vectors</p>
+                                    <p class="text-sm font-bold text-gray-800">12,450</p>
+                                </div>
+                            </div>
+                            <div class="pt-2 flex gap-3">
+                                <button class="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl font-bold text-xs hover:bg-indigo-100 transition">
+                                    <i class="fas fa-download mr-1"></i> Trigger Backup
+                                </button>
+                                <button class="px-4 py-2 bg-gray-50 text-gray-600 border border-gray-200 rounded-xl font-bold text-xs hover:bg-gray-100 transition">
+                                    <i class="fas fa-broom mr-1"></i> Clear Cache
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API & Integrations -->
+                <div class="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-xs tracking-wide">
+                            <i class="fas fa-plug text-blue-500"></i> API Integrations
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Support Portal Webhook URL</label>
+                                <div class="flex">
+                                    <input type="text" readonly value="https://api.edgeworks.com.sg/webhook" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-l-xl text-sm text-gray-500 focus:outline-none" />
+                                    <button class="px-4 py-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-xl text-gray-600 hover:bg-gray-200"><i class="fas fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 tracking-wide mb-2">Groq LLM Usage</label>
+                                <div class="w-full bg-gray-100 rounded-full h-2 mb-1">
+                                    <div class="bg-blue-500 h-2 rounded-full" style="width: 45%"></div>
+                                </div>
+                                <p class="text-xs text-gray-400">45% of monthly quota</p>
+                            </div>
+                            <div class="pt-2">
+                                <button class="px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-slate-800 transition">
+                                    <i class="fas fa-key mr-1"></i> Manage API Keys
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
         <section id="audit-view" class="p-8 overflow-y-auto flex-1 hidden">
-            <div class="bg-white rounded-xl border overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-slate-900 text-white">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-bold tracking-wide">Time</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold tracking-wide">Agent</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold tracking-wide">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="audit-list"></tbody>
-                </table>
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold tracking-tight">Audit Logs</h2>
+                <div class="flex gap-3">
+                    <button class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold text-xs shadow-sm hover:bg-gray-50 transition flex items-center gap-2">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold text-xs shadow-sm hover:bg-gray-50 transition flex items-center gap-2">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-3xl border shadow-sm overflow-hidden mb-8">
+                <div class="p-6 border-b border-gray-100 bg-gray-50/50">
+                    <h3 class="font-bold text-gray-800 text-xs tracking-wide flex items-center gap-2">
+                        <i class="fas fa-shield-alt text-red-500"></i> System Activity Trail
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-500 tracking-wider uppercase w-48">Time</th>
+                                <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-500 tracking-wider uppercase w-48">Agent</th>
+                                <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-500 tracking-wider uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-list" class="divide-y divide-gray-50 bg-white text-sm"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -1922,7 +2385,7 @@ WHERE sh.SalesDate = GETDATE()"
         <section id="ops_health-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
                 <div>
-                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                    <h2 class="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><i class="fas fa-heartbeat text-emerald-600"></i></div>
                         System Health
                     </h2>
@@ -1974,7 +2437,7 @@ WHERE sh.SalesDate = GETDATE()"
         <section id="ops_incidents-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
                 <div>
-                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                    <h2 class="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><i class="fas fa-exclamation-triangle text-amber-600"></i></div>
                         Incidents
                     </h2>
@@ -2021,7 +2484,7 @@ WHERE sh.SalesDate = GETDATE()"
         <section id="ops_twins-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
                 <div>
-                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                    <h2 class="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center"><i class="fas fa-store text-violet-600"></i></div>
                         Digital Twins
                     </h2>
@@ -2044,7 +2507,7 @@ WHERE sh.SalesDate = GETDATE()"
         <section id="ops_automation-view" class="p-8 overflow-y-auto flex-1 hidden">
             <div class="flex justify-between items-center mb-8">
                 <div>
-                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                    <h2 class="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><i class="fas fa-robot text-blue-600"></i></div>
                         Automation Logs
                     </h2>
@@ -2227,7 +2690,7 @@ WHERE sh.SalesDate = GETDATE()"
             updateSidebarCounts();
 
             // Determine active tab from URL path (e.g., /whatsapp, /team/admin)
-            const validTabs = ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat', 'ops_health', 'ops_incidents', 'ops_twins', 'ops_automation', 'ops_agent'];
+            const validTabs = ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'settings_admin', 'settings_support', 'settings_system_admin', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat', 'ops_health', 'ops_incidents', 'ops_twins', 'ops_automation', 'ops_agent'];
             const pathParts = window.location.pathname.replace(/^\/+/, '').split('/');
             let startTab = 'overview', startSub = null;
             if (pathParts[0] && validTabs.includes(pathParts[0])) {
@@ -2353,9 +2816,9 @@ WHERE sh.SalesDate = GETDATE()"
                 const isAdmin = currentUser?.role === 'admin';
                 return `
                 <a href="#" onclick="switchTab('settings')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-sliders-h text-gray-400/80'></i> General</span></a>
-                <a href="#" onclick="switchTab('settings', 'admin')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-shield text-red-400/80'></i> Admin</span></a>
-                <a href="#" onclick="switchTab('settings', 'support')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-headset text-green-400/80'></i> Support</span></a>
-                <a href="#" onclick="switchTab('settings', 'system_admin')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-server text-blue-400/80'></i> System Admin</span></a>
+                <a href="#" onclick="switchTab('settings_admin')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-shield text-red-400/80'></i> Admin</span></a>
+                <a href="#" onclick="switchTab('settings_support')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-headset text-green-400/80'></i> Support</span></a>
+                <a href="#" onclick="switchTab('settings_system_admin')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-server text-blue-400/80'></i> System Admin</span></a>
                 ${isAdmin ? `<a href="#" onclick="switchTab('usermst')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-shield text-blue-400/80'></i> User Master</span></a>
                 <a href="#" onclick="switchTab('groupperms')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-users-cog text-blue-400/80'></i> Group Privileges</span></a>
                 <a href="#" onclick="switchTab('privsetup')" class="block px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-key text-blue-400/80'></i> Privilege Setup</span></a>` : ''}
@@ -2385,7 +2848,7 @@ WHERE sh.SalesDate = GETDATE()"
             // Stop LiveChat polling when leaving that tab
             if (tab !== 'livechat' && lcPollingInterval) { clearInterval(lcPollingInterval); lcPollingInterval = null; }
             if (tab !== 'livechat' && lcAdminWs) { try { lcAdminWs.close(); } catch (_) { } lcAdminWs = null; }
-            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat', 'ops_health', 'ops_incidents', 'ops_twins', 'ops_automation', 'ops_agent'].forEach(t => {
+            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'settings_admin', 'settings_support', 'settings_system_admin', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat', 'ops_health', 'ops_incidents', 'ops_twins', 'ops_automation', 'ops_agent'].forEach(t => {
                 const el = document.getElementById(`${t}-view`);
                 if (el) el.classList.toggle('hidden', t !== tab);
             });
