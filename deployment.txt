@@ -37,16 +37,22 @@ Agar bisa diakses dari luar (Always Online tanpa IP Public):
    Type: HTTP
    URL: localhost:8001
 
-### LANGKAH 5: SCRIPT AUTO-START (DIBUAT ONLINE OTOMATIS)
-Buat file baru bernama "RUN_SERVER.bat" di desktop PC Singapore. Isi dengan ini:
---------------------------------------------------
-@echo off
-cd /d "D:\Project\support-ai"
-echo Memulai Server Support AI Singapore...
-call .\.venv\Scripts\activate
-python main.py
-pause
---------------------------------------------------
+### LANGKAH 5: SCRIPT AUTO-START (ONLINE OTOMATIS)
+Gunakan file `NYALAKAN_SERVER.bat` yang sudah saya buat di folder project.
+1. Klik kanan `NYALAKAN_SERVER.bat` -> Send to Desktop (Create Shortcut).
+2. Setiap kali anda menyalakan PC Singapore, klik file ini di Desktop.
+3. Server akan otomatis melakukan update Database (Alembic) dan menjalankan server di Port 8001.
+
+### LANGKAH 6: UPDATE GOOGLE OAUTH REDIRECT URI
+1. Pergi ke: https://console.cloud.google.com/apis/credentials
+2. Edit OAuth 2.0 Client ID anda.
+3. Ubah atau Tambah "Authorized redirect URIs" ke link Cloudflare anda:
+   Contoh: https://defend-wednesday-journalist-boot.trycloudflare.com/api/auth/google/callback
+   (Ganti link di atas dengan link Permanent/Domain anda di Cloudflare Tunnel).
+
+### LANGKAH 7: SYNC DARI INDO PC KE SG PC
+- Selalu Commit & Push dari Indo PC ke GitHub.
+- Di SG PC, buka terminal: `git pull origin main` lalu klik file `NYALAKAN_SERVER.bat`.
 
 ### LANGKAH 6: UPDATE GOOGLE OAUTH URL
 Buka Google Cloud Console, tambahkan URL Cloudflare Anda ke "Authorized redirect URIs":
