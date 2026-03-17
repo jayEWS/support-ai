@@ -105,6 +105,7 @@ from app.routes.websocket_routes import router as websocket_router
 from app.routes.system_routes import router as system_router, admin_router as admin_rbac_router
 from app.routes.portal_routes import router as portal_router
 from app.routes.livechat_routes import router as livechat_router
+from app.adapters.email_handler import email_router
 
 # Schemas
 from app.schemas.schemas import IntentType
@@ -427,6 +428,7 @@ app.include_router(admin_rbac_router)
 app.include_router(portal_router)
 app.include_router(livechat_router)
 app.include_router(ops_router)  # AI Operations Platform
+app.include_router(email_router)  # Email webhook handler
 
 # Add rate limiter to app
 app.state.limiter = limiter
@@ -523,6 +525,101 @@ async def live_chat_demo(request: Request):
 async def whatsapp_interactive_demo(request: Request):
     """Public interactive WhatsApp simulation mockup."""
     return templates.TemplateResponse(request, "wa_demo.html")
+
+# --- Public WhatsApp Demo Chat (no auth, rate-limited) ---
+@app.post("/api/whatsapp/demo-chat")
+@limiter.limit("6/minute")
+async def whatsapp_demo_chat(request: Request):
+    """
+    Public endpoint for the WhatsApp demo page.
+    Processes a simulated WhatsApp message through the full AI pipeline.
+    Rate-limited to prevent abuse. Only works when WHATSAPP_TEST_MODE is enabled.
+    """
+    if not settings.WHATSAPP_TEST_MODE:
+        raise HTTPException(status_code=403, detail="Demo mode is not enabled")
+    
+    data = await request.json()
+    phone = data.get("phone_number", "").strip()
+    message_text = data.get("message", "").strip()
+    
+    if not phone or not message_text:
+        raise HTTPException(status_code=400, detail="phone_number and message are required")
+    
+    # Validate phone format (prevent abuse)
+    if not re.match(r'^\+?\d{8,15}$', phone.replace(' ', '')):
+        raise HTTPException(status_code=400, detail="Invalid phone number format")
+    
+    # Max message length
+    if len(message_text) > 500:
+        message_text = message_text[:500]
+    
+    # Normalize phone
+    if not phone.startswith("+"):
+        phone = f"+{phone}"
+    
+    # Guardrail
+    if not guardrail_service.validate_input(message_text):
+        return {"status": "blocked", "ai_response": "I apologize, but I cannot process that request. Please ask about POS support."}
+    
+    db = _require_db()
+    
+    # Save the simulated inbound message
+    db.save_whatsapp_message(
+        phone_number=phone,
+        direction="inbound",
+        content=message_text,
+        external_message_id=f"demo_{int(__import__('time').time()*1000)}"
+    )
+    
+    # Process through AI pipeline
+    try:
+        customer = await app.state.customer_service.get_or_register_customer(phone)
+        
+        chat_svc = getattr(app.state, 'chat_service', None)
+        
+        # Check onboarding state
+        state_info = (await chat_svc._get_user_state_async(phone)) if chat_svc else {'state': 'complete'}
+        onboarding_response = None
+        if chat_svc:
+            onboarding_response = await chat_svc._handle_onboarding(phone, message_text, state_info)
+        
+        user_lang = chat_svc.get_user_language(phone) if chat_svc else 'en'
+        
+        if onboarding_response:
+            response_text = onboarding_response
+        else:
+            classification = await app.state.intent_service.classify(message_text)
+            
+            if classification.intent == IntentType.CRITICAL:
+                response_text = await app.state.escalation_service.escalate(customer.identifier, f"CRITICAL: {message_text}", message_text, True)
+            elif classification.intent == IntentType.ESCALATION:
+                response_text = await app.state.escalation_service.escalate(customer.identifier, f"Escalation: {message_text}", message_text)
+            elif classification.intent == IntentType.DEEP_REASONING:
+                response_text = await app.state.llm_service.reason(message_text)
+            else:
+                rag_res = await app.state.rag_service.query(message_text, language=user_lang)
+                if rag_res.confidence < 0.5:
+                    response_text = await app.state.escalation_service.escalate(customer.identifier, f"Low Confidence", message_text)
+                else:
+                    response_text = rag_res.answer
+            
+            response_text = guardrail_service.validate_output(response_text)
+            
+            if customer.is_new and state_info['state'] == 'complete':
+                response_text = f"{app.state.customer_service.get_personalized_greeting(customer)}\n\n{response_text}"
+        
+        # Save AI response
+        db.save_whatsapp_message(
+            phone_number=phone,
+            direction="outbound",
+            content=response_text,
+            status="sent"
+        )
+        
+        return {"status": "success", "inbound": message_text, "ai_response": response_text, "phone": phone}
+    except Exception as e:
+        logger.error(f"Demo chat AI processing failed: {e}", exc_info=True)
+        return {"status": "partial", "inbound": message_text, "ai_response": f"Sorry, I'm having trouble processing your message right now. Please try again.", "phone": phone}
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -880,17 +977,38 @@ async def request_magic_link(request: Request, background_tasks: BackgroundTasks
         # Build the magic link URL (for production, this should be from settings.BASE_URL)
         magic_link_url = f"{settings.BASE_URL}/api/auth/magic-link/verify?token={magic_token}&email={email}"
         
-        # Send email in background
-        from app.utils.email_utils import send_magic_link_email
-        background_tasks.add_task(send_magic_link_email, email, magic_link_url)
+        # Check if real email provider is configured
+        email_configured = False
+        _provider = (settings.EMAIL_PROVIDER or "mock").lower()
+        if _provider == "gmail" and settings.GMAIL_EMAIL and settings.GMAIL_PASSWORD:
+            email_configured = True
+        elif _provider == "sendgrid" and getattr(settings, 'SENDGRID_API_KEY', ''):
+            email_configured = True
+        elif _provider == "mailgun" and settings.MAILGUN_API_KEY and settings.MAILGUN_DOMAIN:
+            email_configured = True
+        
+        if email_configured:
+            # Send email in background
+            from app.utils.email_utils import send_magic_link_email
+            background_tasks.add_task(send_magic_link_email, email, magic_link_url)
+        else:
+            logger.warning(f"Email provider not configured — returning magic link directly")
         
         # Log the attempt
         logger.info(f"Magic link requested for: {email}")
         
-        return JSONResponse({
+        response_data = {
             "status": "success",
             "message": "Check your email for the magic link. If you don't see it, check your spam folder."
-        })
+        }
+        
+        # In dev / mock mode: return the link directly so user can still log in
+        if not email_configured:
+            response_data["magic_link"] = magic_link_url
+            response_data["message"] = "Email not configured. Use the magic link below to sign in."
+            logger.info(f"[DEV] Magic link for {email}: {magic_link_url}")
+        
+        return JSONResponse(response_data)
     except HTTPException:
         raise
     except Exception as e:

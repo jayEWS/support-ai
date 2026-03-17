@@ -52,6 +52,7 @@ class TicketResponse(BaseModel):
     id: int
     status: str
     summary: str
+    assigned_to: Optional[str] = None
     created_at: datetime
 
 

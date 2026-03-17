@@ -480,6 +480,7 @@ class ChatService:
 
             # 2. Handle options
             ticket_id = None
+            assigned_to = None
             if option in ("ticket", "ticket_and_notify", 1, "1"):
                 from app.services.ticket_service import TicketService
                 # Create a summary from the last message
@@ -493,6 +494,7 @@ class ChatService:
 
                 ticket_res = await TicketService.create_ticket(user_id, summary, transcript)
                 ticket_id = ticket_res.id
+                assigned_to = ticket_res.assigned_to
 
                 # Link WA messages to ticket if they exist (only for phone-number users)
                 if wa_history.get("messages"):
@@ -501,16 +503,34 @@ class ChatService:
             # 3. ALWAYS Clear portal messages after closing (non-blocking)
             await run_sync(db_manager.clear_messages, user_id)
 
-            # 4. Reset user state to idle (non-blocking)
+            # 4. Send chat transcript to customer's email (non-blocking)
+            user_data = await run_sync(db_manager.get_user, user_id)
+            customer_email = user_data.get('email') if user_data else None
+            customer_name = user_data.get('name', 'Customer') if user_data else 'Customer'
+            if customer_email and transcript != "No messages":
+                try:
+                    from app.utils.email_utils import send_chat_transcript
+                    await send_chat_transcript(
+                        to_email=customer_email,
+                        customer_name=customer_name,
+                        transcript=transcript,
+                        ticket_id=ticket_id
+                    )
+                    logger.info(f"Chat transcript sent to {customer_email}")
+                except Exception as email_err:
+                    logger.warning(f"Failed to send transcript email to {customer_email}: {email_err}")
+
+            # 5. Reset user state to idle (non-blocking)
             await run_sync(db_manager.create_or_update_user, user_id, state='idle')
 
-            logger.info(f"Chat closed for {user_id} with option={option}, ticket={ticket_id}")
+            logger.info(f"Chat closed for {user_id} with option={option}, ticket={ticket_id}, assigned_to={assigned_to}")
 
             return {
                 "status": "closed",
                 "option": option,
                 "ticket_id": ticket_id,
                 "ticket_created": bool(ticket_id),
+                "assigned_to": assigned_to,
                 "message": "Chat session ended successfully"
             }
         except Exception as e:

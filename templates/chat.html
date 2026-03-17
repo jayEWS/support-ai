@@ -311,26 +311,61 @@
         </footer>
     </div>
 
-    <!-- Language Selection Overlay -->
+    <!-- Pre-Chat Registration Overlay -->
     <div id="lang-overlay"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
-        <div class="bg-white w-80 rounded-3xl p-8 shadow-2xl text-center">
+        <div class="bg-white w-96 max-h-[90vh] overflow-y-auto rounded-3xl p-8 shadow-2xl">
             <div
-                class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
-                <i class="fas fa-globe"></i>
+                class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl">
+                <i class="fas fa-user-plus"></i>
             </div>
-            <h3 class="font-bold text-xl mb-2">Choose Language</h3>
-            <p class="text-sm text-gray-500 mb-8">Select your preferred language to start chatting.</p>
-            <div class="space-y-3">
-                <button onclick="selectLanguage('en')"
-                    class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">English</button>
-                <button onclick="selectLanguage('id')"
-                    class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Bahasa
-                    Indonesia</button>
-                <button onclick="selectLanguage('zh')"
-                    class="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold hover:bg-blue-50 hover:border-blue-200 transition">Mandarin
-                    (中文)</button>
-            </div>
+            <h3 class="font-bold text-xl mb-1 text-center">Welcome! 👋</h3>
+            <p class="text-sm text-gray-500 mb-6 text-center">Please introduce yourself so we can assist you better.</p>
+            <form id="preChatForm" class="space-y-3">
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">👤 Your Name <span class="text-red-400">*</span></label>
+                    <input type="text" id="regName" required minlength="2" maxlength="100"
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition" placeholder="e.g. John Doe">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">🏢 Company Name <span class="text-red-400">*</span></label>
+                    <input type="text" id="regCompany" required minlength="2" maxlength="255"
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition" placeholder="e.g. Edgeworks Solutions">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">🏬 Outlet Name <span class="text-red-400">*</span></label>
+                    <input type="text" id="regOutlet" required minlength="2" maxlength="100"
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition" placeholder="e.g. Bugis Junction">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">📱 WhatsApp Number <span class="text-red-400">*</span></label>
+                    <input type="tel" id="regMobile" required pattern="[+]?[0-9\s\-]{8,15}" maxlength="20"
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition" placeholder="e.g. +6581234567">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">📧 Email Address <span class="text-red-400">*</span></label>
+                    <input type="email" id="regEmail" required maxlength="255"
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition" placeholder="e.g. john@company.com">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 mb-1 block">🌐 Preferred Language</label>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="pickLang(this,'en')" data-lang="en"
+                            class="lang-btn flex-1 py-2.5 bg-blue-50 border-2 border-blue-400 rounded-xl text-sm font-bold text-blue-700 transition">English</button>
+                        <button type="button" onclick="pickLang(this,'id')" data-lang="id"
+                            class="lang-btn flex-1 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-200 transition">Bahasa</button>
+                        <button type="button" onclick="pickLang(this,'zh')" data-lang="zh"
+                            class="lang-btn flex-1 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-200 transition">中文</button>
+                    </div>
+                </div>
+                <div id="regError" class="text-red-500 text-xs font-bold hidden"></div>
+                <button type="submit" id="regSubmitBtn"
+                    class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 mt-2 flex items-center justify-center gap-2">
+                    <span>Start Chat</span>
+                    <i class="fas fa-arrow-right text-xs"></i>
+                </button>
+            </form>
+            <p class="text-[10px] text-gray-400 text-center mt-4">Your data is stored securely. Chat transcript will be sent to your email.</p>
         </div>
     </div>
 
@@ -362,7 +397,8 @@
             icon.className = isWidgetOpen ? 'fas fa-chevron-down' : 'fas fa-comment-dots';
 
             if (isWidgetOpen && isFirstTime) {
-                if (!selectedLang) {
+                const alreadyRegistered = localStorage.getItem('support_portal_registered');
+                if (!selectedLang || !alreadyRegistered) {
                     document.getElementById('lang-overlay').classList.remove('hidden');
                 } else {
                     startSession();
@@ -371,13 +407,70 @@
             }
         }
 
-        function selectLanguage(lang) {
-            selectedLang = lang;
-            localStorage.setItem('support_portal_lang', lang);
-            document.getElementById('lang-overlay').classList.add('hidden');
-            applyI18n();
-            startSession();
+        let regSelectedLang = 'en';
+
+        function pickLang(btn, lang) {
+            regSelectedLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(b => {
+                b.className = 'lang-btn flex-1 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-200 transition';
+            });
+            btn.className = 'lang-btn flex-1 py-2.5 bg-blue-50 border-2 border-blue-400 rounded-xl text-sm font-bold text-blue-700 transition';
         }
+
+        // Pre-chat registration form submit
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('preChatForm');
+            if (form) form.onsubmit = async (e) => {
+                e.preventDefault();
+                const regError = document.getElementById('regError');
+                const regBtn = document.getElementById('regSubmitBtn');
+                regError.classList.add('hidden');
+                regBtn.disabled = true;
+                regBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+
+                const name = document.getElementById('regName').value.trim();
+                const company = document.getElementById('regCompany').value.trim();
+                const outlet = document.getElementById('regOutlet').value.trim();
+                const mobile = document.getElementById('regMobile').value.trim();
+                const email = document.getElementById('regEmail').value.trim();
+
+                if (!name || !company || !outlet || !mobile || !email) {
+                    regError.textContent = 'All fields are required.';
+                    regError.classList.remove('hidden');
+                    regBtn.disabled = false;
+                    regBtn.innerHTML = '<span>Start Chat</span><i class="fas fa-arrow-right text-xs"></i>';
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${API_URL}/api/portal/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({ user_id: userId, name, company, outlet, mobile, email, language: regSelectedLang })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Registration failed');
+
+                    // Save to localStorage
+                    selectedLang = regSelectedLang;
+                    localStorage.setItem('support_portal_lang', regSelectedLang);
+                    localStorage.setItem('support_portal_registered', '1');
+                    localStorage.setItem('support_portal_name', name);
+                    localStorage.setItem('support_portal_email', email);
+
+                    // Close overlay and start session
+                    document.getElementById('lang-overlay').classList.add('hidden');
+                    applyI18n();
+                    startSession(data.welcome_message);
+                } catch (err) {
+                    regError.textContent = err.message;
+                    regError.classList.remove('hidden');
+                } finally {
+                    regBtn.disabled = false;
+                    regBtn.innerHTML = '<span>Start Chat</span><i class="fas fa-arrow-right text-xs"></i>';
+                }
+            };
+        });
 
         function applyI18n() {
             const t = i18n[selectedLang] || i18n.en;
@@ -385,9 +478,10 @@
             document.getElementById('chat-input').placeholder = t.placeholder;
         }
 
-        async function startSession() {
+        async function startSession(welcomeMsg) {
             applyI18n();
-            addMessageUI('received', i18n[selectedLang].welcome);
+            const greeting = welcomeMsg || i18n[selectedLang].welcome;
+            addMessageUI('received', greeting);
 
             // Fetch bot history
             const hRes = await fetch(`${API_URL}/api/portal/history?user_id=${userId}`);
@@ -653,7 +747,14 @@
             document.getElementById('chat-input').placeholder = (i18n[selectedLang] || i18n.en).placeholder;
             document.getElementById('send-btn').disabled = false;
             document.getElementById('send-btn').classList.remove('opacity-40');
-            addMessageUI('received', (i18n[selectedLang] || i18n.en).welcome);
+            const userName = localStorage.getItem('support_portal_name') || '';
+            const lang = selectedLang || 'en';
+            const greetings = {
+                en: `Welcome back, ${userName}! 👋 How can we help you?`,
+                id: `Selamat datang kembali, ${userName}! 👋 Ada yang bisa kami bantu?`,
+                zh: `欢迎回来，${userName}！👋 有什么可以帮您的？`
+            };
+            addMessageUI('received', greetings[lang] || greetings.en);
             showEndChatBtn();
         }
 

@@ -20,6 +20,7 @@ class TicketService:
                 id=existing_ticket['id'],
                 status=existing_ticket['status'],
                 summary=existing_ticket['summary'],
+                assigned_to=existing_ticket.get('assigned_to'),
                 created_at=datetime.fromisoformat(existing_ticket['created_at']) if isinstance(existing_ticket['created_at'], str) else existing_ticket['created_at']
             )
 
@@ -34,12 +35,16 @@ class TicketService:
             status=status.value
         )
         
-        logger.info(f"Ticket created: {ticket_id} with status {status}")
+        # Auto-assign to the agent with the fewest open tickets (load balancing)
+        assigned_agent = ticket_repo.assign_to_least_loaded_agent(ticket_id)
+        
+        logger.info(f"Ticket created: {ticket_id} with status {status}, assigned to: {assigned_agent or 'unassigned'}")
         
         return TicketResponse(
             id=ticket_id,
             status=status.value,
             summary=summary,
+            assigned_to=assigned_agent,
             created_at=datetime.utcnow()
         )
 

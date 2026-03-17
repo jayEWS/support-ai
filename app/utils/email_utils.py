@@ -218,3 +218,116 @@ async def send_welcome_email(to_email: str, user_name: str = None) -> bool:
     except Exception as e:
         logger.error(f"Failed to send welcome email: {e}")
         return False
+
+
+async def send_chat_transcript(to_email: str, customer_name: str, transcript: str, 
+                                ticket_id: int = None, app_name: str = "Edgeworks Support") -> bool:
+    """
+    Send chat transcript to customer's email after chat session ends.
+    
+    Args:
+        to_email: Customer's email address
+        customer_name: Customer's display name
+        transcript: Full chat transcript text
+        ticket_id: Optional ticket ID if one was created
+        app_name: Application name for branding
+    
+    Returns:
+        bool: True if sent successfully
+    """
+    try:
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        
+        ticket_section = ""
+        if ticket_id:
+            ticket_section = f"""
+                <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin: 16px 0;">
+                    <p style="margin: 0; font-weight: bold; color: #92400e;">📝 Ticket #{ticket_id} Created</p>
+                    <p style="margin: 4px 0 0 0; color: #78350f; font-size: 13px;">Our team will follow up with you shortly.</p>
+                </div>
+            """
+        
+        # Convert transcript to HTML-safe format
+        import html
+        transcript_html = html.escape(transcript).replace('\n', '<br>')
+        
+        subject = f"{app_name} - Chat Transcript"
+        if ticket_id:
+            subject += f" (Ticket #{ticket_id})"
+        
+        html_body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9fafb;">
+                <div style="max-width: 640px; margin: 0 auto; padding: 20px;">
+                    <div style="background-color: #1e40af; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+                        <h2 style="margin: 0; font-size: 20px;">💬 Chat Transcript</h2>
+                        <p style="margin: 8px 0 0 0; opacity: 0.8; font-size: 13px;">{app_name} &bull; {timestamp}</p>
+                    </div>
+                    
+                    <div style="background-color: white; padding: 24px; border: 1px solid #e5e7eb; border-top: none;">
+                        <p style="margin: 0 0 16px 0;">Hello {customer_name or 'there'},</p>
+                        <p style="margin: 0 0 16px 0;">Thank you for contacting us. Below is a transcript of your chat session for your records.</p>
+                        
+                        {ticket_section}
+                        
+                        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 13px; max-height: 500px; overflow-y: auto;">
+                            <p style="font-weight: bold; color: #475569; margin: 0 0 12px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Conversation:</p>
+                            {transcript_html}
+                        </div>
+                        
+                        <p style="color: #6b7280; font-size: 12px; margin: 16px 0 0 0; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+                            This is an automated message from {app_name}. Please do not reply to this email.<br>
+                            If you need further assistance, please visit our support portal.
+                        </p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 16px; color: #9ca3af; font-size: 11px;">
+                        ⚡ Powered by {app_name}
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        
+        text_body = f"""Chat Transcript - {app_name}
+Date: {timestamp}
+
+Hello {customer_name or 'there'},
+
+Thank you for contacting us. Below is your chat transcript:
+
+{'Ticket #' + str(ticket_id) + ' has been created.' if ticket_id else ''}
+
+--- TRANSCRIPT ---
+{transcript}
+--- END ---
+
+This is an automated message. Please do not reply.
+"""
+        
+        # Try to send via configured provider
+        email_provider = settings.EMAIL_PROVIDER.lower() if settings.EMAIL_PROVIDER else "mock"
+        
+        if email_provider == "gmail":
+            if not settings.GMAIL_EMAIL or not settings.GMAIL_PASSWORD:
+                logger.warning("Gmail not configured for transcript, falling back to mock mode")
+                return send_mock_email(to_email, subject)
+            return await send_via_gmail(to_email, subject, html_body, text_body)
+        
+        elif email_provider == "sendgrid":
+            if not getattr(settings, 'SENDGRID_API_KEY', ''):
+                return send_mock_email(to_email, subject)
+            return await send_via_sendgrid(to_email, subject, html_body, text_body)
+        
+        elif email_provider == "mailgun":
+            if not settings.MAILGUN_API_KEY or not settings.MAILGUN_DOMAIN:
+                return send_mock_email(to_email, subject)
+            return await send_via_mailgun(to_email, subject, html_body, text_body)
+        
+        else:
+            return send_mock_email(to_email, subject)
+            
+    except Exception as e:
+        logger.error(f"Failed to send chat transcript to {to_email}: {e}")
+        return False

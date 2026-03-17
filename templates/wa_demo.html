@@ -116,7 +116,7 @@
             }, 100);
 
             try {
-                const response = await fetch('/api/whatsapp/simulate', {
+                const response = await fetch('/api/whatsapp/demo-chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -130,8 +130,12 @@
                 aiStatus.classList.add('hidden');
                 statusText.innerText = "AI is typing...";
 
-                if (data.ai_response) {
+                if (response.ok && data.ai_response) {
                     addMessage(data.ai_response, 'in');
+                } else if (data.detail) {
+                    addMessage("⚠️ " + data.detail, "in");
+                } else {
+                    addMessage("⚠️ Could not get a response. Please try again.", "in");
                 }
             } catch (err) {
                 clearInterval(timer);

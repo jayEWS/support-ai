@@ -47,6 +47,77 @@ def _require_rag(request: Request):
         raise HTTPException(status_code=503, detail="RAG Service unavailable")
     return rag
 
+
+# --- Pre-Chat Registration ---
+class RegisterRequest(BaseModel):
+    user_id: str
+    name: str
+    company: str
+    outlet: str
+    mobile: str
+    email: str
+    language: str = "en"
+
+@router.post("/register")
+@limiter.limit("10/minute")
+async def register_portal_user(request: Request, body: RegisterRequest):
+    """
+    Register or update a portal customer before starting chat.
+    Collects: name, company, outlet, mobile (WhatsApp), email, language.
+    Saves to DB and marks onboarding complete so backend skips onboarding flow.
+    """
+    import re as _re
+    # Validate user_id
+    if not _re.match(r'^[\w@+.\-]{1,64}$', body.user_id):
+        raise HTTPException(status_code=400, detail="Invalid user_id")
+    
+    # Validate required fields
+    if not body.name or len(body.name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Name is required (min 2 chars)")
+    if not body.company or len(body.company.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    if not body.outlet or len(body.outlet.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Outlet name is required")
+    if not body.mobile or not _re.match(r'^[+]?[\d\s\-]{8,15}$', body.mobile.strip()):
+        raise HTTPException(status_code=400, detail="Valid WhatsApp number is required")
+    if not body.email or '@' not in body.email:
+        raise HTTPException(status_code=400, detail="Valid email address is required")
+    
+    lang = body.language if body.language in ('en', 'id', 'zh') else 'en'
+    
+    try:
+        # Save customer data to DB with state='complete' to skip backend onboarding
+        await run_sync(
+            db_manager.create_or_update_user,
+            body.user_id,
+            name=body.name.strip().title(),
+            company=body.company.strip(),
+            outlet_pos=body.outlet.strip(),
+            mobile=_re.sub(r'[\s\-]+', '', body.mobile.strip()),
+            email=body.email.strip().lower(),
+            language=lang,
+            state='complete'
+        )
+        
+        # Generate welcome message in selected language
+        name = body.name.strip().title()
+        welcome_messages = {
+            'en': f"Hi {name}! 👋 Welcome to Edgeworks Support.\nYour details have been saved. How can we help you today? 😊",
+            'id': f"Halo {name}! 👋 Selamat datang di Edgeworks Support.\nData Anda sudah tersimpan. Ada yang bisa kami bantu hari ini? 😊",
+            'zh': f"{name} 您好！👋 欢迎来到 Edgeworks Support。\n您的信息已保存。请问今天有什么可以帮您的？😊"
+        }
+        
+        logger.info(f"Portal customer registered: {body.user_id} ({name}, {body.company}, {body.outlet})")
+        
+        return {
+            "status": "registered",
+            "welcome_message": welcome_messages.get(lang, welcome_messages['en']),
+            "user_id": body.user_id
+        }
+    except Exception as e:
+        logger.error(f"Portal registration error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Registration failed")
+
 @router.post("/kb/query")
 @limiter.limit("20/minute")
 async def portal_kb_query(request: Request):

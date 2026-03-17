@@ -6,9 +6,9 @@ Ticket lifecycle operations, extracted from DatabaseManager.
 
 from typing import Optional, List
 from datetime import datetime, timezone
-from sqlalchemy import desc
+from sqlalchemy import desc, func, outerjoin
 from app.repositories.base import BaseRepository
-from app.models.models import Ticket, TicketQueue
+from app.models.models import Ticket, TicketQueue, Agent, AgentPresence
 from app.core.logging import logger
 
 
@@ -163,3 +163,60 @@ class TicketRepository(BaseRepository):
             "created_at": str(t.created_at) if t.created_at else None,
             "modified_at": str(t.modified_at) if t.modified_at else None,
         }
+
+    def assign_to_least_loaded_agent(self, ticket_id: int) -> Optional[str]:
+        """
+        Assign a ticket to the agent with the fewest open tickets (load balancing).
+        Only considers active agents. Returns the assigned agent's user_id, or None if no agents available.
+        """
+        with self.session_scope() as session:
+            # Subquery: count open/pending tickets per agent
+            open_ticket_count = (
+                session.query(
+                    Ticket.assigned_to.label('agent_id'),
+                    func.count(Ticket.id).label('ticket_count')
+                )
+                .filter(
+                    Ticket.assigned_to != None,
+                    Ticket.status.in_(['open', 'pending', 'in_progress'])
+                )
+            )
+            open_ticket_count = self._apply_tenant_filter(open_ticket_count, Ticket)
+            open_ticket_count = open_ticket_count.group_by(Ticket.assigned_to).subquery()
+
+            # Get all active agents with their open ticket counts (LEFT JOIN so agents with 0 tickets appear)
+            agents_with_load = (
+                session.query(
+                    Agent.user_id,
+                    Agent.name,
+                    func.coalesce(open_ticket_count.c.ticket_count, 0).label('load')
+                )
+                .outerjoin(open_ticket_count, Agent.user_id == open_ticket_count.c.agent_id)
+                .filter(Agent.is_active == True)
+            )
+            agents_with_load = self._apply_tenant_filter(agents_with_load, Agent)
+
+            # Order by lowest load first, pick the one with fewest tickets
+            least_loaded = agents_with_load.order_by('load').first()
+
+            if not least_loaded:
+                logger.warning(f"No active agents found for ticket #{ticket_id} assignment")
+                return None
+
+            agent_user_id = least_loaded.user_id
+            agent_name = least_loaded.name
+            current_load = least_loaded.load
+
+            # Assign the ticket
+            q = session.query(Ticket).filter_by(id=ticket_id)
+            q = self._apply_tenant_filter(q, Ticket)
+            ticket = q.first()
+            if ticket:
+                ticket.assigned_to = agent_user_id
+                ticket.modified_at = datetime.now(timezone.utc)
+
+            logger.info(
+                f"Ticket #{ticket_id} assigned to {agent_name} ({agent_user_id}) "
+                f"— load: {current_load} open tickets (least loaded)"
+            )
+            return agent_user_id

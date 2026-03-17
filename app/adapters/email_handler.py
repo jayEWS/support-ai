@@ -2,10 +2,36 @@ import time
 from fastapi import APIRouter, Request, BackgroundTasks, HTTPException
 from app.core.config import settings
 from app.core.logging import logger
-from app.services.message_service import process_incoming_message
 import httpx
 
 email_router = APIRouter(prefix="/webhook/email", tags=["Email"])
+
+
+async def _process_email_message(sender: str, subject: str, body: str, full_text: str):
+    """Process an email message through the AI pipeline and send response."""
+    try:
+        from app.core.database import db_manager
+        from app.services.rag_service import RAGService
+        
+        # Save the inbound email as a message
+        email_user_id = f"email_{sender.replace('@', '_at_').replace('.', '_')}"
+        db_manager.save_message(email_user_id, "user", full_text)
+        
+        # Query RAG for AI response
+        rag_service = RAGService()
+        rag_res = await rag_service.query(full_text, language="en")
+        ai_response = rag_res.answer
+        
+        # Save the AI response
+        db_manager.save_message(email_user_id, "bot", ai_response)
+        
+        # Send email reply
+        await send_email_response(sender, ai_response, subject=f"Re: {subject}")
+        
+        logger.info(f"Email processed for {sender}: subject='{subject}', response_len={len(ai_response)}")
+    except Exception as e:
+        logger.error(f"Error processing email from {sender}: {e}", exc_info=True)
+
 
 @email_router.post("")
 async def email_webhook(request: Request, background_tasks: BackgroundTasks):
@@ -38,15 +64,8 @@ async def email_webhook(request: Request, background_tasks: BackgroundTasks):
         # Combine subject and body for RAG context
         full_text = f"Subject: {subject}\n\n{body}"
 
-        standardized_data = {
-            "channel": "email",
-            "external_user_id": str(sender),
-            "message_text": full_text,
-            "attachments": [], # TODO: Add attachment support for email
-            "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-        }
-
-        background_tasks.add_task(process_incoming_message, standardized_data)
+        # Process through AI pipeline in background
+        background_tasks.add_task(_process_email_message, sender, subject, body, full_text)
         return {"status": "accepted"}
 
     except Exception as e:

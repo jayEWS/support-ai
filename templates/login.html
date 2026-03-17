@@ -311,7 +311,12 @@
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'Failed to send link.');
 
-                magicStatus.textContent = data.message;
+                if (data.magic_link) {
+                    // Dev mode: email not configured, show clickable link
+                    magicStatus.innerHTML = `${data.message}<br><a href="${data.magic_link}" class="underline font-bold text-blue-300 hover:text-blue-100 break-all" style="word-break:break-all;">${data.magic_link}</a>`;
+                } else {
+                    magicStatus.textContent = data.message;
+                }
                 magicStatus.classList.remove('hidden');
                 magicEmailInput.value = '';
             } catch (err) {

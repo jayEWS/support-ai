@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     
     # Magic Link
     MAGIC_LINK_EXPIRE_MINUTES: int = 15
-    BASE_URL: str = "http://localhost:8000"
+    BASE_URL: str = "http://localhost:8001"
     
     # Database Config (PostgreSQL / SQL Server / SQLite)
     DATABASE_URL: str = ""  # Set via environment variable - MUST be configured for production
