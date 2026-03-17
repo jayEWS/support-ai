@@ -23,6 +23,15 @@ load_dotenv()
 from app.core.config import settings
 from app.models.models import Base as AppBase
 
+# Import ops models so they register with Base.metadata
+try:
+    from app.models.ops_models import (
+        HealthCheck, Incident, StoreTwin, DeviceState,
+        AutomationLog, MetricSample
+    )
+except ImportError:
+    pass
+
 # Try to import tenant models (SaaS layer) if they exist
 try:
     from app.models.tenant_models import Base as TenantBase

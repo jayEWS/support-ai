@@ -84,6 +84,9 @@ from app.webhook.whatsapp import WhatsAppWebhookService
 from app.services.sla_service import sla_service
 from app.services.routing_service import routing_service
 
+# AI Operations Platform
+from app.routes.ops_routes import router as ops_router
+
 # SaaS Infrastructure
 from app.repositories.tenant_repo import TenantRepository
 from app.repositories.usage_repo import UsageRepository
@@ -291,6 +294,16 @@ async def _start_background_tasks(app: FastAPI):
         cleanup_task = asyncio.create_task(periodic_db_cleanup())
         app.state.background_tasks.add(cleanup_task)
         
+        # AI Operations Platform — Monitoring Worker
+        try:
+            from app.monitoring.worker import monitoring_worker
+            monitoring_task = await monitoring_worker.start()
+            if monitoring_task:
+                app.state.background_tasks.add(monitoring_task)
+                logger.info("[OK] AI Monitoring Worker started (2-min cycle)")
+        except Exception as e:
+            logger.warning(f"Monitoring worker start skipped: {e}")
+        
         logger.info(f"Background workers started ({len(app.state.background_tasks)} tasks).")
     except Exception as e:
         logger.error(f"Background workers failed: {e}")
@@ -413,6 +426,7 @@ app.include_router(system_router)
 app.include_router(admin_rbac_router)
 app.include_router(portal_router)
 app.include_router(livechat_router)
+app.include_router(ops_router)  # AI Operations Platform
 
 # Add rate limiter to app
 app.state.limiter = limiter
