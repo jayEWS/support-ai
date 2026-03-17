@@ -9,6 +9,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%232563eb'/%3E%3Cpath d='M90 45c-24.8 0-45 17.7-45 39.5 0 12.7 7 24 17.9 31.5L55 135l21.2-10.7c4 1.1 8.4 1.7 13.8 1.7 24.8 0 45-17.7 45-39.5S114.8 45 90 45z' fill='white'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -18,7 +19,7 @@
             --brand-primary: #2563eb;
             --brand-secondary: #4f46e5;
             --brand-accent: #f59e0b;
-            --bg-main: #f8fafc;
+            --bg-main: #0f172a;
             --sidebar-bg: #ffffff;
             --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --card-shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
@@ -26,7 +27,129 @@
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-main);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 30%, #0f172a 60%, #172554 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ── Anti-Gravity Particle Canvas ── */
+        #particle-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ── Ambient Gradient Orbs ── */
+        .ambient-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+        .ambient-orb.orb-1 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, #3b82f6, transparent 70%);
+            top: -100px; right: -100px;
+            animation-duration: 25s;
+        }
+        .ambient-orb.orb-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, #8b5cf6, transparent 70%);
+            bottom: -80px; left: 10%;
+            animation-duration: 30s;
+            animation-delay: -8s;
+        }
+        .ambient-orb.orb-3 {
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, #06b6d4, transparent 70%);
+            top: 40%; right: 20%;
+            animation-duration: 22s;
+            animation-delay: -15s;
+        }
+        .ambient-orb.orb-4 {
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, #ec4899, transparent 70%);
+            top: 60%; left: -50px;
+            animation-duration: 28s;
+            animation-delay: -5s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(40px, -30px) scale(1.1); }
+            50% { transform: translate(-20px, 40px) scale(0.95); }
+            75% { transform: translate(30px, 20px) scale(1.05); }
+        }
+
+        /* ── Glassmorphism Sidebar ── */
+        .sidebar-glass {
+            background: rgba(255, 255, 255, 0.08) !important;
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 4px 0 30px rgba(0, 0, 0, 0.15) !important;
+        }
+        .sidebar-glass .sidebar-link,
+        .sidebar-glass button:not(.pin-btn),
+        .sidebar-glass .text-gray-600,
+        .sidebar-glass a {
+            color: rgba(226, 232, 240, 0.85) !important;
+        }
+        .sidebar-glass .sidebar-link:hover,
+        .sidebar-glass a:hover {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            color: #93c5fd !important;
+        }
+        .sidebar-glass .sidebar-link.active {
+            background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(99,102,241,0.2)) !important;
+            color: #93c5fd !important;
+            font-weight: 700;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        .sidebar-glass .active .count-badge {
+            background: rgba(59, 130, 246, 0.3) !important;
+            color: #93c5fd !important;
+        }
+        .sidebar-glass .count-badge {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: rgba(203, 213, 225, 0.8) !important;
+        }
+        .sidebar-glass h1, .sidebar-glass .text-gray-800 {
+            color: #f1f5f9 !important;
+        }
+        .sidebar-glass .text-gray-400, .sidebar-glass .text-gray-500 {
+            color: rgba(148, 163, 184, 0.8) !important;
+        }
+        .sidebar-glass .border-t {
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .sidebar-glass .bg-gray-50\/80 {
+            background: rgba(255, 255, 255, 0.04) !important;
+        }
+        .sidebar-glass .fa-thumbtack {
+            color: rgba(148, 163, 184, 0.5) !important;
+        }
+        .sidebar-glass .pin-btn.pinned .fa-thumbtack {
+            color: #60a5fa !important;
+        }
+        .sidebar-glass .fa-chevron-down {
+            color: rgba(148, 163, 184, 0.6) !important;
+        }
+
+        /* ── Main Content Glass Panel ── */
+        .main-glass {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 1.5rem 0 0 1.5rem;
+            margin: 8px 0 8px 0;
+            box-shadow: -4px 0 30px rgba(0, 0, 0, 0.08);
+            z-index: 1;
         }
 
         .sidebar-link.active {
@@ -455,13 +578,71 @@
             width: 14px;
             height: 14px;
         }
+
+        /* ── AI Ops Dashboard Styles ── */
+        .ops-status-dot {
+            width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+        }
+        .ops-status-dot.healthy { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+        .ops-status-dot.degraded { background: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+        .ops-status-dot.critical { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.4); animation: pulse-dot 1.5s infinite; }
+        .ops-status-dot.unreachable { background: #6b7280; }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.3); }
+        }
+
+        .ops-severity-badge {
+            padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .ops-severity-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .ops-severity-warning { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .ops-severity-info { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .ops-severity-low { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+        .ops-card {
+            background: white; border-radius: 1.5rem; border: 1px solid #f1f5f9;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.3s;
+        }
+        .ops-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.08); transform: translateY(-1px); }
+
+        .ops-agent-chat { display: flex; flex-direction: column; height: calc(100vh - 200px); }
+        .ops-agent-messages { flex: 1; overflow-y: auto; padding: 1.5rem; }
+        .ops-agent-input { border-top: 1px solid #e5e7eb; padding: 1rem; background: white; }
+
+        .ops-agent-bubble {
+            max-width: 85%; padding: 14px 18px; border-radius: 1rem; margin-bottom: 12px;
+            font-size: 13px; line-height: 1.6; word-wrap: break-word;
+        }
+        .ops-agent-bubble.user { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; margin-left: auto; border-bottom-right-radius: 4px; }
+        .ops-agent-bubble.ai { background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; margin-right: auto; border-bottom-left-radius: 4px; }
+        .ops-agent-bubble.ai pre { background: #f1f5f9; padding: 8px 12px; border-radius: 8px; overflow-x: auto; font-size: 11px; margin: 8px 0; }
+        .ops-agent-bubble.ai code { background: #e2e8f0; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+        .ops-agent-bubble.ai strong { font-weight: 700; }
+        .ops-agent-bubble.ai ul, .ops-agent-bubble.ai ol { margin: 6px 0 6px 20px; }
+
+        .ops-timeline-item { position: relative; padding-left: 28px; padding-bottom: 20px; border-left: 2px solid #e5e7eb; }
+        .ops-timeline-item:last-child { border-left-color: transparent; }
+        .ops-timeline-item::before {
+            content: ''; position: absolute; left: -5px; top: 4px; width: 10px; height: 10px;
+            border-radius: 50%; background: #2563eb; border: 2px solid white; box-shadow: 0 0 0 2px #2563eb;
+        }
     </style>
 </head>
 
-<body class="bg-gray-50 h-screen flex overflow-hidden">
+<body class="h-screen flex overflow-hidden">
+    <!-- Anti-Gravity Particle Canvas -->
+    <canvas id="particle-canvas"></canvas>
+    <!-- Ambient Gradient Orbs -->
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+    <div class="ambient-orb orb-4"></div>
+
     <!-- Sidebar -->
     <aside
-        class="w-72 bg-white/90 backdrop-blur-xl border-r border-gray-100/50 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        class="sidebar-glass w-72 flex flex-col z-20">
         <div class="p-6 pb-4 flex justify-between items-center">
             <h1 class="text-xl font-bold text-gray-800 flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30" style="background: linear-gradient(135deg, #2563eb, #7c3aed)">
@@ -474,7 +655,7 @@
                 </div>
                 <div class="leading-tight">
                     <span class="tracking-tight block">Edgeworks</span>
-                    <span class="text-[10px] font-bold tracking-widest uppercase" style="background: linear-gradient(135deg, #2563eb, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Support AI</span>
+                    <span class="text-[10px] font-bold tracking-widest uppercase" style="background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Support AI</span>
                 </div>
             </h1>
         </div>
@@ -483,17 +664,17 @@
             <!-- Menus will be rendered by JS to support persistent sorting -->
         </nav>
 
-        <div class="px-4 py-6 mt-auto border-t bg-gray-50/80 backdrop-blur-sm">
-            <div class="flex items-center gap-3 mb-4 p-2 rounded-2xl hover:bg-white/60 transition-colors duration-300">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-500/20"
+        <div class="px-4 py-6 mt-auto border-t border-white/10">
+            <div class="flex items-center gap-3 mb-4 p-2 rounded-2xl hover:bg-white/10 transition-colors duration-300">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/20"
                     id="profile-initials">--</div>
                 <div class="overflow-hidden">
-                    <p class="text-sm font-bold text-gray-800 truncate" id="profile-name">Loading...</p>
-                    <p class="text-[11px] text-blue-500 font-bold tracking-wide" id="profile-role">...</p>
+                    <p class="text-sm font-bold text-white/90 truncate" id="profile-name">Loading...</p>
+                    <p class="text-[11px] text-blue-400 font-bold tracking-wide" id="profile-role">...</p>
                 </div>
             </div>
             <button onclick="logout()"
-                class="w-full group flex items-center justify-center gap-2 text-xs font-bold text-red-500 p-3 hover:bg-red-50 rounded-xl transition-all duration-300 border border-red-100/50 hover:border-red-200 shadow-sm hover:shadow-red-500/10 tracking-wide">
+                class="w-full group flex items-center justify-center gap-2 text-xs font-bold text-red-400 p-3 hover:bg-red-500/10 rounded-xl transition-all duration-300 border border-red-500/20 hover:border-red-400/40 tracking-wide">
                 <i class="fas fa-sign-out-alt group-hover:-translate-x-1 transition-transform"></i>
                 Sign Out
             </button>
@@ -501,7 +682,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="main-glass flex-1 flex flex-col overflow-hidden">
 
         <!-- View: Overview -->
         <section id="overview-view" class="p-10 overflow-y-auto flex-1 hidden">
@@ -1734,6 +1915,223 @@ WHERE sh.SalesDate = GETDATE()"
                 </table>
             </div>
         </section>
+
+        <!-- ═══════════ AI OPERATIONS VIEWS ═══════════ -->
+
+        <!-- Ops: System Health -->
+        <section id="ops_health-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><i class="fas fa-heartbeat text-emerald-600"></i></div>
+                        System Health
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">Real-time infrastructure monitoring and diagnostics</p>
+                </div>
+                <div class="flex gap-3 items-center">
+                    <span id="ops-health-time" class="text-[10px] text-gray-400 font-mono"></span>
+                    <button onclick="loadOpsHealth()" class="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button onclick="triggerMonitoringCycle()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-lg shadow-emerald-600/20">
+                        <i class="fas fa-play"></i> Run Check
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overall Status Banner -->
+            <div id="ops-health-banner" class="mb-8 p-6 rounded-2xl border-2 flex items-center gap-4">
+                <div id="ops-health-dot" class="ops-status-dot healthy" style="width:16px;height:16px;"></div>
+                <div>
+                    <p id="ops-health-overall" class="text-lg font-extrabold">Checking...</p>
+                    <p id="ops-health-summary" class="text-xs text-gray-500">Running diagnostics</p>
+                </div>
+            </div>
+
+            <!-- Worker Status -->
+            <div id="ops-worker-card" class="mb-8 ops-card p-6">
+                <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-cogs text-blue-500"></i> Monitoring Worker</h3>
+                <div id="ops-worker-info" class="text-xs text-gray-500">Loading...</div>
+            </div>
+
+            <!-- Infrastructure Grid -->
+            <h3 class="text-sm font-bold text-gray-700 mb-4 tracking-wide flex items-center gap-2"><i class="fas fa-server text-blue-400"></i> Infrastructure</h3>
+            <div id="ops-infra-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8"></div>
+
+            <!-- Health History Chart -->
+            <div class="ops-card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-chart-area text-indigo-500"></i> Latency Trends (24h)</h3>
+                    <select id="ops-health-target-filter" onchange="loadOpsHealthHistory()" class="text-xs border rounded-lg px-3 py-1.5 font-semibold">
+                        <option value="">All Targets</option>
+                    </select>
+                </div>
+                <canvas id="ops-health-chart" height="120"></canvas>
+            </div>
+        </section>
+
+        <!-- Ops: Incidents -->
+        <section id="ops_incidents-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><i class="fas fa-exclamation-triangle text-amber-600"></i></div>
+                        Incidents
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">AI-detected anomalies and system incidents</p>
+                </div>
+                <div class="flex gap-3">
+                    <select id="ops-incident-severity" onchange="loadOpsIncidents()" class="text-xs border rounded-lg px-3 py-2 font-semibold">
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="warning">Warning</option>
+                        <option value="info">Info</option>
+                    </select>
+                    <select id="ops-incident-status" onchange="loadOpsIncidents()" class="text-xs border rounded-lg px-3 py-2 font-semibold">
+                        <option value="">All Status</option>
+                        <option value="open">Open</option>
+                        <option value="investigating">Investigating</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                    <button onclick="loadOpsIncidents()" class="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Incident Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8" id="ops-incident-stats"></div>
+
+            <!-- Incident List -->
+            <div id="ops-incident-list" class="space-y-4"></div>
+
+            <!-- Incident Detail Modal -->
+            <div id="ops-incident-modal" class="modal-overlay hidden">
+                <div class="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl max-h-[85vh] flex flex-col">
+                    <div class="bg-gradient-to-r from-amber-600 to-orange-600 p-6 flex justify-between items-center shrink-0">
+                        <h3 class="text-white font-bold flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> <span id="ops-incident-detail-title">Incident Detail</span></h3>
+                        <button onclick="document.getElementById('ops-incident-modal').classList.add('hidden')" class="text-white/60 hover:text-white"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="ops-incident-detail-body" class="p-6 overflow-y-auto flex-1"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ops: Digital Twins -->
+        <section id="ops_twins-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center"><i class="fas fa-store text-violet-600"></i></div>
+                        Digital Twins
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">Virtual representations of store infrastructure and device states</p>
+                </div>
+                <button onclick="loadOpsTwins()" class="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <div id="ops-twins-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="ops-twins-empty" class="hidden text-center py-20">
+                <i class="fas fa-store-slash text-5xl text-gray-300 mb-4"></i>
+                <p class="text-gray-400 font-bold">No store twins configured</p>
+                <p class="text-xs text-gray-400 mt-1">Digital twins are created automatically as devices connect</p>
+            </div>
+        </section>
+
+        <!-- Ops: Automation -->
+        <section id="ops_automation-view" class="p-8 overflow-y-auto flex-1 hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><i class="fas fa-robot text-blue-600"></i></div>
+                        Automation Logs
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">Self-healing actions and automated remediation history</p>
+                </div>
+                <div class="flex gap-3">
+                    <select id="ops-auto-result" onchange="loadOpsAutomation()" class="text-xs border rounded-lg px-3 py-2 font-semibold">
+                        <option value="">All Results</option>
+                        <option value="success">Success</option>
+                        <option value="failed">Failed</option>
+                        <option value="skipped">Skipped</option>
+                    </select>
+                    <button onclick="loadOpsAutomation()" class="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Automation Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8" id="ops-auto-stats"></div>
+
+            <!-- Automation Log Table -->
+            <div class="ops-card overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50/80">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Time</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Action</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Target</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Result</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Executed By</th>
+                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 tracking-wide">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ops-auto-list" class="divide-y divide-gray-50"></tbody>
+                </table>
+            </div>
+            <div id="ops-auto-empty" class="hidden text-center py-16">
+                <i class="fas fa-robot text-5xl text-gray-300 mb-4"></i>
+                <p class="text-gray-400 font-bold">No automation actions recorded</p>
+                <p class="text-xs text-gray-400 mt-1">Automated remediation actions will appear here</p>
+            </div>
+        </section>
+
+        <!-- Ops: AI Support Engineer -->
+        <section id="ops_agent-view" class="flex-1 flex flex-col overflow-hidden hidden">
+            <div class="p-6 border-b bg-gradient-to-r from-indigo-600 to-purple-700 text-white shrink-0">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20">
+                            <i class="fas fa-user-astronaut text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-extrabold tracking-tight">AI Support Engineer</h2>
+                            <p class="text-indigo-200 text-xs">Ask questions about system health, incidents, logs, and infrastructure</p>
+                        </div>
+                    </div>
+                    <button onclick="clearOpsAgentChat()" class="px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-xs font-bold hover:bg-white/20 transition">
+                        <i class="fas fa-trash-alt mr-1"></i> Clear Chat
+                    </button>
+                </div>
+            </div>
+            <div class="ops-agent-chat flex-1 flex flex-col bg-[#f8f9fb]">
+                <div id="ops-agent-messages" class="ops-agent-messages flex-1 overflow-y-auto">
+                    <div class="ops-agent-bubble ai">
+                        <p class="font-bold mb-1">👋 Hello! I'm your AI Support Engineer.</p>
+                        <p>I can help you investigate system issues, check health status, search logs, and analyze incidents. Try asking:</p>
+                        <ul class="mt-2 space-y-1">
+                            <li>• "What's the current system health?"</li>
+                            <li>• "Are there any critical incidents?"</li>
+                            <li>• "Check database performance"</li>
+                            <li>• "Search logs for errors in the last hour"</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="ops-agent-input flex items-end gap-3 p-4 bg-white border-t">
+                    <textarea id="ops-agent-input" rows="1" placeholder="Ask the AI Support Engineer..."
+                        class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition resize-none text-sm"
+                        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askOpsAgent()}"></textarea>
+                    <button onclick="askOpsAgent()" id="ops-agent-send-btn"
+                        class="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 active:scale-95 transition-all hover:bg-indigo-700">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <div id="profile-modal" class="modal-overlay hidden">
@@ -1773,7 +2171,7 @@ WHERE sh.SalesDate = GETDATE()"
         let volumeChart = null, priorityChart = null;
 
         // --- Persistent Menu Logic ---
-        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'knowledge', 'settings'];
+        const DEFAULT_MENU_ORDER = ['overview', 'chat', 'team', 'tickets', 'customers', 'knowledge', 'operations', 'settings'];
         let menuOrder = JSON.parse(localStorage.getItem('support_portal_menu_order')) || DEFAULT_MENU_ORDER;
         // Clean up stale menu items from previous layout
         const validMenus = new Set(DEFAULT_MENU_ORDER);
@@ -1829,7 +2227,7 @@ WHERE sh.SalesDate = GETDATE()"
             updateSidebarCounts();
 
             // Determine active tab from URL path (e.g., /whatsapp, /team/admin)
-            const validTabs = ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat'];
+            const validTabs = ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat', 'ops_health', 'ops_incidents', 'ops_twins', 'ops_automation', 'ops_agent'];
             const pathParts = window.location.pathname.replace(/^\/+/, '').split('/');
             let startTab = 'overview', startSub = null;
             if (pathParts[0] && validTabs.includes(pathParts[0])) {
@@ -1841,7 +2239,7 @@ WHERE sh.SalesDate = GETDATE()"
                 startSub = localStorage.getItem('support_portal_active_sub') || null;
             }
             // Auto-expand parent submenu for nested tabs
-            const submenuMap = { inbox: 'chat', whatsapp: 'chat', livechat: 'chat', team: 'team', tickets: 'tickets', settings: 'settings', macros: 'settings', usermst: 'settings', groupperms: 'settings', privsetup: 'settings', audit: 'settings', knowledge: 'settings', admin: 'settings', support: 'settings', system_admin: 'settings' };
+            const submenuMap = { inbox: 'chat', whatsapp: 'chat', livechat: 'chat', team: 'team', tickets: 'tickets', settings: 'settings', macros: 'settings', usermst: 'settings', groupperms: 'settings', privsetup: 'settings', audit: 'settings', knowledge: 'settings', admin: 'settings', support: 'settings', system_admin: 'settings', ops_health: 'operations', ops_incidents: 'operations', ops_twins: 'operations', ops_automation: 'operations', ops_agent: 'operations' };
             const parentMenu = submenuMap[startTab];
             if (parentMenu) {
                 const sub = document.getElementById(`${parentMenu}-submenu`);
@@ -1874,6 +2272,7 @@ WHERE sh.SalesDate = GETDATE()"
                 tickets: { icon: 'fa-ticket-alt', label: 'Tickets', isDropdown: true, id: 'tickets' },
                 customers: { icon: 'fa-users', label: 'Customers', onClick: "switchTab('customers')" },
                 knowledge: { icon: 'fa-brain', label: 'Knowledge Base', onClick: "switchTab('knowledge')" },
+                operations: { icon: 'fa-satellite-dish', label: 'AI Operations', isDropdown: true, id: 'operations' },
                 settings: { icon: 'fa-cog', label: 'Settings', isDropdown: true, id: 'settings' }
             };
 
@@ -1943,6 +2342,13 @@ WHERE sh.SalesDate = GETDATE()"
                 <a href="#" onclick="switchTab('tickets', 'closed')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-times-circle text-gray-400/80'></i> Closed</span></a>
                 <a href="#" onclick="switchTab('tickets', 'resolved')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-check-circle text-green-400/80'></i> Resolved</span></a>
             `;
+            if (id === 'operations') return `
+                <a href="#" onclick="switchTab('ops_health')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-heartbeat text-emerald-500'></i> System Health</span> <span id='count-ops-health' class='count-badge' style='background:#dcfce7;color:#16a34a'>✓</span></a>
+                <a href="#" onclick="switchTab('ops_incidents')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-exclamation-triangle text-amber-500'></i> Incidents</span> <span id='count-ops-incidents' class='count-badge'>0</span></a>
+                <a href="#" onclick="switchTab('ops_twins')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-store text-violet-500'></i> Digital Twins</span></a>
+                <a href="#" onclick="switchTab('ops_automation')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-robot text-blue-500'></i> Automation</span></a>
+                <a href="#" onclick="switchTab('ops_agent')" class="flex justify-between items-center px-4 py-1.5 text-[11px] text-gray-500 hover:text-blue-600 hover:bg-gray-50/50 transition-all rounded-lg font-medium"><span class='flex items-center gap-2'><i class='fas fa-user-astronaut text-indigo-500'></i> AI Engineer</span></a>
+            `;
             if (id === 'settings') {
                 const isAdmin = currentUser?.role === 'admin';
                 return `
@@ -1979,7 +2385,7 @@ WHERE sh.SalesDate = GETDATE()"
             // Stop LiveChat polling when leaving that tab
             if (tab !== 'livechat' && lcPollingInterval) { clearInterval(lcPollingInterval); lcPollingInterval = null; }
             if (tab !== 'livechat' && lcAdminWs) { try { lcAdminWs.close(); } catch (_) { } lcAdminWs = null; }
-            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat'].forEach(t => {
+            ['overview', 'inbox', 'team', 'tickets', 'whatsapp', 'macros', 'knowledge', 'customers', 'settings', 'audit', 'usermst', 'groupperms', 'privsetup', 'livechat', 'ops_health', 'ops_incidents', 'ops_twins', 'ops_automation', 'ops_agent'].forEach(t => {
                 const el = document.getElementById(`${t}-view`);
                 if (el) el.classList.toggle('hidden', t !== tab);
             });
@@ -1997,6 +2403,11 @@ WHERE sh.SalesDate = GETDATE()"
             else if (tab === 'groupperms') loadGroupPrivileges();
             else if (tab === 'privsetup') loadPrivilegeSetup();
             else if (tab === 'livechat') loadLiveChat();
+            else if (tab === 'ops_health') loadOpsHealth();
+            else if (tab === 'ops_incidents') loadOpsIncidents();
+            else if (tab === 'ops_twins') loadOpsTwins();
+            else if (tab === 'ops_automation') loadOpsAutomation();
+            else if (tab === 'ops_agent') initOpsAgent();
         }
 
         function initSortable() {
@@ -4468,6 +4879,603 @@ WHERE sh.SalesDate = GETDATE()"
                 btn.classList.remove('opacity-60');
             }
         }
+
+        // ═══════════ AI OPERATIONS PLATFORM ═══════════
+        let opsHealthChart = null;
+
+        async function loadOpsHealth() {
+            try {
+                const [healthRes, workerRes] = await Promise.all([
+                    fetchWithAuth('/api/ops/health'),
+                    fetchWithAuth('/api/ops/worker/status')
+                ]);
+
+                if (healthRes && healthRes.ok) {
+                    const data = await healthRes.json();
+                    // Banner
+                    const banner = document.getElementById('ops-health-banner');
+                    const dot = document.getElementById('ops-health-dot');
+                    const overall = document.getElementById('ops-health-overall');
+                    const summary = document.getElementById('ops-health-summary');
+                    const timeEl = document.getElementById('ops-health-time');
+
+                    dot.className = `ops-status-dot ${data.overall_status}`;
+                    overall.textContent = `System ${data.overall_status.charAt(0).toUpperCase() + data.overall_status.slice(1)}`;
+                    summary.textContent = `${data.summary.healthy} healthy • ${data.summary.degraded} degraded • ${data.summary.critical} critical`;
+                    timeEl.textContent = new Date(data.checked_at).toLocaleTimeString();
+
+                    const bannerColors = { healthy: 'border-emerald-200 bg-emerald-50', degraded: 'border-amber-200 bg-amber-50', critical: 'border-red-200 bg-red-50' };
+                    banner.className = `mb-8 p-6 rounded-2xl border-2 flex items-center gap-4 ${bannerColors[data.overall_status] || bannerColors.healthy}`;
+
+                    // Sidebar badge
+                    const badge = document.getElementById('count-ops-health');
+                    if (badge) {
+                        badge.textContent = data.overall_status === 'healthy' ? '✓' : data.summary.critical || data.summary.degraded;
+                        badge.style.background = data.overall_status === 'healthy' ? '#dcfce7' : data.overall_status === 'degraded' ? '#fef3c7' : '#fee2e2';
+                        badge.style.color = data.overall_status === 'healthy' ? '#16a34a' : data.overall_status === 'degraded' ? '#d97706' : '#dc2626';
+                    }
+
+                    // Infrastructure grid
+                    const infraGrid = document.getElementById('ops-infra-grid');
+                    infraGrid.innerHTML = Object.entries(data.infrastructure).map(([key, check]) => {
+                        const statusColors = { healthy: 'border-emerald-200', degraded: 'border-amber-200', critical: 'border-red-200', unreachable: 'border-gray-300' };
+                        const iconMap = { database: 'fa-database', api_endpoint: 'fa-globe', vector_store: 'fa-cubes', llm_provider: 'fa-brain', pos_devices: 'fa-cash-register', transaction_rate: 'fa-chart-line' };
+                        return `
+                            <div class="ops-card p-5 border-l-4 ${statusColors[check.status] || 'border-gray-200'}">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas ${iconMap[key] || 'fa-server'} text-blue-400"></i>
+                                        <span class="text-sm font-bold text-gray-800">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                                    </div>
+                                    <span class="ops-status-dot ${check.status}"></span>
+                                </div>
+                                <div class="flex items-baseline gap-2 mb-1">
+                                    <span class="text-2xl font-black ${check.status === 'healthy' ? 'text-emerald-600' : check.status === 'degraded' ? 'text-amber-600' : 'text-red-600'}">${check.latency_ms != null ? check.latency_ms + 'ms' : '--'}</span>
+                                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Latency</span>
+                                </div>
+                                ${check.details ? `<p class="text-[11px] text-gray-400 mt-2 truncate">${typeof check.details === 'object' ? JSON.stringify(check.details).slice(0,80) : check.details}</p>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Populate filter dropdown
+                    const filterEl = document.getElementById('ops-health-target-filter');
+                    const currentVal = filterEl.value;
+                    const targets = Object.keys(data.infrastructure);
+                    filterEl.innerHTML = '<option value="">All Targets</option>' + targets.map(t => `<option value="${t}" ${t === currentVal ? 'selected' : ''}>${t.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>`).join('');
+                }
+
+                if (workerRes && workerRes.ok) {
+                    const worker = await workerRes.json();
+                    document.getElementById('ops-worker-info').innerHTML = `
+                        <div class="flex flex-wrap gap-6">
+                            <div><span class="font-bold text-gray-700">Status:</span> <span class="${worker.running ? 'text-emerald-600' : 'text-red-600'} font-bold">${worker.running ? '● Running' : '● Stopped'}</span></div>
+                            <div><span class="font-bold text-gray-700">Cycles:</span> <span class="font-mono text-blue-600">${worker.cycle_count}</span></div>
+                            <div><span class="font-bold text-gray-700">Interval:</span> <span class="text-gray-600">${worker.interval_seconds}s</span></div>
+                            ${worker.last_cycle ? `<div><span class="font-bold text-gray-700">Last:</span> <span class="text-gray-600">${new Date(worker.last_cycle).toLocaleString()}</span></div>` : ''}
+                            ${worker.last_error ? `<div class="text-red-500"><span class="font-bold">Error:</span> ${worker.last_error}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                loadOpsHealthHistory();
+            } catch (e) { console.error('Ops health error:', e); }
+        }
+
+        async function loadOpsHealthHistory() {
+            try {
+                const target = document.getElementById('ops-health-target-filter')?.value || '';
+                const url = `/api/ops/health/history?hours=24&limit=200${target ? '&target=' + target : ''}`;
+                const res = await fetchWithAuth(url);
+                if (!res || !res.ok) return;
+                const data = await res.json();
+
+                const ctx = document.getElementById('ops-health-chart').getContext('2d');
+                if (opsHealthChart) opsHealthChart.destroy();
+
+                // Group by target
+                const grouped = {};
+                data.data.reverse().forEach(d => {
+                    if (!grouped[d.target]) grouped[d.target] = [];
+                    grouped[d.target].push({ x: new Date(d.checked_at), y: d.latency_ms || 0 });
+                });
+
+                const colors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+                const datasets = Object.entries(grouped).map(([name, points], i) => ({
+                    label: name.replace(/_/g, ' '),
+                    data: points,
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: colors[i % colors.length] + '15',
+                    fill: false, tension: 0.3, borderWidth: 2, pointRadius: 1
+                }));
+
+                opsHealthChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } }, grid: { display: false } },
+                            y: { beginAtZero: true, title: { display: true, text: 'Latency (ms)', font: { size: 10 } } }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                        }
+                    }
+                });
+            } catch (e) { console.error('Health history error:', e); }
+        }
+
+        async function triggerMonitoringCycle() {
+            try {
+                const res = await fetchWithAuth('/api/ops/worker/trigger', { method: 'POST' });
+                if (res && res.ok) {
+                    const data = await res.json();
+                    alert(`✅ ${data.message}`);
+                    setTimeout(loadOpsHealth, 3000);
+                } else {
+                    const err = await res?.json().catch(() => ({}));
+                    alert(`❌ ${err.detail || 'Failed to trigger cycle'}`);
+                }
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function loadOpsIncidents() {
+            try {
+                const severity = document.getElementById('ops-incident-severity')?.value || '';
+                const status = document.getElementById('ops-incident-status')?.value || '';
+                let url = '/api/ops/incidents?hours=168&limit=100';
+                if (severity) url += '&severity=' + severity;
+                if (status) url += '&status=' + status;
+
+                const res = await fetchWithAuth(url);
+                if (!res || !res.ok) return;
+                const data = await res.json();
+
+                // Stats
+                const open = data.data.filter(i => i.status !== 'resolved').length;
+                const critical = data.data.filter(i => i.severity === 'critical' && i.status !== 'resolved').length;
+                const resolved = data.data.filter(i => i.status === 'resolved').length;
+
+                document.getElementById('ops-incident-stats').innerHTML = `
+                    <div class="ops-card p-5"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Total</p><p class="text-3xl font-black text-gray-800">${data.count}</p></div>
+                    <div class="ops-card p-5"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Open</p><p class="text-3xl font-black text-amber-600">${open}</p></div>
+                    <div class="ops-card p-5"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Critical</p><p class="text-3xl font-black text-red-600">${critical}</p></div>
+                    <div class="ops-card p-5"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Resolved</p><p class="text-3xl font-black text-emerald-600">${resolved}</p></div>
+                `;
+
+                // Sidebar badge
+                const badge = document.getElementById('count-ops-incidents');
+                if (badge) badge.textContent = open;
+
+                // List
+                const listEl = document.getElementById('ops-incident-list');
+                if (data.count === 0) {
+                    listEl.innerHTML = `<div class="text-center py-16"><i class="fas fa-check-circle text-5xl text-emerald-300 mb-4"></i><p class="text-gray-400 font-bold">No incidents found</p></div>`;
+                    return;
+                }
+
+                listEl.innerHTML = data.data.map(inc => {
+                    const severityClass = inc.severity === 'critical' ? 'ops-severity-critical' : inc.severity === 'warning' ? 'ops-severity-warning' : 'ops-severity-info';
+                    const statusIcon = inc.status === 'resolved' ? '<i class="fas fa-check-circle text-emerald-500"></i>' : inc.status === 'investigating' ? '<i class="fas fa-search text-blue-500"></i>' : '<i class="fas fa-exclamation-circle text-amber-500"></i>';
+                    const time = inc.created_at ? new Date(inc.created_at).toLocaleString() : '--';
+                    return `
+                        <div class="ops-card p-5 cursor-pointer hover:border-blue-200" onclick="showIncidentDetail(${inc.id})">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-3">
+                                    ${statusIcon}
+                                    <h4 class="font-bold text-gray-800 text-sm">${inc.title || 'Unnamed Incident'}</h4>
+                                </div>
+                                <span class="ops-severity-badge ${severityClass}">${inc.severity}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-4 text-[11px] text-gray-500 mt-2">
+                                <span><i class="fas fa-clock mr-1"></i>${time}</span>
+                                ${inc.category ? `<span><i class="fas fa-tag mr-1"></i>${inc.category}</span>` : ''}
+                                ${inc.source ? `<span><i class="fas fa-satellite-dish mr-1"></i>${inc.source}</span>` : ''}
+                                ${inc.outlet_id ? `<span><i class="fas fa-store mr-1"></i>Outlet ${inc.outlet_id}</span>` : ''}
+                                <span class="font-bold ${inc.status === 'resolved' ? 'text-emerald-600' : 'text-amber-600'}">${inc.status}</span>
+                            </div>
+                            ${inc.root_cause ? `<p class="text-xs text-gray-500 mt-2 bg-gray-50 rounded-lg px-3 py-2"><strong>Root cause:</strong> ${inc.root_cause}</p>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) { console.error('Ops incidents error:', e); }
+        }
+
+        async function showIncidentDetail(id) {
+            try {
+                const res = await fetchWithAuth(`/api/ops/incidents/${id}`);
+                if (!res || !res.ok) return;
+                const inc = await res.json();
+
+                document.getElementById('ops-incident-detail-title').textContent = inc.title || 'Incident #' + inc.id;
+                const body = document.getElementById('ops-incident-detail-body');
+
+                body.innerHTML = `
+                    <div class="space-y-5">
+                        <div class="flex flex-wrap gap-3">
+                            <span class="ops-severity-badge ${inc.severity === 'critical' ? 'ops-severity-critical' : inc.severity === 'warning' ? 'ops-severity-warning' : 'ops-severity-info'}">${inc.severity}</span>
+                            <span class="text-xs font-bold px-3 py-1 rounded-lg ${inc.status === 'resolved' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${inc.status}</span>
+                            ${inc.category ? `<span class="text-xs font-bold px-3 py-1 rounded-lg bg-blue-50 text-blue-700">${inc.category}</span>` : ''}
+                        </div>
+                        ${inc.description ? `<p class="text-sm text-gray-600">${inc.description}</p>` : ''}
+                        ${inc.root_cause ? `<div class="bg-amber-50 border border-amber-100 rounded-xl p-4"><p class="text-xs font-bold text-amber-700 mb-1"><i class="fas fa-search"></i> Root Cause</p><p class="text-sm text-amber-800">${inc.root_cause}</p></div>` : ''}
+                        ${inc.recommended_fix ? `<div class="bg-blue-50 border border-blue-100 rounded-xl p-4"><p class="text-xs font-bold text-blue-700 mb-1"><i class="fas fa-wrench"></i> Recommended Fix</p><p class="text-sm text-blue-800">${inc.recommended_fix}</p></div>` : ''}
+                        ${inc.evidence ? `<div class="bg-gray-50 border border-gray-200 rounded-xl p-4"><p class="text-xs font-bold text-gray-500 mb-2"><i class="fas fa-file-alt"></i> Evidence</p><pre class="text-[11px] text-gray-600 overflow-x-auto">${JSON.stringify(inc.evidence, null, 2)}</pre></div>` : ''}
+
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="bg-gray-50 p-3 rounded-xl"><span class="font-bold text-gray-400">Created</span><br><span class="text-gray-700">${inc.created_at ? new Date(inc.created_at).toLocaleString() : '--'}</span></div>
+                            ${inc.outlet_id ? `<div class="bg-gray-50 p-3 rounded-xl"><span class="font-bold text-gray-400">Outlet</span><br><span class="text-gray-700">${inc.outlet_id}</span></div>` : ''}
+                            ${inc.device_id ? `<div class="bg-gray-50 p-3 rounded-xl"><span class="font-bold text-gray-400">Device</span><br><span class="text-gray-700">${inc.device_id}</span></div>` : ''}
+                            ${inc.ai_confidence ? `<div class="bg-gray-50 p-3 rounded-xl"><span class="font-bold text-gray-400">AI Confidence</span><br><span class="text-gray-700 font-mono">${(inc.ai_confidence * 100).toFixed(0)}%</span></div>` : ''}
+                        </div>
+
+                        ${inc.automation_logs && inc.automation_logs.length > 0 ? `
+                            <div>
+                                <p class="text-xs font-bold text-gray-500 mb-3"><i class="fas fa-robot"></i> Automation Actions</p>
+                                <div class="space-y-2">
+                                    ${inc.automation_logs.map(al => `
+                                        <div class="flex items-center gap-3 text-xs bg-gray-50 rounded-lg p-3">
+                                            <span class="${al.result === 'success' ? 'text-emerald-500' : 'text-red-500'}"><i class="fas ${al.result === 'success' ? 'fa-check-circle' : 'fa-times-circle'}"></i></span>
+                                            <span class="font-bold text-gray-700">${al.action_type}</span>
+                                            <span class="text-gray-400">→ ${al.target}</span>
+                                            <span class="ml-auto text-gray-400">${al.executed_at ? new Date(al.executed_at).toLocaleString() : ''}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${inc.status !== 'resolved' ? `
+                            <div class="border-t pt-4">
+                                <p class="text-xs font-bold text-gray-500 mb-2">Resolve Incident</p>
+                                <textarea id="ops-resolve-notes" rows="2" placeholder="Resolution notes..." class="w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none resize-none mb-3"></textarea>
+                                <button onclick="resolveOpsIncident(${inc.id})" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs tracking-wide hover:bg-emerald-700 transition shadow-sm"><i class="fas fa-check mr-1"></i> Mark Resolved</button>
+                            </div>
+                        ` : `
+                            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                                <p class="text-xs font-bold text-emerald-700"><i class="fas fa-check-circle"></i> Resolved ${inc.resolved_at ? 'at ' + new Date(inc.resolved_at).toLocaleString() : ''} ${inc.resolved_by ? 'by ' + inc.resolved_by : ''}</p>
+                                ${inc.resolution_notes ? `<p class="text-sm text-emerald-800 mt-1">${inc.resolution_notes}</p>` : ''}
+                            </div>
+                        `}
+                    </div>
+                `;
+                document.getElementById('ops-incident-modal').classList.remove('hidden');
+            } catch (e) { console.error('Incident detail error:', e); }
+        }
+
+        async function resolveOpsIncident(id) {
+            const notes = document.getElementById('ops-resolve-notes')?.value;
+            if (!notes) { alert('Please enter resolution notes'); return; }
+            try {
+                const res = await fetchWithAuth(`/api/ops/incidents/${id}/resolve`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resolution_notes: notes })
+                });
+                if (res && res.ok) {
+                    document.getElementById('ops-incident-modal').classList.add('hidden');
+                    loadOpsIncidents();
+                } else {
+                    const err = await res?.json().catch(() => ({}));
+                    alert('Failed: ' + (err.detail || 'Unknown error'));
+                }
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function loadOpsTwins() {
+            try {
+                const res = await fetchWithAuth('/api/ops/twins');
+                if (!res || !res.ok) return;
+                const data = await res.json();
+
+                const grid = document.getElementById('ops-twins-grid');
+                const empty = document.getElementById('ops-twins-empty');
+
+                if (!data.stores || data.stores.length === 0) {
+                    grid.innerHTML = '';
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                empty.classList.add('hidden');
+
+                grid.innerHTML = data.stores.map(store => {
+                    const statusColor = store.overall_health === 'healthy' ? 'emerald' : store.overall_health === 'degraded' ? 'amber' : 'red';
+                    const deviceCount = store.devices ? store.devices.length : 0;
+                    const onlineDevices = store.devices ? store.devices.filter(d => d.status === 'online').length : 0;
+
+                    return `
+                        <div class="ops-card p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h4 class="font-bold text-gray-800 flex items-center gap-2">
+                                        <i class="fas fa-store text-violet-400"></i>
+                                        ${store.outlet_name || 'Outlet ' + store.outlet_id}
+                                    </h4>
+                                    <p class="text-[11px] text-gray-400">ID: ${store.outlet_id}</p>
+                                </div>
+                                <span class="ops-status-dot ${store.overall_health || 'healthy'}"></span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="bg-${statusColor}-50 p-3 rounded-xl text-center">
+                                    <p class="text-lg font-black text-${statusColor}-600">${onlineDevices}/${deviceCount}</p>
+                                    <p class="text-[10px] text-${statusColor}-400 font-bold">Devices Online</p>
+                                </div>
+                                <div class="bg-blue-50 p-3 rounded-xl text-center">
+                                    <p class="text-lg font-black text-blue-600">${store.open_incidents || 0}</p>
+                                    <p class="text-[10px] text-blue-400 font-bold">Open Incidents</p>
+                                </div>
+                            </div>
+
+                            ${store.devices && store.devices.length > 0 ? `
+                                <div class="space-y-2">
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Devices</p>
+                                    ${store.devices.slice(0, 5).map(dev => `
+                                        <div class="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
+                                            <span class="flex items-center gap-2">
+                                                <span class="ops-status-dot ${dev.status === 'online' ? 'healthy' : dev.status === 'degraded' ? 'degraded' : 'critical'}" style="width:6px;height:6px;"></span>
+                                                <span class="font-semibold text-gray-700">${dev.device_type || 'Device'}</span>
+                                            </span>
+                                            <span class="text-gray-400">${dev.device_id || ''}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${store.devices.length > 5 ? `<p class="text-[10px] text-gray-400 text-center">+${store.devices.length - 5} more</p>` : ''}
+                                </div>
+                            ` : '<p class="text-xs text-gray-400 text-center py-4">No devices registered</p>'}
+
+                            ${store.last_sync ? `<p class="text-[10px] text-gray-400 mt-3 text-right">Synced: ${new Date(store.last_sync).toLocaleString()}</p>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) { console.error('Ops twins error:', e); }
+        }
+
+        async function loadOpsAutomation() {
+            try {
+                const result = document.getElementById('ops-auto-result')?.value || '';
+                let url = '/api/ops/automation/logs?hours=168&limit=100';
+                if (result) url += '&result=' + result;
+
+                const [logsRes, dashRes] = await Promise.all([
+                    fetchWithAuth(url),
+                    fetchWithAuth('/api/ops/dashboard')
+                ]);
+
+                // Stats
+                if (dashRes && dashRes.ok) {
+                    const dash = await dashRes.json();
+                    const auto = dash.automation || {};
+                    document.getElementById('ops-auto-stats').innerHTML = `
+                        <div class="ops-card p-5"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Actions (24h)</p><p class="text-3xl font-black text-blue-600">${auto.total_24h || 0}</p></div>
+                        <div class="ops-card p-5"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Successful</p><p class="text-3xl font-black text-emerald-600">${auto.success_24h || 0}</p></div>
+                        <div class="ops-card p-5"><p class="text-[11px] font-bold text-gray-400 tracking-wide mb-1">Failed</p><p class="text-3xl font-black text-red-600">${auto.failed_24h || 0}</p></div>
+                    `;
+                }
+
+                // Logs table
+                if (logsRes && logsRes.ok) {
+                    const data = await logsRes.json();
+                    const list = document.getElementById('ops-auto-list');
+                    const empty = document.getElementById('ops-auto-empty');
+
+                    if (data.count === 0) {
+                        list.innerHTML = '';
+                        empty.classList.remove('hidden');
+                        return;
+                    }
+                    empty.classList.add('hidden');
+
+                    list.innerHTML = data.data.map(log => {
+                        const resultColor = log.result === 'success' ? 'text-emerald-600 bg-emerald-50' : log.result === 'failed' ? 'text-red-600 bg-red-50' : 'text-gray-600 bg-gray-50';
+                        return `<tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-6 py-3 text-xs text-gray-500">${log.executed_at ? new Date(log.executed_at).toLocaleString() : '--'}</td>
+                            <td class="px-6 py-3 text-xs font-bold text-gray-700">${log.action_type || '--'}</td>
+                            <td class="px-6 py-3 text-xs text-gray-600 font-mono">${log.target || '--'}</td>
+                            <td class="px-6 py-3"><span class="text-[10px] font-bold px-2 py-1 rounded-lg ${resultColor}">${log.result || '--'}</span></td>
+                            <td class="px-6 py-3 text-xs text-gray-500">${log.executed_by || '--'}</td>
+                            <td class="px-6 py-3 text-xs text-gray-400 max-w-[200px] truncate">${log.result_details || '--'}</td>
+                        </tr>`;
+                    }).join('');
+                }
+            } catch (e) { console.error('Ops automation error:', e); }
+        }
+
+        // ── AI Support Engineer Chat ──
+        let opsAgentReady = false;
+
+        function initOpsAgent() {
+            if (!opsAgentReady) opsAgentReady = true;
+        }
+
+        function clearOpsAgentChat() {
+            document.getElementById('ops-agent-messages').innerHTML = `
+                <div class="ops-agent-bubble ai">
+                    <p class="font-bold mb-1">👋 Chat cleared! I'm ready for new questions.</p>
+                    <p>Ask me anything about system health, incidents, logs, or infrastructure.</p>
+                </div>
+            `;
+        }
+
+        async function askOpsAgent() {
+            const input = document.getElementById('ops-agent-input');
+            const question = input.value.trim();
+            if (!question) return;
+
+            const messages = document.getElementById('ops-agent-messages');
+            const sendBtn = document.getElementById('ops-agent-send-btn');
+
+            // Add user message
+            messages.innerHTML += `<div class="ops-agent-bubble user">${escapeHtml(question)}</div>`;
+            input.value = '';
+
+            // Add thinking indicator
+            const thinkingId = 'thinking-' + Date.now();
+            messages.innerHTML += `<div id="${thinkingId}" class="ops-agent-bubble ai"><div class="flex items-center gap-2"><div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:0.15s"></div><div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:0.3s"></div><span class="text-xs text-gray-400 ml-2">Investigating...</span></div></div>`;
+            messages.scrollTop = messages.scrollHeight;
+
+            sendBtn.disabled = true;
+            sendBtn.classList.add('opacity-50');
+
+            try {
+                const res = await fetchWithAuth('/api/ops/agent/ask', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+
+                const thinking = document.getElementById(thinkingId);
+                if (thinking) thinking.remove();
+
+                if (res && res.ok) {
+                    const data = await res.json();
+                    const answer = data.answer || data.response || JSON.stringify(data);
+                    const formatted = formatOpsAgentResponse(answer);
+                    messages.innerHTML += `<div class="ops-agent-bubble ai">${formatted}</div>`;
+                } else {
+                    const err = await res?.json().catch(() => ({}));
+                    messages.innerHTML += `<div class="ops-agent-bubble ai"><p class="text-red-500"><i class="fas fa-exclamation-triangle"></i> Error: ${err.detail || 'Failed to get response'}</p></div>`;
+                }
+            } catch (e) {
+                const thinking = document.getElementById(thinkingId);
+                if (thinking) thinking.remove();
+                messages.innerHTML += `<div class="ops-agent-bubble ai"><p class="text-red-500"><i class="fas fa-exclamation-triangle"></i> Network error: ${e.message}</p></div>`;
+            }
+
+            sendBtn.disabled = false;
+            sendBtn.classList.remove('opacity-50');
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function formatOpsAgentResponse(text) {
+            if (typeof text !== 'string') text = JSON.stringify(text, null, 2);
+            // Basic markdown-like formatting
+            return text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+                .replace(/^- (.*)/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // ═══════════ ANTI-GRAVITY PARTICLE WALLPAPER ═══════════
+        (function initParticles() {
+            const canvas = document.getElementById('particle-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let W, H, raf;
+            const particles = [];
+            const mouse = { x: -9999, y: -9999 };
+            const PARTICLE_COUNT = 75;
+            const CONNECT_DIST = 130;
+            const MOUSE_RADIUS = 170;
+            const colors = [
+                'rgba(59,130,246,',   // blue
+                'rgba(139,92,246,',   // violet
+                'rgba(6,182,212,',    // cyan
+                'rgba(236,72,153,',   // pink
+                'rgba(34,197,94,',    // green
+                'rgba(251,191,36,',   // amber
+            ];
+
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() { this.init(); }
+                init() {
+                    this.x = Math.random() * W;
+                    this.y = Math.random() * H;
+                    this.baseSize = Math.random() * 2.5 + 0.8;
+                    this.size = this.baseSize;
+                    this.vy = -(Math.random() * 0.4 + 0.08);
+                    this.vx = (Math.random() - 0.5) * 0.3;
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                    this.alpha = Math.random() * 0.5 + 0.2;
+                    this.pulse = Math.random() * Math.PI * 2;
+                    this.pulseSpeed = Math.random() * 0.02 + 0.005;
+                    this.wobbleAmp = Math.random() * 0.5 + 0.2;
+                    this.wobblePhase = Math.random() * Math.PI * 2;
+                }
+                update() {
+                    this.pulse += this.pulseSpeed;
+                    this.wobblePhase += 0.008;
+                    this.x += this.vx + Math.sin(this.wobblePhase) * this.wobbleAmp * 0.1;
+                    this.y += this.vy;
+                    this.size = this.baseSize + Math.sin(this.pulse) * 0.6;
+                    // Mouse repulsion
+                    const dx = this.x - mouse.x, dy = this.y - mouse.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < MOUSE_RADIUS) {
+                        const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS;
+                        this.x += dx * force * 0.04;
+                        this.y += dy * force * 0.04;
+                        this.size = this.baseSize + force * 2;
+                    }
+                    // Wrap
+                    if (this.y < -20) { this.y = H + 20; this.x = Math.random() * W; }
+                    if (this.x < -20) this.x = W + 20;
+                    if (this.x > W + 20) this.x = -20;
+                }
+                draw() {
+                    const a = this.alpha + Math.sin(this.pulse) * 0.15;
+                    // Glow halo
+                    ctx.beginPath();
+                    const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 4);
+                    g.addColorStop(0, this.color + (a * 0.6) + ')');
+                    g.addColorStop(1, this.color + '0)');
+                    ctx.fillStyle = g;
+                    ctx.arc(this.x, this.y, this.size * 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Core
+                    ctx.beginPath();
+                    ctx.fillStyle = this.color + a + ')';
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+
+            function drawLines() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const d = Math.sqrt(dx * dx + dy * dy);
+                        if (d < CONNECT_DIST) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = 'rgba(147,197,253,' + ((1 - d / CONNECT_DIST) * 0.12) + ')';
+                            ctx.lineWidth = 0.5;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function loop() {
+                ctx.clearRect(0, 0, W, H);
+                particles.forEach(p => { p.update(); p.draw(); });
+                drawLines();
+                raf = requestAnimationFrame(loop);
+            }
+
+            document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+            document.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) cancelAnimationFrame(raf);
+                else loop();
+            });
+
+            loop();
+        })();
 
         init(); setInterval(() => { updateSidebarCounts(); if (document.getElementById('tab-overview').classList.contains('active')) loadAnalytics(); }, 15000);
     </script>

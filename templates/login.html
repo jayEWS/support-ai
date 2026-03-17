@@ -20,18 +20,36 @@
         .font-sans-strong {
             font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
         }
+
+        #login-particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 
 <body
-    class="font-sans-strong min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    class="font-sans-strong min-h-screen flex items-center justify-center p-6"
+    style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 30%, #0f172a 60%, #172554 100%);">
+    <canvas id="login-particles"></canvas>
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-200/40 blur-3xl"></div>
-        <div class="absolute top-1/3 -right-16 w-80 h-80 rounded-full bg-emerald-200/40 blur-3xl"></div>
-        <div class="absolute bottom-0 left-1/3 w-[28rem] h-[28rem] rounded-full bg-indigo-200/30 blur-3xl"></div>
+        <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-600/15 blur-3xl" style="animation: orbFloat 25s ease-in-out infinite;"></div>
+        <div class="absolute top-1/3 -right-16 w-80 h-80 rounded-full bg-violet-600/15 blur-3xl" style="animation: orbFloat 30s ease-in-out infinite; animation-delay: -8s;"></div>
+        <div class="absolute bottom-0 left-1/3 w-[28rem] h-[28rem] rounded-full bg-cyan-600/10 blur-3xl" style="animation: orbFloat 22s ease-in-out infinite; animation-delay: -15s;"></div>
     </div>
+    <style>
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(40px, -30px) scale(1.1); }
+            50% { transform: translate(-20px, 40px) scale(0.95); }
+            75% { transform: translate(30px, 20px) scale(1.05); }
+        }
+    </style>
     <div
-        class="relative w-full bg-white/90 backdrop-blur rounded-[32px] shadow-2xl overflow-hidden border border-white/60 flex flex-col md:flex-row max-w-5xl">
+        class="relative w-full bg-white/95 backdrop-blur-xl rounded-[32px] shadow-2xl overflow-hidden border border-white/20 flex flex-col md:flex-row max-w-5xl z-10">
         <div
             class="md:w-1/2 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 p-12 text-white flex flex-col justify-between">
             <div>
@@ -497,6 +515,26 @@
         if (localStorage.getItem('support_portal_token')) {
             window.location.href = '/admin';
         }
+    </script>
+    <script>
+    (function(){
+        const c=document.getElementById('login-particles');
+        if(!c)return;
+        const x=c.getContext('2d');
+        let W,H;
+        const ps=[],N=50,cols=['rgba(59,130,246,','rgba(139,92,246,','rgba(6,182,212,','rgba(236,72,153,'];
+        function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+        window.addEventListener('resize',resize);resize();
+        class P{
+            constructor(){this.r();}
+            r(){this.x=Math.random()*W;this.y=Math.random()*H;this.s=Math.random()*2+0.5;this.vy=-(Math.random()*0.3+0.05);this.vx=(Math.random()-0.5)*0.2;this.c=cols[Math.floor(Math.random()*cols.length)];this.a=Math.random()*0.4+0.15;this.p=Math.random()*6.28;this.ps=Math.random()*0.015+0.005;}
+            u(){this.p+=this.ps;this.x+=this.vx+Math.sin(this.p)*0.08;this.y+=this.vy;if(this.y<-10){this.y=H+10;this.x=Math.random()*W;}if(this.x<-10)this.x=W+10;if(this.x>W+10)this.x=-10;}
+            d(){const a=this.a+Math.sin(this.p)*0.1;const g=x.createRadialGradient(this.x,this.y,0,this.x,this.y,this.s*3);g.addColorStop(0,this.c+(a*0.5)+')');g.addColorStop(1,this.c+'0)');x.beginPath();x.fillStyle=g;x.arc(this.x,this.y,this.s*3,0,6.28);x.fill();x.beginPath();x.fillStyle=this.c+a+')';x.arc(this.x,this.y,this.s,0,6.28);x.fill();}
+        }
+        for(let i=0;i<N;i++)ps.push(new P());
+        function lp(){x.clearRect(0,0,W,H);ps.forEach(p=>{p.u();p.d();});requestAnimationFrame(lp);}
+        lp();
+    })();
     </script>
 </body>
 

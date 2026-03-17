@@ -1550,7 +1550,8 @@ async def admin_spa(request: Request, tab: str):
     admin_tabs = {
         "overview", "inbox", "team", "tickets", "whatsapp",
         "macros", "knowledge", "customers", "settings",
-        "audit", "usermst", "groupperms", "privsetup", "livechat"
+        "audit", "usermst", "groupperms", "privsetup", "livechat",
+        "ops_health", "ops_incidents", "ops_twins", "ops_automation", "ops_agent"
     }
     user_tabs = {
         "conversation", "history", "historydetail", "kb"
