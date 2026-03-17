@@ -9,6 +9,7 @@ import json
 import re
 import os
 import hashlib
+import asyncio
 from typing import Annotated, Optional
 from fastapi import APIRouter, Request, Depends, HTTPException, Response, Form, UploadFile, File
 from fastapi.responses import JSONResponse
@@ -32,7 +33,6 @@ router = APIRouter(prefix="/api/portal", tags=["Portal"])
 limiter = Limiter(key_func=get_remote_address)
 
 # --- Security: AI Semaphore to prevent LLM quota exhaustion ---
-import asyncio
 AI_SEMAPHORE = asyncio.Semaphore(10) # Max 10 concurrent AI queries
 
 # --- Security: Max query length to prevent prompt injection / abuse ---
