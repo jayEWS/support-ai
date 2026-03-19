@@ -364,16 +364,28 @@ async def sql_expert_query(request: Request, agent: Annotated[dict, Depends(get_
     data = await request.json()
     query = data.get("query", "").strip()
     script = data.get("script", "").strip()
-    action = data.get("action", "analyze")  # analyze | list_tables | list_procs | list_functions | run_read_query
+    action = data.get("action", "analyze")  # analyze | list_tables | list_procs | list_functions
     
     if not query and not script and action == "analyze":
         raise HTTPException(status_code=400, detail="Please provide a question or script to analyze")
     
+    # P0 FIX: Reject run_read_query entirely — unsafe due to SQL injection bypass vectors
+    if action == "run_read_query":
+        raise HTTPException(
+            status_code=403,
+            detail="Direct SQL execution is disabled for security. Use the AI analyze action instead."
+        )
+    
     import asyncio
     from sqlalchemy import text, create_engine, inspect
     
-    # Connect to the POS SQL Server database
-    pos_db_url = os.getenv("POS_DB_URL", "mssql+pyodbc://sa:1@34.87.147.22/jay?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes")
+    # P0 FIX: Remove hardcoded credentials — REQUIRE env var with NO default
+    pos_db_url = os.getenv("POS_DB_URL", "")
+    if not pos_db_url:
+        raise HTTPException(
+            status_code=503,
+            detail="POS database not configured. Set POS_DB_URL environment variable."
+        )
     
     schema_context = ""
     try:
@@ -382,6 +394,7 @@ async def sql_expert_query(request: Request, agent: Annotated[dict, Depends(get_
         
         if action == "list_tables":
             tables = pos_inspector.get_table_names()
+            pos_engine.dispose()
             return {"tables": tables, "count": len(tables)}
         
         if action == "list_procs":
@@ -390,6 +403,7 @@ async def sql_expert_query(request: Request, agent: Annotated[dict, Depends(get_
                     "SELECT name, create_date, modify_date FROM sys.procedures ORDER BY name"
                 ))
                 procs = [{"name": r[0], "created": str(r[1]), "modified": str(r[2])} for r in result]
+            pos_engine.dispose()
             return {"procedures": procs, "count": len(procs)}
         
         if action == "list_functions":
@@ -398,29 +412,12 @@ async def sql_expert_query(request: Request, agent: Annotated[dict, Depends(get_
                     "SELECT name, type_desc, create_date FROM sys.objects WHERE type IN ('FN','IF','TF') ORDER BY name"
                 ))
                 funcs = [{"name": r[0], "type": r[1], "created": str(r[2])} for r in result]
+            pos_engine.dispose()
             return {"functions": funcs, "count": len(funcs)}
         
-        if action == "run_read_query":
-            # Only allow SELECT queries (read-only)
-            safe_query = script.strip().rstrip(';')
-            q_upper = safe_query.upper().strip()
-            if not q_upper.startswith("SELECT") and not q_upper.startswith("WITH"):
-                raise HTTPException(status_code=400, detail="Only SELECT/WITH read queries are allowed")
-            # Block dangerous keywords (P1 Fix: Added EXEC to prevent stored procedure mutation)
-            dangerous = ['DROP', 'DELETE', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'GRANT', 'REVOKE', 'EXEC']
-            for d in dangerous:
-                if d in q_upper.split('--')[0]:  # ignore comments
-                    raise HTTPException(status_code=400, detail=f"'{d}' statements are not allowed in read-only mode")
-            
-            with pos_engine.connect() as conn:
-                result = conn.execute(text(safe_query))
-                columns = list(result.keys())
-                rows = [dict(zip(columns, [str(v) if v is not None else None for v in row])) for row in result.fetchmany(100)]
-            return {"columns": columns, "rows": rows, "count": len(rows), "truncated": len(rows) == 100}
-        
-        # For 'analyze' action — gather schema context for AI
+        # For 'analyze' action — gather schema context for AI (read-only metadata)
         tables = pos_inspector.get_table_names()
-        schema_parts = [f"Database: jay | Tables: {len(tables)}"]
+        schema_parts = [f"Database Tables: {len(tables)}"]
         
         # Get column info for all tables (limited to avoid token overflow)
         for tbl in tables[:50]:  # cap at 50 tables

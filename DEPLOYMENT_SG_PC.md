@@ -51,36 +51,28 @@ pip install -r requirements.txt
 
 ## 🔑 STEP 3: Create `.env` Configuration File
 
-Create a file named `.env` in the project root folder (`C:\Project\support-ai\.env`).
+A production `.env` template is already prepared in the repo as `.env.production`.
 
-**Copy-paste this template and fill in your keys:**
+```powershell
+# Copy the production template
+copy .env.production .env
 
-```ini
-# ============================================
-# SUPPORT-AI PRODUCTION CONFIG (.env)
-# Singapore PC Server
-# ============================================
-
-# ── Database (Neon Cloud PostgreSQL — FREE) ──
-DATABASE_URL=postgresql://neondb_owner:YOUR_PASSWORD@ep-YOUR-ENDPOINT.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-
-# ── AI Engine (Groq — FREE) ──
-GROQ_API_KEY=gsk_YOUR_GROQ_API_KEY
-LLM_PROVIDER=groq
-MODEL_NAME=llama-3.3-70b-versatile
-
-# ── Google OAuth (for agent login) ──
-GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-YOUR_SECRET
-GOOGLE_REDIRECT_URI=http://localhost:8001/api/auth/google/callback
-
-# ── Server ──
-PORT=8001
-
-# ── Security (generate strong keys for production) ──
-AUTH_SECRET_KEY=GENERATE_A_RANDOM_64_CHAR_STRING_HERE
-API_SECRET_KEY=GENERATE_ANOTHER_RANDOM_STRING_HERE
+# Then edit with your actual Cloudflare tunnel URL
+notepad .env
 ```
+
+**You MUST update these values in `.env`:**
+
+1. Replace `YOUR-TUNNEL-URL.trycloudflare.com` with your actual tunnel URL (from Step 5)
+2. Fill in `GMAIL_EMAIL` and `GMAIL_PASSWORD` if you want MFA enabled
+
+The file already includes:
+- ✅ Database URL (Neon PostgreSQL)
+- ✅ Groq API key
+- ✅ Google OAuth credentials
+- ✅ Strong AUTH_SECRET_KEY and API_SECRET_KEY (already generated)
+- ✅ CORS, Cookie, and MFA security settings
+- ✅ WhatsApp configuration
 
 ### 🔐 How to Generate Strong Secret Keys
 

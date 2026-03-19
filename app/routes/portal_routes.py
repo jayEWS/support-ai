@@ -287,25 +287,30 @@ async def get_history_sessions(request: Request, user_id: str = "web_portal_user
     }
 
 @router.post("/recording/upload")
+@limiter.limit("5/minute")
 async def upload_portal_recording(
     request: Request,
     file: UploadFile = File(...),
     user_id: str = Form("web_portal_user")
 ):
     """Secure screen recording upload from portal. Enforces file type and size limits."""
+    # Security: Validate user_id first
+    if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
+        raise HTTPException(status_code=400, detail="Invalid user_id")
+    
+    # Security: Bind user_id to IP to prevent abuse
+    bind_user_ip(user_id, request)
+    
     # Security: File extension whitelist
     allowed = [".webm", ".mp4", ".mov"]
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in allowed:
         raise HTTPException(status_code=400, detail="Invalid video format")
         
-    # Security: Size check
+    # Security: Size check (P0 Fix: reduced from 50MB to 25MB)
     file_bytes = await file.read()
-    if len(file_bytes) > 50 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File too large (50MB)")
-        
-    if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
-        raise HTTPException(status_code=400, detail="Invalid user_id")
+    if len(file_bytes) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 25MB)")
         
     from app.utils.file_handler import save_upload
     metadata = save_upload(file_bytes, f"portal_{user_id}{ext}", destination="chat")
@@ -315,18 +320,25 @@ async def upload_portal_recording(
 
 
 @router.post("/recording/analyze")
+@limiter.limit("3/minute")
 async def analyze_portal_recording(request: Request):
     """
     AI-powered screen recording analysis.
     Extracts key frames and uses Llama 4 Scout Vision to explain
     what's on screen — POS menus, functions, errors, workflow steps.
+    P0 Fix: Added rate limiting to prevent AI cost exhaustion attacks.
     """
     data = await request.json()
     video_url = data.get("video_url", "").strip()
     question = data.get("question", "").strip()
+    user_id = data.get("user_id", "").strip()
 
     if not video_url:
         raise HTTPException(status_code=400, detail="Missing video_url")
+
+    # Security: Bind caller to IP if user_id provided
+    if user_id:
+        bind_user_ip(user_id, request)
 
     # Security: only allow local upload paths
     if not video_url.startswith("/uploads/chat/"):

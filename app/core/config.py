@@ -56,9 +56,11 @@ class Settings(BaseSettings):
     WHATSAPP_API_TOKEN: str = os.getenv("WHATSAPP_API_TOKEN", "")
     WHATSAPP_PHONE_NUMBER_ID: str = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
     WHATSAPP_BUSINESS_ACCOUNT_ID: str = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
-    WHATSAPP_VERIFY_TOKEN: str = os.getenv("WHATSAPP_VERIFY_TOKEN", "edgeworks_wa_verify_2024")
+    # P0 FIX: Removed hardcoded default verify token — MUST be set via env var
+    WHATSAPP_VERIFY_TOKEN: str = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
     WHATSAPP_APP_SECRET: str = os.getenv("WHATSAPP_APP_SECRET", "")
-    WHATSAPP_TEST_MODE: bool = os.getenv("WHATSAPP_TEST_MODE", "True").lower() == "true"
+    # P0 FIX: Default to False (fail-closed) — set True only for local development
+    WHATSAPP_TEST_MODE: bool = os.getenv("WHATSAPP_TEST_MODE", "False").lower() == "true"
     
     # Email / Mailgun Settings
     MAILGUN_API_KEY: str = ""  # Set via environment variable
@@ -160,9 +162,31 @@ class Settings(BaseSettings):
                 print("WARNING: API_SECRET_KEY was weak/missing. Generated a temporary one for this session.")
             
             if self.AUTH_SECRET_KEY.lower().strip() in weak_values or len(self.AUTH_SECRET_KEY) < 32:
-                 import secrets
-                 self.AUTH_SECRET_KEY = secrets.token_urlsafe(64)
-                 print("WARNING: AUTH_SECRET_KEY was weak/missing. Generated a temporary one for this session.")
+                # P0 FIX: Persist auto-generated key to file so restarts don't
+                # invalidate all active sessions (multi-worker safe)
+                import secrets
+                key_file = os.path.join(self.DB_DIR, ".auth_secret_key")
+                try:
+                    os.makedirs(self.DB_DIR, exist_ok=True)
+                    if os.path.exists(key_file):
+                        with open(key_file, "r") as f:
+                            saved_key = f.read().strip()
+                        if len(saved_key) >= 32:
+                            self.AUTH_SECRET_KEY = saved_key
+                            print("INFO: AUTH_SECRET_KEY loaded from persisted file.")
+                        else:
+                            raise ValueError("Saved key too short")
+                    else:
+                        generated = secrets.token_urlsafe(64)
+                        with open(key_file, "w") as f:
+                            f.write(generated)
+                        self.AUTH_SECRET_KEY = generated
+                        print("WARNING: AUTH_SECRET_KEY was weak/missing. Generated and PERSISTED a new one.")
+                        print(f"  → Saved to: {key_file}")
+                        print("  → For production, set AUTH_SECRET_KEY in your .env file instead.")
+                except Exception as e:
+                    self.AUTH_SECRET_KEY = secrets.token_urlsafe(64)
+                    print(f"WARNING: AUTH_SECRET_KEY auto-generated (could not persist: {e}).")
             
             if not self.DATABASE_URL:
                  print("WARNING: DATABASE_URL is missing. Defaulting to SQLite for Free/Demo mode.")
@@ -172,5 +196,9 @@ class Settings(BaseSettings):
             if not self.QDRANT_URL and self.QDRANT_HOST == "qdrant":
                  print("WARNING: QDRANT_URL missing. Defaulting to local file-based Qdrant.")
                  self.QDRANT_HOST = "local"
+            
+            # P1 FIX: Warn about missing CORS configuration
+            if not self.ALLOWED_ORIGINS:
+                print("WARNING: ALLOWED_ORIGINS is not set. CORS will allow all origins — unsafe for production.")
 
 settings = Settings()

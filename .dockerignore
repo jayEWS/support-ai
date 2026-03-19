@@ -1,0 +1,40 @@
+# Environment files — NEVER include in Docker image
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Data (mounted as volume instead)
+data/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Docs and non-essential
+*.md
+!README.md
+improvement/
+.agents/
+.cline/
+tests/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deployment artifacts
+*.zip
+*.tar.gz
+deploy/

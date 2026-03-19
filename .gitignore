@@ -54,6 +54,7 @@ server.err
 *.crt
 secret*
 credentials*
+.auth_secret_key
 
 # Vendor and dependencies
 node_modules/

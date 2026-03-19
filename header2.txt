@@ -1,0 +1,14 @@
+HTTP/1.1 307 Temporary Redirect
+date: Thu, 19 Mar 2026 18:44:48 GMT
+server: uvicorn
+content-length: 0
+location: https://accounts.google.com/o/oauth2/v2/auth?client_id=929852634336-r6cpvgl514vipagsmpfdb8mef2ahje0m.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fauth%2Fgoogle%2Fcallback&response_type=code&scope=openid+email+profile&access_type=offline&state=CIbZmaHG8WYco06ynfhfAw&prompt=select_account&hd=edgeworks.com.sg
+set-cookie: oauth_state=CIbZmaHG8WYco06ynfhfAw; HttpOnly; Max-Age=300; Path=/; SameSite=lax
+x-trace-id: 1f7352c0-59ee-476d-8d01-8f439e342dcc
+strict-transport-security: max-age=31536000; includeSubDomains
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-xss-protection: 1; mode=block
+referrer-policy: strict-origin-when-cross-origin
+content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://connect.facebook.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.googleusercontent.com https://*.fbcdn.net; connect-src 'self' wss: https://*.vertexai.goog https://*.googleapis.com;
+

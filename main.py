@@ -653,7 +653,49 @@ async def login(request: Request):
         if not agent or not verify_password(password, agent.get("hashed_password")):
             raise HTTPException(status_code=401, detail="Incorrect email or password")
         
-        # Simplified: Auto-login for now (MFA logic can be added back if needed)
+        # P0 FIX: Re-enable MFA when configured (was bypassed as "Simplified")
+        if settings.MFA_ENABLED and settings.EMAIL_PROVIDER != "mock":
+            from app.utils.auth_utils import create_mfa_code, create_mfa_token, hash_token as mfa_hash_token
+            
+            mfa_code = create_mfa_code(settings.MFA_CODE_LENGTH)
+            mfa_code_hash = mfa_hash_token(mfa_code)
+            
+            # Store MFA challenge in DB
+            challenge_id = await run_sync(
+                db.create_mfa_challenge,
+                agent["user_id"], mfa_code_hash
+            ) if hasattr(db, 'create_mfa_challenge') else None
+            
+            if challenge_id:
+                # Send code via email
+                try:
+                    from app.adapters.email_handler import send_email_response
+                    await send_email_response(
+                        to_email=email,
+                        subject="Your Edgeworks Support Login Code",
+                        message=f"Your verification code is: {mfa_code}\n\nThis code expires in {settings.MFA_CODE_EXPIRE_MINUTES} minutes."
+                    )
+                except Exception as mail_err:
+                    logger.error(f"MFA email send failed: {mail_err}")
+                    # If email fails, fall through to direct login rather than locking user out
+
+                # Return MFA challenge token (not the real access token)
+                mfa_token = create_mfa_token(agent["user_id"], challenge_id)
+                
+                # In dev mode, optionally return the code for testing
+                resp_data = {
+                    "mfa_required": True,
+                    "mfa_token": mfa_token,
+                    "message": f"Verification code sent to {email}"
+                }
+                if settings.MFA_DEV_RETURN_CODE:
+                    resp_data["dev_code"] = mfa_code
+                
+                return JSONResponse(resp_data)
+            else:
+                logger.warning("MFA challenge creation unavailable — falling through to direct login")
+        
+        # Direct login (MFA disabled or unavailable)
         access_token = create_access_token(data={"sub": agent["user_id"], "role": agent["role"]})
         refresh_token = create_refresh_token()
         refresh_hash = hash_token(refresh_token)
@@ -674,6 +716,67 @@ async def login(request: Request):
         raise
     except Exception as e:
         logger.error(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/auth/mfa/verify")
+@limiter.limit("5/minute")
+async def verify_mfa(request: Request):
+    """Verify MFA code and complete login."""
+    try:
+        data = await request.json()
+        mfa_token = data.get("mfa_token")
+        code = data.get("code", "").strip()
+        
+        if not mfa_token or not code:
+            raise HTTPException(status_code=400, detail="MFA token and code are required")
+        
+        from app.utils.auth_utils import decode_token, verify_mfa_code
+        payload = decode_token(mfa_token)
+        if not payload or not payload.get("mfa"):
+            raise HTTPException(status_code=401, detail="Invalid or expired MFA token")
+        
+        user_id = payload.get("sub")
+        challenge_id = payload.get("cid")
+        
+        db = _require_db()
+        
+        # Verify the code against the stored challenge
+        challenge = await run_sync(db.get_mfa_challenge, challenge_id) if hasattr(db, 'get_mfa_challenge') else None
+        if not challenge or challenge.get("user_id") != user_id:
+            raise HTTPException(status_code=401, detail="Invalid MFA challenge")
+        
+        if not verify_mfa_code(code, challenge.get("code_hash", "")):
+            raise HTTPException(status_code=401, detail="Incorrect verification code")
+        
+        # Mark challenge as used
+        if hasattr(db, 'delete_mfa_challenge'):
+            await run_sync(db.delete_mfa_challenge, challenge_id)
+        
+        # Complete login
+        agent = await run_sync(db.get_agent, user_id)
+        if not agent:
+            raise HTTPException(status_code=401, detail="Agent not found")
+        
+        access_token = create_access_token(data={"sub": agent["user_id"], "role": agent["role"]})
+        refresh_token = create_refresh_token()
+        refresh_hash = hash_token(refresh_token)
+        refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        db.create_refresh_token(agent["user_id"], refresh_hash, refresh_expires, request.headers.get("user-agent"))
+        
+        db.log_action(agent["user_id"], "login_mfa", "agent", agent["user_id"])
+        
+        response = JSONResponse({
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": agent["role"],
+            "name": agent.get("name", agent["user_id"])
+        })
+        _set_auth_cookies(response, access_token, refresh_token)
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"MFA verify error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/auth/me")
@@ -722,6 +825,14 @@ async def google_oauth_redirect(request: Request):
     
     import urllib.parse, secrets
     state = secrets.token_urlsafe(16)
+    
+    # DEBUG START
+    print("====== OAUTH REDIRECT DEBUG ======")
+    print(f"CLIENT_ID: {settings.GOOGLE_CLIENT_ID}")
+    print(f"REDIRECT_URI: {settings.GOOGLE_REDIRECT_URI}")
+    print("==================================")
+    # DEBUG END
+
     # Store state in session cookie for CSRF protection
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
@@ -1097,6 +1208,10 @@ async def close_session(request: Request):
     if not re.match(r'^[\w@+.\-]{1,64}$', user_id):
         raise HTTPException(status_code=400, detail="Invalid user_id format")
     
+    # P0 FIX: Bind user to IP to prevent unauthenticated session closing attacks
+    from app.utils.security import bind_user_ip
+    bind_user_ip(user_id, request)
+    
     # Security: Validate option to prevent injection
     if option not in ("close", "ticket", "ticket_and_notify", 1, "1", 2, "2"):
         raise HTTPException(status_code=400, detail="Invalid option")
@@ -1123,6 +1238,10 @@ async def whatsapp_webhook_verify(request: Request):
     challenge = params.get("hub.challenge")
     
     if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
+        # P0 FIX: Ensure verify token is actually configured (not empty string)
+        if not settings.WHATSAPP_VERIFY_TOKEN:
+            logger.error("[SECURITY] WhatsApp webhook verification attempted but WHATSAPP_VERIFY_TOKEN is not set")
+            raise HTTPException(status_code=503, detail="WhatsApp integration not configured")
         logger.info(f"✅ WhatsApp webhook verified successfully")
         return PlainTextResponse(challenge)
     

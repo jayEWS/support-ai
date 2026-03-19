@@ -302,7 +302,59 @@ class DatabaseManager:
         finally:
             self.Session.remove()
 
-    # ============ Knowledge Base ============
+    # ============ MFA Challenges ============
+    def create_mfa_challenge(self, user_id: str, code_hash: str) -> Optional[int]:
+        """Create a new MFA challenge and return its ID."""
+        session = self.get_session()
+        try:
+            from datetime import timedelta
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.MFA_CODE_EXPIRE_MINUTES)
+            challenge = AuthMFAChallenge(
+                user_id=user_id,
+                code_hash=code_hash,
+                expires_at=expires_at
+            )
+            session.add(challenge)
+            session.commit()
+            session.refresh(challenge)
+            return challenge.id
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error creating MFA challenge: {e}")
+            return None
+        finally:
+            self.Session.remove()
+
+    def get_mfa_challenge(self, challenge_id: int) -> Optional[dict]:
+        """Get an MFA challenge by ID (only if not expired)."""
+        session = self.get_session()
+        try:
+            c = session.get(AuthMFAChallenge, challenge_id)
+            if not c:
+                return None
+            # Check expiration
+            if c.expires_at and c.expires_at < datetime.now(timezone.utc):
+                session.delete(c)
+                session.commit()
+                return None
+            return {
+                "id": c.id,
+                "user_id": c.user_id,
+                "code_hash": c.code_hash,
+                "expires_at": c.expires_at
+            }
+        finally:
+            self.Session.remove()
+
+    def delete_mfa_challenge(self, challenge_id: int):
+        """Delete a used MFA challenge."""
+        session = self.get_session()
+        try:
+            session.query(AuthMFAChallenge).filter_by(id=challenge_id).delete()
+            session.commit()
+        finally:
+            self.Session.remove()
+
     def save_knowledge_metadata(self, filename: str, file_path: str, uploaded_by: str = None, status: str = "Processing", source_url: str = None):
         session = self.get_session()
         try:
