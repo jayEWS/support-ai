@@ -36,7 +36,7 @@ async def get_active_sessions(
     """
     try:
         # Get chats that have messages in DB (not yet closed/cleared)
-        chats = db_manager.get_active_portal_chats()
+        chats = await run_sync(db_manager.get_active_portal_chats)
         
         # Add real-time online status from portal_manager
         online_users = portal_manager.get_online_users()
@@ -56,8 +56,8 @@ async def get_session_messages(
 ):
     """Fetch interaction history for a specific portal user."""
     try:
-        messages = db_manager.get_messages(user_id)
-        context = db_manager.get_customer_context(user_id)
+        messages = await run_sync(db_manager.get_messages, user_id)
+        context = await run_sync(db_manager.get_customer_context, user_id)
         
         return {
             "messages": messages,
@@ -81,7 +81,7 @@ async def agent_reply(
         
     try:
         # 1. Save to DB
-        db_manager.save_message(user_id, "assistant", content)
+        await run_sync(db_manager.save_message, user_id, "assistant", content)
         
         # 2. Push via WebSocket to customer
         agent_name = agent.get("name", "Agent")

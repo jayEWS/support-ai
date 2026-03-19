@@ -37,5 +37,5 @@ async def run_sync(func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     Example:
         agent = await run_sync(db_manager.get_agent, "john_doe")
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, partial(func, *args, **kwargs))

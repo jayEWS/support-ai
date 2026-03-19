@@ -15,7 +15,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 
 # ── Chunking settings (shared with start_worker.py) ───────────────────────────
 CHUNK_SIZE    = 800
-CHUNK_OVERLAP = 150
+CHUNK_OVERLAP = 200
 TEXT_EXTS     = {".txt", ".md", ".csv", ".json", ".log", ".text"}
 PDF_EXTS      = {".pdf"}
 DOC_EXTS      = {".doc", ".docx"}
@@ -118,15 +118,25 @@ class RAGService:
             # 3. Smart Query Expansion — enrich short/vague queries
             expanded_query = self._expand_query(text, conversation_history)
             
-            # --- Power Upgrade: Multi-Query Generation ---
-            # Generate 2 additional sub-queries to capture different perspectives
+            # --- Power Upgrade: Multi-Query + HyDE Generation ---
+            # Generate sub-queries and a HyDE hypothetical document for better retrieval
             sub_queries = await self._generate_sub_queries(text, expanded_query, language)
+            
+            # Separate HyDE passage from regular sub-queries
+            hyde_passage = None
+            clean_sub_queries = []
+            for sq in sub_queries:
+                if sq.startswith("[HyDE] "):
+                    hyde_passage = sq[7:]  # Strip the [HyDE] marker
+                else:
+                    clean_sub_queries.append(sq)
 
-            # 4. Retrieval with expanded query and sub-queries
+            # 4. Retrieval with expanded query, HyDE, and sub-queries
             retrieval_result = await self.retriever.retrieve(
                 original_query=text,
                 expanded_query=expanded_query if expanded_query != text else None,
-                sub_queries=sub_queries,
+                hyde_passage=hyde_passage,
+                sub_queries=clean_sub_queries,
                 k_final=8, # Increase results for better context
                 intent=self._detect_category(text) # Pass intent for adaptive filtering
             )
@@ -630,25 +640,68 @@ class RAGService:
         return RAGResponse(answer=ans, confidence=1.0, source_documents=[], retrieval_method="greeting")
 
     def _get_llm(self):
-        # ✅ FIXED: Use Groq ChatGroq instead of OpenAI
+        """Get an LLM instance for internal RAG usage (sub-queries, HyDE, etc)."""
+        if self._llm_service and self._llm_service.llm:
+            return self._llm_service.llm
+        # Standalone fallback
+        provider = getattr(settings, 'LLM_PROVIDER', 'groq').lower()
+        if provider == 'ollama':
+            from app.services.llm_service import OllamaLLM
+            return OllamaLLM(
+                model=settings.OLLAMA_FALLBACK_MODEL,
+                host=settings.OLLAMA_HOST,
+                temperature=0, timeout=15,
+            )
         return ChatGroq(model=settings.MODEL_NAME, api_key=settings.GROQ_API_KEY, temperature=0)
 
     async def _generate_sub_queries(self, query: str, expanded: str, lang: str) -> List[str]:
-        """Generate 2 multi-perspective search queries for better coverage (Free Power Upgrade)."""
+        """Generate 2 multi-perspective search queries + 1 HyDE hypothetical answer for better coverage."""
         if len(query.split()) < 3: return []
         
         try:
-            # We use a very simplified prompt to avoid too much overhead but gain "Multi-Query" RAG power
-            # This mimics what advanced apps like Perplexity or Sidekick do.
-            if self._llm_service and self._llm_service.llm:
-                prompt = (
-                    f"Given this support query: '{query}', generate 2 alternative search keywords in {lang} "
-                    f"that would help find technical documentation. Return only the strings separated by pipe."
-                )
-                res = await asyncio.wait_for(self._llm_service.llm.ainvoke(prompt), timeout=1.5)
-                queries = [q.strip() for q in res.content.split('|') if q.strip()]
-                return queries[:2]
-        except Exception:
+            llm = self._llm_service.llm if (self._llm_service and self._llm_service.llm) else None
+            if not llm:
+                return []
+
+            # --- HyDE: Hypothetical Document Embeddings ---
+            # Generate a hypothetical answer, embed it, and use it as a search query.
+            # This dramatically improves retrieval for vague or conversational queries.
+            hyde_prompt = (
+                f"You are a POS/restaurant tech support agent. A customer asks: '{query}'\n"
+                f"Write a short 2-3 sentence answer as if you found it in the knowledge base. "
+                f"Be technical and specific. Reply in {lang}."
+            )
+            
+            # Multi-query prompt
+            multi_prompt = (
+                f"Given this support query: '{query}', generate 2 alternative search keywords in {lang} "
+                f"that would help find technical documentation. Return only the strings separated by pipe."
+            )
+            
+            # Run both prompts concurrently for speed
+            hyde_task = asyncio.wait_for(llm.ainvoke(hyde_prompt), timeout=3.0)
+            multi_task = asyncio.wait_for(llm.ainvoke(multi_prompt), timeout=1.5)
+            
+            results = await asyncio.gather(hyde_task, multi_task, return_exceptions=True)
+            
+            sub_queries = []
+            
+            # HyDE result — prepend with marker so retriever can prioritize it
+            if not isinstance(results[0], Exception):
+                hyde_text = results[0].content.strip()[:300]
+                if hyde_text:
+                    sub_queries.append(f"[HyDE] {hyde_text}")
+                    logger.info(f"[HyDE] Generated hypothetical doc: {hyde_text[:80]}...")
+            
+            # Multi-query results
+            if not isinstance(results[1], Exception):
+                queries = [q.strip() for q in results[1].content.split('|') if q.strip()]
+                sub_queries.extend(queries[:2])
+            
+            return sub_queries
+
+        except Exception as e:
+            logger.debug(f"[SubQuery] Generation failed (non-critical): {e}")
             return []
         return []
 

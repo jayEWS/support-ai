@@ -50,20 +50,12 @@ class TicketService:
 
     @staticmethod
     async def update_status(ticket_id: int, next_status: TicketStatus, agent_id: str = "System"):
-        # Fetch ticket current status
-        # Since repo returns dicts, we might need a direct query or helper if we need the object, 
-        # but here we just need the status string.
-        # Let's add a simple get_ticket method to repo if not exists, or re-use get_all with filter.
-        # For efficiency, let's assume we can get it.
-        # Actually, let's just implement the logic safely.
+        # Fetch ticket current status from database
+        ticket = ticket_repo.get_ticket(ticket_id)
+        if not ticket:
+            raise ValueError(f"Ticket {ticket_id} not found")
         
-        # We need the current status to validate transition
-        # Since we don't have a direct get_by_id in the snippet above, let's assume we can use a small helper or just trust the transition for now 
-        # but better to add get_ticket_by_id to repo.
-        # For now, we will simulate it safely.
-        
-        current_status_str = "open" # Fallback
-        # In a real app, add ticket_repo.get_ticket(ticket_id)
+        current_status_str = ticket.get("status", "PENDING_AGENT")
         
         new_status = TicketStateMachine.transition(ticket_id, current_status_str, next_status, agent_id)
         ticket_repo.update_ticket_status(ticket_id, new_status.value)

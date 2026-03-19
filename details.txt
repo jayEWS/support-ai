@@ -1,0 +1,557 @@
+================================================================================
+  EDGEWORKS SUPPORT AI — COMPLETE SYSTEM FLOW & ARCHITECTURE
+  Generated: 2026-03-20
+================================================================================
+
+
+1. ARCHITECTURE OVERVIEW
+========================
+
+Multi-channel AI-powered support platform with 3 entry points
+(Portal Chat, WhatsApp, Email) converging into a shared AI pipeline.
+
+  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+  │  Web Portal   │   │   WhatsApp   │   │    Email     │
+  │ /api/portal/* │   │ /webhook/wa  │   │/webhook/email│
+  └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
+         │                  │                   │
+         ▼                  ▼                   ▼
+  ┌─────────────────────────────────────────────────────┐
+  │         ChatService.process_portal_message()         │
+  │  1. Guardrail (input validation)                     │
+  │  2. Onboarding State Machine                         │
+  │  3. Category/Intent Detection                        │
+  │  4. Prompt Selection (persona switching)             │
+  │  5. RAG Query (vector search + reranker)             │
+  │  6. LLM Completion (Groq Llama 3.3 70B)             │
+  │  7. Guardrail (output sanitization)                  │
+  │  8. Self-Learning Logger                             │
+  └──────────────────────┬──────────────────────────────┘
+                         ▼
+            ┌─────────────────────┐
+            │  EscalationService  │──► TicketService
+            │  (if AI can't help) │      (auto-assign)
+            └─────────────────────┘
+
+
+2. TECH STACK
+=============
+
+  - Framework:    FastAPI + Uvicorn (async Python)
+  - LLM:         Groq Llama-3.3-70B (primary), Vertex AI / Gemini / OpenAI (fallback)
+  - Embeddings:  HuggingFace all-MiniLM-L6-v2 (local, zero-cost)
+  - Vector DB:   Qdrant (local file-based or cloud)
+  - Database:    PostgreSQL (Neon Cloud) / SQLite (dev)
+  - Caching:     Redis (optional, for distributed state)
+  - Frontend:    Single-file SPA (admin.html) with Tailwind CSS + Vanilla JS
+  - Channels:    Web Portal, WhatsApp (Meta Cloud API), Email (Mailgun/SendGrid/Gmail)
+
+
+3. STARTUP SEQUENCE (main.py → lifespan)
+=========================================
+
+  Step 1: _init_ai_services()
+          → LLMService       — connects to Groq API
+          → RAGService       — loads Qdrant vector store + HuggingFace embeddings
+          → RAGServiceV2     — enhanced pipeline with advanced retriever
+          → IntentService    — intent classification engine
+
+  Step 2: _init_business_services()
+          → CustomerService
+          → TicketService
+          → EscalationService
+          → ChatService      — main orchestrator (receives RAGService reference)
+          → GCS Service      — Google Cloud Storage for knowledge files
+
+  Step 3: _init_saas_layer()
+          → TenantRepository   — multi-tenant data isolation
+          → UsageRepository    — API usage tracking per tenant
+          → AILogRepository    — AI interaction logging
+          → AIObservabilityService — cost tracking + analytics
+
+  Step 4: Redis Connect
+          → WebSocket pub/sub for multi-worker broadcasting
+          → manager.set_redis() / portal_manager.set_redis()
+
+  Step 5: _start_background_tasks()
+          → SLA Monitor         — flags tickets breaching SLA rules (continuous)
+          → Routing Queue       — auto-routes unassigned tickets (continuous)
+          → Backup Service      — automated DB + knowledge backup (24h cycle)
+          → DB Cleanup          — removes expired tokens (~21h cycle)
+          → Monitoring Worker   — health checks on all subsystems (2-min cycle)
+
+
+4. CUSTOMER MESSAGE FLOW (DETAILED)
+====================================
+
+4.1 Entry Points
+-----------------
+
+  A) Web Portal:   POST /api/portal/chat
+     - Rate limited: 10 requests/minute per IP
+     - Security: user_id bound to IP (IDOR prevention)
+     - Accepts: form-data with message, user_id, language, file (optional)
+     - Handler: portal_routes.py → portal_chat()
+
+  B) WhatsApp:     POST /webhook/whatsapp/
+     - Meta Cloud API webhook
+     - HMAC signature verification (X-Hub-Signature-256)
+     - Handler: whatsapp.py → WhatsAppWebhookService.normalize_payload()
+     - Extracts: sender phone, message text, attachments
+
+  C) Email:        POST /webhook/email/
+     - Supports Mailgun & SendGrid payload formats
+     - Handler: email_handler.py → email_webhook()
+     - Extracts: sender, subject, body text
+
+  All three channels converge into:
+     → ChatService.process_portal_message(query, user_id, file, language)
+
+
+4.2 Onboarding State Machine
+------------------------------
+
+  New customers go through a multi-step registration flow before AI chat.
+  States are persisted in the database (User.state field).
+
+  State Transitions:
+  ┌─────┐   greeting    ┌──────────────────┐   detect lang   ┌─────────────┐
+  │ new │ ─────────────► │ asking_language   │ ──────────────► │ asking_name │
+  └─────┘                └──────────────────┘                 └──────┬──────┘
+                                                                     │ name given
+                                                                     ▼
+                         ┌──────────────────┐   all 4 fields  ┌────────────────┐
+                         │confirming_details │ ◄────────────── │ asking_details │
+                         └────────┬─────────┘                 └────────────────┘
+                                  │ user says "Yes"
+                                  ▼
+                         ┌──────────────────┐
+                         │    complete       │ ──► AI Chat begins
+                         └──────────────────┘
+
+  Details collected during onboarding:
+    - Language preference (Bahasa Indonesia / English / Chinese)
+    - Full name
+    - Company name
+    - Outlet name
+    - Mobile/WhatsApp number
+    - Email address
+
+  Supported languages: Indonesian (id), English (en), Chinese (zh)
+  All prompts are localized in ChatService.LANG_STRINGS dict.
+
+  EXAMPLE CONVERSATION (new customer "Budi"):
+
+  Turn  │ Budi types                              │ System state        │ Response
+  ──────┼─────────────────────────────────────────┼────────────────────┼─────────────────────────────────────
+    1   │ "Halo"                                  │ new → asking_lang  │ "Halo! 👋 Select language: 1️⃣ ID 2️⃣ EN 3️⃣ 中文"
+    2   │ "1"                                     │ → asking_name      │ "Boleh kami tahu nama Anda? 😊"
+    3   │ "Budi Santoso"                          │ → asking_details   │ "Salam kenal, Budi! Lengkapi: 🏢🏬📱📧"
+    4   │ "Edgeworks\nBugis\n08123456789\n..."    │ → confirming       │ "Data benar? 👤 Budi 🏢 Edgeworks... Ketik Ya/Tidak"
+    5   │ "Ya"                                    │ → complete         │ "Terima kasih, Budi! ✅ Ada yang bisa dibantu?"
+    6   │ "Printer saya error"                    │ complete (AI mode) │ AI-generated troubleshooting response
+
+
+4.3 AI Processing Pipeline (after onboarding)
+-----------------------------------------------
+
+  When a completed user sends a message, this is the exact processing chain:
+
+  STEP 1: Input Guardrail
+  ────────────────────────
+    File: guardrail_service.py
+    - Validates input against prompt injection patterns
+    - Rejects malicious/manipulative prompts
+    - If rejected → returns safe error message immediately
+
+  STEP 2: Message Saved to DB
+  ────────────────────────────
+    File: database.py → save_message()
+    - Saves user message with role="user" and optional attachments
+    - Used for conversation history and transcript generation
+
+  STEP 3: Category/Intent Detection
+  ──────────────────────────────────
+    File: chat_service.py → _detect_category()
+    - Keyword-based multi-category routing
+    - Categories and their trigger keywords:
+
+      Category          │ Keywords
+      ──────────────────┼──────────────────────────────────────────────
+      printer           │ printer, print, receipt, cetak, struk, kds, kiosk
+      payment           │ payment, transaction, bayar, refund, void, nets, edc
+      voucher           │ voucher, kupon, promo, discount, redeem, loyalty
+      diagnose          │ inventory, stock, stok, product, recipe (default)
+      pos_guardian       │ "pos-guardian", "pos guardian"
+      heart_guardian     │ "heart-guardian", "heart guardian"
+      relationship_comms │ "relationship-comms", "comms assistant"
+      love_agent         │ "love-agent", "love agent", "relationship coach"
+
+  STEP 4: Persona/Prompt Selection
+  ─────────────────────────────────
+    File: prompt_service.py → get_system_message(category, user_context)
+    - Each category maps to a specialized AI persona
+    - BASE_PERSONA: General POS support specialist
+    - POS_GUARDIAN_OMEGA: Autonomous incident response AI for POS systems
+    - Other personas for specific domains
+    - User context (name, company, outlet) injected into prompt
+
+  STEP 5: Language Detection
+  ──────────────────────────
+    File: chat_service.py → _detect_message_language()
+    - Detects language of the CURRENT message (not onboarding preference)
+    - Chinese: CJK character detection
+    - Bahasa Indonesia: keyword markers (bagaimana, tolong, bisa, tidak, etc.)
+    - English: default for Latin-script messages
+    - Ensures AI replies in the same language the user is typing
+
+  STEP 6: Context Injection
+  ─────────────────────────
+    For messages > 3 words and non-special personas:
+    - Appends: "(Context: {company} - {outlet})" to the query
+    - Helps RAG retrieve company-specific documentation
+
+  STEP 7: Conversation History Retrieval
+  ────────────────────────────────────────
+    - Fetches last 8 messages from DB for the user
+    - Passed to RAG so AI can understand follow-up questions
+    - Prevents repetitive greetings in multi-turn conversations
+
+  STEP 8: RAG Query (Retrieval-Augmented Generation)
+  ────────────────────────────────────────────────────
+    File: rag_service.py → query()
+    Sub-steps:
+      a) Semantic Cache Check
+         - Hash query → check in-memory cache (TTL: 1 hour)
+         - If cached → return immediately (saves LLM cost)
+
+      b) Hybrid Search (AdvancedRetriever)
+         - Qdrant vector similarity search (semantic)
+         - BM25 keyword search (lexical)
+         - Reciprocal Rank Fusion to merge results
+
+      c) Cross-Encoder Re-ranking
+         - Re-scores retrieved documents for relevance
+         - Top-K documents selected as context
+
+      d) Prompt Assembly
+         - System prompt (from PromptService)
+         - Document context (retrieved chunks)
+         - Conversation history (last 8 messages)
+         - User query
+
+      e) LLM Completion
+         - Sends assembled prompt to Groq Llama-3.3-70B
+         - Timeout: 30 seconds
+         - Circuit breaker: opens after repeated failures
+
+  STEP 9: Output Guardrail
+  ─────────────────────────
+    File: guardrail_service.py → validate_output()
+    - PII masking (removes leaked personal data)
+    - Hallucination detection
+    - Sanitizes internal references for public portal users
+    - Strips source file names and internal annotations
+
+  STEP 10: Response Saved + Returned
+  ───────────────────────────────────
+    - AI response saved to DB with role="bot"
+    - Response includes: answer, confidence score, sources, persona used
+    - For portal users: sources are stripped (privacy)
+
+  STEP 11: Self-Learning Logger
+  ──────────────────────────────
+    File: chat_service.py → _log_ai_interaction()
+    - Logs to AIInteraction table:
+      * query (PII-scrubbed)
+      * response (PII-scrubbed)
+      * retrieved documents
+      * tools used
+      * confidence score
+      * resolution status (pending → reviewed by admin)
+    - Used for knowledge gap analysis and continuous improvement
+
+
+4.4 Escalation Flow
+---------------------
+
+  Triggered when:
+  - AI confidence is below threshold
+  - User explicitly requests human help
+  - Critical/urgent issue detected
+
+  File: escalation_service.py → escalate()
+
+  Flow:
+    1. Determine severity:
+       - is_critical=True  → prefix "A-" → status ON_HOLD (Urgent)
+       - is_critical=False → prefix "B-" → status PENDING_PROGRAMMER (High)
+
+    2. Create ticket via TicketService:
+       - Summary: "[A-/B-] Escalation: {reason}"
+       - Full conversation transcript attached
+       - Priority: "Urgent" or "High"
+
+    3. Auto-assignment:
+       - ticket_repo.assign_to_least_loaded_agent()
+       - Picks the agent with fewest open tickets (load balancing)
+
+    4. Response to customer:
+       - "I've created support ticket #{id}. Our agent will handle it shortly."
+
+
+5. TICKET STATE MACHINE
+=========================
+
+  File: state_machine.py
+
+  States:
+    ON_HOLD            (A-) — Critical issues requiring immediate attention
+    PENDING_PROGRAMMER (B-) — Escalated to developer/specialist
+    PENDING_USER       (C-) — Waiting for customer response
+    PENDING_AGENT      (D-) — Waiting for agent investigation
+    CLOSED             (E-) — Resolved
+
+  Valid Transitions:
+    ON_HOLD            → PENDING_PROGRAMMER, PENDING_AGENT, CLOSED
+    PENDING_PROGRAMMER → PENDING_AGENT, CLOSED
+    PENDING_USER       → PENDING_AGENT, ON_HOLD, CLOSED
+    PENDING_AGENT      → PENDING_USER, PENDING_PROGRAMMER, ON_HOLD, CLOSED
+    CLOSED             → PENDING_AGENT (reopen)
+
+  Status is determined by ticket summary prefix:
+    "A-" → ON_HOLD
+    "B-" → PENDING_PROGRAMMER
+    "C-" → PENDING_USER
+    "D-" → PENDING_AGENT
+    "E-" → CLOSED
+
+
+6. AGENT/ADMIN PANEL (admin.html)
+==================================
+
+  Single-Page Application built with Tailwind CSS + Vanilla JS.
+
+  Navigation (sidebar):
+    - Overview           — Performance Command Center (unified dashboard)
+    - Chat               — Conversations (inbox-style, with ticket sidebar)
+    - Team               — Agent management and presence
+    - Tickets            — All tickets with filters (open/closed/unassigned)
+    - Customers          — Customer database and profiles
+    - AI Operations      — Self-Learning & Help, health monitoring, automation
+    - Settings           — General, Support, System Admin configurations
+
+  Key Features:
+    - Real-time WebSocket updates (agent ↔ customer chat)
+    - Drag-and-drop sidebar reordering (persisted to localStorage)
+    - God Mode toggle (admin takes over AI conversation in real-time)
+    - Ticket assignment, status transitions, priority changes
+    - Knowledge base management (upload docs → auto-vectorized)
+    - CSAT survey results and agent leaderboard
+    - AI interaction audit logs
+
+
+7. WEBSOCKET REAL-TIME COMMUNICATION
+======================================
+
+  Three WebSocket endpoints:
+
+  A) /ws/chat/{session_id}
+     - Internal agent ↔ customer chat
+     - IDOR protection: verifies participant belongs to session
+     - Cross-tenant isolation check
+     - Messages saved to DB + broadcast to all session participants
+
+  B) /ws/portal/{user_id}
+     - Portal customer push channel
+     - Origin validation + user_id format check
+     - Max 5 connections per user (flood prevention)
+     - Heartbeat every 30 seconds
+     - Input guardrail on incoming messages
+
+  C) /ws/portal/admin/{user_id}
+     - Admin watcher for portal conversations
+     - Requires agent authentication (token in query params)
+     - Tenant isolation enforced
+     - Agents can send messages directly to portal users
+
+
+8. CHAT CLOSE FLOW
+====================
+
+  File: chat_service.py → close_chat()
+
+  Options:
+    "close"              — Resolved. Clear messages, no ticket.
+    "ticket"             — Create ticket with full transcript, then clear.
+    "ticket_and_notify"  — Create ticket + send notification.
+
+  Steps:
+    1. Fetch all portal message history
+    2. Fetch WhatsApp history (if user_id is a phone number)
+    3. Combine into transcript
+    4. If option includes "ticket":
+       a. Create ticket with transcript
+       b. Auto-assign to agent
+       c. Link WhatsApp messages to ticket (if applicable)
+    5. Clear portal messages from DB
+    6. Email transcript to customer (if email configured)
+    7. Reset user state to 'idle'
+
+
+9. WHATSAPP CHANNEL FLOW
+==========================
+
+  File: webhook/whatsapp.py + adapters/whatsapp_meta.py
+
+  Inbound:
+    Meta Cloud API → POST /webhook/whatsapp/
+    → WhatsAppWebhookService.normalize_payload()
+    → Extracts: sender phone (wa_id), message text, attachments, message type
+    → Validates: HMAC signature (X-Hub-Signature-256) for security
+    → Routes to ChatService pipeline (same as portal)
+
+  Outbound:
+    → WhatsApp Meta API (graph.facebook.com/v21.0)
+    → Sends text replies, template messages, media
+    → Delivery receipts tracked (sent/delivered/read)
+
+
+10. EMAIL CHANNEL FLOW
+========================
+
+  File: adapters/email_handler.py
+
+  Inbound:
+    Mailgun/SendGrid webhook → POST /webhook/email/
+    → Extracts: sender, subject, body (from JSON or form-data)
+    → Creates virtual user_id: "email_{sender_sanitized}"
+    → Saves inbound message to DB
+    → RAGService.query() for AI response
+    → send_email_response() sends reply email
+
+  Outbound Providers:
+    - Gmail (SMTP via smtplib)
+    - SendGrid (REST API)
+    - Mailgun (REST API)
+    Configured via EMAIL_PROVIDER setting in .env
+
+
+11. SECURITY LAYERS
+=====================
+
+  Layer 1: CORS Middleware
+    - Origin whitelist via ALLOWED_ORIGINS env var
+    - Blocks cross-origin requests from unauthorized domains
+
+  Layer 2: CSRF Protection (CustomCSRFMiddleware)
+    - Requires X-CSRF-Token or X-Requested-With header
+    - Only for cookie-authenticated state-changing requests (POST/PUT/DELETE)
+    - Exempt: /api/portal/, /webhook/, /api/auth/, /api/plans
+
+  Layer 3: Rate Limiting (slowapi)
+    - Per IP address
+    - Portal chat: 10/min, KB query: 20/min, Registration: 10/min
+
+  Layer 4: Input Guardrail
+    - Prompt injection detection
+    - Rejects manipulative/malicious prompts before reaching LLM
+
+  Layer 5: Output Guardrail
+    - PII masking in AI responses
+    - Hallucination detection
+    - Source file name stripping for public users
+
+  Layer 6: Authentication (JWT)
+    - Access tokens: 60-minute expiry (httponly cookies)
+    - Refresh tokens: 7-day expiry
+    - MFA: 6-digit code, 5-minute expiry, max 5 attempts
+    - Magic link login supported
+
+  Layer 7: Tenant Isolation (TenantMiddleware)
+    - Multi-tenant DB scoping via tenant_id
+    - Cross-tenant access blocked at query level
+
+  Layer 8: IDOR Prevention
+    - Portal user_id bound to IP address
+    - WebSocket session ownership verified
+    - Ticket access scoped by tenant
+
+  Layer 9: AI Concurrency Gate
+    - Semaphore: max 10 simultaneous LLM calls
+    - Prevents Groq API quota exhaustion
+
+  Layer 10: Security Headers (SecurityHeadersMiddleware)
+    - HSTS (Strict-Transport-Security)
+    - X-Content-Type-Options: nosniff
+    - X-Frame-Options (clickjacking prevention)
+
+  Layer 11: Correlation ID (CorrelationIDMiddleware)
+    - Every request gets a unique X-Trace-ID
+    - Propagated through logs for end-to-end debugging
+
+
+12. BACKGROUND SERVICES
+=========================
+
+  Service                │ Interval    │ Purpose
+  ───────────────────────┼─────────────┼──────────────────────────────────────
+  sla_service            │ Continuous  │ Flags tickets breaching SLA rules
+  routing_service        │ Continuous  │ Auto-routes unassigned tickets to agents
+  backup_service         │ 24 hours    │ Automated DB + knowledge file backup
+  monitoring_worker      │ 2 minutes   │ Health checks on all subsystems
+  _cleanup_expired_tokens│ ~21 hours   │ Removes expired MFA/refresh/magic tokens
+
+
+13. DATABASE SCHEMA (KEY TABLES)
+=================================
+
+  Users          — Customer profiles (name, company, outlet, state, language)
+  Messages       — Chat messages (user_id, role, content, attachments)
+  Tickets        — Support tickets (status, priority, assigned_to, transcript)
+  Agents         — Admin/agent accounts (role, presence status)
+  ChatSessions   — Live chat sessions (customer_id, agent_id, tenant_id)
+  ChatMessages   — Live chat messages within sessions
+  WhatsAppMessage— WhatsApp message log (wa_id, direction, content, status)
+  KnowledgeMetadata — Knowledge base file metadata
+  AIInteraction  — Self-learning log (query, response, confidence, resolution)
+  AuditLog       — Security audit trail
+  SLARule        — SLA definitions (response time, resolution time)
+  TicketQueue    — Routing queue for auto-assignment
+  Macro          — Canned response templates
+  CSATSurvey     — Customer satisfaction survey results
+  SystemSetting  — Key-value config store (god mode, feature flags, etc.)
+
+
+14. CONFIGURATION (.env)
+==========================
+
+  Critical Variables:
+    DATABASE_URL          — PostgreSQL connection string
+    AUTH_SECRET_KEY       — JWT signing key (min 32 chars)
+    API_SECRET_KEY        — API authentication key
+    GROQ_API_KEY          — Groq LLM API key (primary)
+    GOOGLE_GEMINI_API_KEY — Gemini API key (fallback)
+
+  Optional:
+    WHATSAPP_API_TOKEN         — Meta WhatsApp Cloud API token
+    WHATSAPP_PHONE_NUMBER_ID   — WhatsApp business phone ID
+    MAILGUN_API_KEY            — Mailgun email API key
+    SENDGRID_API_KEY           — SendGrid email API key
+    REDIS_URL                  — Redis connection for distributed state
+    GCS_BUCKET_NAME            — Google Cloud Storage bucket
+    STRIPE_SECRET_KEY          — Stripe billing integration
+
+  Defaults (auto-configured if missing):
+    DATABASE_URL → sqlite:///data/db_storage/app.db
+    LLM_PROVIDER → groq
+    EMBEDDINGS_TYPE → local (HuggingFace)
+    QDRANT → local file-based storage
+    MFA_ENABLED → True
+    COOKIE_SECURE → True
+    COOKIE_SAMESITE → strict
+
+
+================================================================================
+  END OF DOCUMENT
+================================================================================

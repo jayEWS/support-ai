@@ -16,6 +16,7 @@ from app.services.websocket_manager import manager, portal_manager
 from app.core.config import settings
 from app.core.logging import logger
 from app.utils.security import bind_user_ip
+from app.utils.async_db import run_sync
 
 router = APIRouter(prefix="/ws", tags=["WebSocket"])
 
@@ -41,7 +42,7 @@ async def _get_ws_agent(websocket: WebSocket):
         return None
     
     # Scoped agent lookup
-    agent = db_manager.get_agent(payload.get("sub"))
+    agent = await run_sync(db_manager.get_agent, payload.get("sub"))
     if not agent:
         return None
     return agent
@@ -73,7 +74,7 @@ async def websocket_chat_endpoint(
         await websocket.close(code=1008)
         return
         
-    session = db.get_chat_session(session_id)
+    session = await run_sync(db.get_chat_session, session_id)
     if not session:
         await websocket.close(code=1008)
         return
@@ -110,7 +111,7 @@ async def websocket_chat_endpoint(
             msg = json.loads(data)
             if msg.get("event") == "message":
                 content = msg.get("content", "")[:5000]
-                msg_id = db.save_chat_message(session_id, user_id, user_type, content)
+                msg_id = await run_sync(db.save_chat_message, session_id, user_id, user_type, content)
                 await manager.broadcast(session_id, {
                     "event": "message", 
                     "message_id": msg_id, 
@@ -160,7 +161,8 @@ async def portal_websocket(websocket: WebSocket, user_id: str):
             while True:
                 await asyncio.sleep(30)
                 await websocket.send_json({"event": "ping"})
-        except: pass
+        except Exception:
+            pass
 
     heartbeat_task = asyncio.create_task(_heartbeat())
     
@@ -176,7 +178,7 @@ async def portal_websocket(websocket: WebSocket, user_id: str):
                     if not _gs.validate_input(content):
                         await websocket.send_json({"event": "error", "message": "Message could not be processed. Please rephrase."})
                         continue
-                    db_manager.save_message(user_id, "user", content)
+                    await run_sync(db_manager.save_message, user_id, "user", content)
                     await portal_manager.send_to_admins(user_id, {
                         "event": "message",
                         "role": "user",
@@ -205,7 +207,7 @@ async def portal_admin_websocket(websocket: WebSocket, user_id: str):
         
     # P1 Fix: Scoped check - can this agent watch this specific portal user?
     # Ensure customer user_id exists and matches tenant
-    customer = db_manager.get_user(user_id)
+    customer = await run_sync(db_manager.get_user, user_id)
     if not customer or (customer.get("tenant_id") and agent.get("tenant_id") and customer["tenant_id"] != agent.get("tenant_id")):
         logger.warning(f"Agent {agent['user_id']} tried to watch unauthorized customer {user_id}")
         await websocket.close(code=4003)
@@ -220,7 +222,7 @@ async def portal_admin_websocket(websocket: WebSocket, user_id: str):
             if msg.get("event") == "message":
                 content = msg.get("content", "").strip()[:5000]
                 if content:
-                    db_manager.save_message(user_id, "assistant", content)
+                    await run_sync(db_manager.save_message, user_id, "assistant", content)
                     # Send to customer
                     await portal_manager.send_to_user(user_id, {
                         "event": "message",

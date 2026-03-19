@@ -333,6 +333,53 @@ class ChatService:
                     return category
         return "diagnose"
 
+    @staticmethod
+    def _should_escalate(query: str, confidence: float, history: list, lang: str) -> bool:
+        """
+        Smart escalation detection — returns True when the user should be
+        transferred to a human agent.
+        
+        Triggers:
+        1. Explicit keyword request for human assistance
+        2. Low confidence + 2+ follow-up messages (frustrated user pattern)
+        3. Repeated identical/similar queries (user not getting resolution)
+        """
+        q = query.lower().strip()
+        
+        # 1. Explicit human-request keywords (Indonesian + English + Chinese)
+        escalation_keywords = {
+            # English
+            'human', 'agent', 'real person', 'live chat', 'speak to someone',
+            'talk to human', 'talk to agent', 'transfer', 'supervisor', 'manager',
+            'real agent', 'live agent', 'customer service', 'cs', 'helpdesk',
+            # Indonesian
+            'orang', 'agen', 'admin', 'bantuan langsung', 'bicara dengan orang',
+            'mau bicara', 'hubungi admin', 'minta admin', 'chat admin',
+            'tolong hubungkan', 'mau ke agen', 'operator', 'petugas',
+            # Chinese
+            '人工', '客服', '转人工', '真人',
+        }
+        for kw in escalation_keywords:
+            if kw in q:
+                return True
+        
+        # 2. Low confidence + repeated follow-ups (frustrated pattern)
+        if confidence < 0.4 and history and len(history) >= 4:
+            # Count recent low-quality bot responses (if accessible via history)
+            recent_user_msgs = [
+                m.get('content', '') for m in history[-6:]
+                if m.get('role') == 'user'
+            ]
+            if len(recent_user_msgs) >= 2:
+                # User has sent 2+ messages in a low-confidence context — escalate
+                return True
+        
+        # 3. Very low confidence on its own (AI clearly doesn't know)
+        if confidence < 0.15:
+            return True
+        
+        return False
+
     def _log_ai_interaction_sync(self, user_id: str, query: str, response_data: dict, rag_res: Any):
         """Self-Learning Pipeline: Log every AI interaction for future review/extraction (sync, run via run_sync)."""
         try:
@@ -430,9 +477,33 @@ class ChatService:
             # --- Guardrail: Output Validation ---
             answer = guardrail_service.validate_output(answer)
 
+            # --- Smart Escalation Detection ---
+            # Auto-escalate if: explicit human request keywords, OR
+            # low confidence + repeated follow-ups (user frustrated)
+            escalation_needed = self._should_escalate(
+                query, rag_res.confidence, recent_history, user_lang
+            )
+
             if not answer or not str(answer).strip():
-                answer = "I’m sorry—I couldn’t generate a clear reply just now. Please try again."
+                answer = "I'm sorry—I couldn't generate a clear reply just now. Please try again."
             
+            # Handle escalation if detected
+            if escalation_needed:
+                from app.services.escalation_service import EscalationService
+                transcript = "\n".join([
+                    f"[{m.get('role','user').upper()}] {m.get('content','')}"
+                    for m in recent_history
+                ]) + f"\n[USER] {query}\n[BOT] {answer}"
+                esc_msg = await EscalationService.escalate(
+                    user_id=user_id,
+                    reason=f"Auto-escalated: user requested human / low confidence ({rag_res.confidence:.0%})",
+                    history=transcript,
+                    is_critical=False
+                )
+                # Append escalation notice to the answer
+                answer = f"{answer}\n\n---\n🎫 {esc_msg}"
+                logger.info(f"[Escalation] Auto-escalated for user {user_id}")
+
             logger.info(f"ChatService Answer: {answer[:100]} (len={len(answer)})")
             await run_sync(db_manager.save_message, user_id, "bot", answer)
 
@@ -441,7 +512,8 @@ class ChatService:
                 "confidence": rag_res.confidence,
                 "sources": rag_res.source_documents,
                 "persona_used": category,
-                "tools_used": ["hybrid_search", "reranker"]
+                "tools_used": ["hybrid_search", "reranker"],
+                "escalated": escalation_needed,
             }
 
             # 5. Log for Self-Learning

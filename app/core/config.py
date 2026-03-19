@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     # Groq Config
     GROQ_API_KEY: str = "" # from https://console.groq.com/
     
+    # Ollama Config (100% Free Local LLM)
+    OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")  # Primary local model
+    OLLAMA_FALLBACK_MODEL: str = os.getenv("OLLAMA_FALLBACK_MODEL", "qwen2.5:7b")  # Fast fallback
+    OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", "60"))  # Seconds
+    OLLAMA_NUM_CTX: int = int(os.getenv("OLLAMA_NUM_CTX", "4096"))  # Context window
+    
     # Google Cloud Storage Config
     GCS_BUCKET_NAME: str = ""  # e.g. support-edgeworks-knowledge
     GCS_ENABLED: bool = False  # Enable GCS sync for knowledge files
@@ -30,8 +37,11 @@ class Settings(BaseSettings):
     
     # Embeddings Config
     EMBEDDINGS_TYPE: str = "local"  # local | openai | vertex | qdrant
-    EMBEDDINGS_MODEL_NAME: str = "all-MiniLM-L6-v2"
+    EMBEDDINGS_MODEL_NAME: str = os.getenv("EMBEDDINGS_MODEL_NAME", "sentence-transformers/multi-qa-mpnet-base-dot-v1")  # Upgraded from all-MiniLM-L6-v2
     EMBEDDINGS_BASE_URL: Optional[str] = None
+    
+    # Reranker Config
+    CROSS_ENCODER_MODEL: str = os.getenv("CROSS_ENCODER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")  # or BAAI/bge-reranker-v2-m3
 
     # Qdrant Vector Storage
     QDRANT_HOST: Optional[str] = os.getenv("QDRANT_HOST", "qdrant")
@@ -59,6 +69,7 @@ class Settings(BaseSettings):
     GMAIL_PASSWORD: str = ""  # Gmail app password (not regular password)
     EMAIL_FROM_ADDRESS: str = ""  # Sender email address
     EMAIL_PROVIDER: str = "gmail"  # Options: gmail, sendgrid, mock
+    SENDGRID_API_KEY: str = ""  # SendGrid API key (if EMAIL_PROVIDER=sendgrid)
     
     # Security
     API_SECRET_KEY: str = os.getenv("API_SECRET_KEY", "")  # MUST be set via environment variable
@@ -89,10 +100,6 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/auth/google/callback")
-    
-    # NEW: Multitenancy (Disabled for free/local mode)
-    MULTI_TENANT_ENABLED: bool = False
-    DEFAULT_TENANT_ID: str = "default"
     
     # Magic Link
     MAGIC_LINK_EXPIRE_MINUTES: int = 15

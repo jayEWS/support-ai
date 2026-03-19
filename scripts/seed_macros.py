@@ -1,8 +1,11 @@
 """
-Seed comprehensive macros for Edgeworks Support Portal (61 macros).
-Categories: Welcome, Acknowledgement, Troubleshooting,
+Seed comprehensive macros for Edgeworks Support Portal (120 macros).
+Categories: Welcome, Acknowledgement, Apology & Empathy,
+  Issue Investigation, Troubleshooting,
   POS - FNB, POS - Retail, POS - Wholesale,
   Inventory, Report, Integration,
+  Hardware, Software & Updates, Billing & Payment,
+  Training & Onboarding, Feedback & Survey,
   Escalation, Follow-Up, Closing
 """
 import sys, os
@@ -141,6 +144,112 @@ macros = [
      "content": "For accounting software integration:\n\n1. Equip can export daily sales data to Xero or QuickBooks\n2. Go to Back Office > Integration > Accounting\n3. Connect your accounting account via API\n4. Map your Equip payment types to accounting categories\n5. Sales data will sync daily after closing\n\nThis eliminates manual data entry for your accounts team."},
     {"name": "Integration - Self-Checkout Kiosk", "category": "Integration",
      "content": "For Self-Checkout Kiosk setup:\n\n1. The kiosk runs on the Equip Self-Checkout module\n2. Menu/items sync from the main POS system\n3. Supports QR payment (PayNow, GrabPay) and card payment\n4. Orders appear on KDS just like regular POS orders\n5. Kiosk can be configured for F&B (order-at-table) or Retail\n\nRefer to the Self-Checkout Kiosk User Guide for detailed setup."},
+
+    # ═══════════════  APOLOGY & EMPATHY (6)  ═══════════════
+    {"name": "Apology - General Inconvenience", "category": "Apology & Empathy",
+     "content": "Dear {customer_name},\n\nWe sincerely apologize for the inconvenience you've experienced. We understand how frustrating this must be, especially during your business operations.\n\nPlease rest assured that we are treating this with the highest priority and will work to resolve it as quickly as possible.\n\nThank you for your patience and understanding."},
+    {"name": "Apology - System Downtime", "category": "Apology & Empathy",
+     "content": "Dear {customer_name},\n\nWe are very sorry for the system downtime affecting your operations. We understand that every minute counts in your business.\n\nOur technical team is working urgently to restore full service. We will keep you updated on the progress and expected resolution time.\n\nWe truly appreciate your patience during this time."},
+    {"name": "Apology - Delayed Response", "category": "Apology & Empathy",
+     "content": "Dear {customer_name},\n\nWe apologize for the delay in our response. Your issue is important to us and we should have gotten back to you sooner.\n\nI'm now looking into your request and will provide you with an update shortly.\n\nThank you for your understanding."},
+    {"name": "Apology - Data Discrepancy", "category": "Apology & Empathy",
+     "content": "Dear {customer_name},\n\nWe understand your concern regarding the data discrepancy. We take data accuracy very seriously as it directly impacts your business decisions.\n\nWe are investigating the root cause and will provide you with a detailed explanation and corrective action.\n\nThank you for bringing this to our attention."},
+    {"name": "Apology - Failed Update", "category": "Apology & Empathy",
+     "content": "Dear {customer_name},\n\nWe sincerely apologize for the issue caused by the recent software update. This was not the experience we intended.\n\nOur development team has been notified and is preparing a fix. In the meantime, we can assist you with a workaround to ensure your business continues to run smoothly.\n\nWe appreciate your patience."},
+    {"name": "Apology - Recurring Issue", "category": "Apology & Empathy",
+     "content": "Dear {customer_name},\n\nWe deeply apologize that this issue has recurred. We understand how frustrating it is to deal with the same problem multiple times.\n\nWe are escalating this to our senior technical team for a permanent resolution. We will ensure this is thoroughly investigated to prevent it from happening again.\n\nThank you for your continued patience and trust in Edgeworks Solutions."},
+
+    # ═══════════════  ISSUE INVESTIGATION (6)  ═══════════════
+    {"name": "Investigate - Request Details", "category": "Issue Investigation",
+     "content": "Dear {customer_name},\n\nWe apologize for the inconvenience. To help us investigate this issue thoroughly, could you please share:\n\n• Steps taken before the issue occurred\n• Any error messages displayed on screen\n• Screenshot or screen recording of the issue\n• The date and approximate time it happened\n• Number of terminals affected\n\nThis information will help us identify the root cause and resolve it faster."},
+    {"name": "Investigate - Database Issue", "category": "Issue Investigation",
+     "content": "Dear {customer_name},\n\nBased on the symptoms you described, this may be related to a database issue. To investigate further, we need:\n\n• Your outlet name and server IP address\n• When the issue first started\n• Whether all terminals are affected or just specific ones\n• Any recent changes to the system (updates, new hardware, network changes)\n\nWe may also need to schedule a remote session to inspect the database directly."},
+    {"name": "Investigate - Sync Issue", "category": "Issue Investigation",
+     "content": "Dear {customer_name},\n\nTo investigate the data sync issue between your outlets, could you please provide:\n\n• Which outlets are affected?\n• What data is not syncing? (items, prices, stock, sales)\n• When did the sync last work correctly?\n• Are all terminals connected to the internet?\n\nIn the meantime, please check: Back Office > Sync Status to see if there are any pending sync jobs."},
+    {"name": "Investigate - Performance Issue", "category": "Issue Investigation",
+     "content": "Dear {customer_name},\n\nTo diagnose the performance issue, could you help us with the following:\n\n• How long has the system been slow?\n• Is it slow on all screens or specific functions?\n• How many transactions do you process per day approximately?\n• When was the last time the database was optimized?\n• PC specifications: RAM, processor, disk type (HDD/SSD)\n\nThis will help us determine whether it's a hardware, network, or database issue."},
+    {"name": "Investigate - Report Discrepancy", "category": "Issue Investigation",
+     "content": "Dear {customer_name},\n\nWe take report accuracy very seriously. To investigate the discrepancy, please provide:\n\n• Which report shows the incorrect data?\n• What is the expected value vs. the displayed value?\n• The date range of the affected report\n• Were there any refunds, voids, or manual adjustments during that period?\n• Screenshot of the report showing the discrepancy\n\nWe will cross-check with the raw transaction data."},
+    {"name": "Investigate - Hardware Malfunction", "category": "Issue Investigation",
+     "content": "Dear {customer_name},\n\nTo investigate the hardware issue, we need a few details:\n\n• Which hardware device is affected? (printer, scanner, cash drawer, terminal)\n• Brand and model of the device\n• When did it stop working?\n• Were there any power surges or physical damage?\n• Have you tried connecting it to a different port or terminal?\n\nBased on this information, we can determine if it needs repair, replacement, or reconfiguration."},
+
+    # ═══════════════  HARDWARE (6)  ═══════════════
+    {"name": "Hardware - Printer Maintenance", "category": "Hardware",
+     "content": "For thermal receipt printer maintenance:\n\n1. Clean the print head regularly with isopropyl alcohol and a cotton swab\n2. Remove paper dust and debris from the paper path\n3. Check cutter blade for jams — clear any torn paper fragments\n4. Ensure the paper roll guide is aligned properly\n5. Avoid touching the print head with your fingers\n\nRegular maintenance extends printer life and ensures print quality."},
+    {"name": "Hardware - Barcode Scanner Pairing", "category": "Hardware",
+     "content": "To pair a Bluetooth barcode scanner:\n\n1. Turn on the scanner and put it in pairing mode (usually hold the trigger for 5 seconds)\n2. On the POS terminal, go to Bluetooth settings > Scan for devices\n3. Select the scanner from the list\n4. The scanner should beep to confirm pairing\n5. In Equip POS, go to Settings > Input Device > select the scanner\n6. Test by scanning a barcode\n\nFor USB scanners, simply plug in — they work like a keyboard input."},
+    {"name": "Hardware - Label Printer Setup", "category": "Hardware",
+     "content": "To set up a label printer with Equip:\n\n1. Install the label printer driver on the POS terminal\n2. Connect via USB and ensure the printer is detected\n3. In Equip: Back Office > Label Printer Settings\n4. Select the printer model and label size\n5. Design your label template (item name, price, barcode)\n6. Test print a few labels\n\nSupported models: TSC, Zebra, Brother label printers."},
+    {"name": "Hardware - Cash Register Drawer", "category": "Hardware",
+     "content": "Cash drawer troubleshooting:\n\n1. Check the RJ11 cable connection from the drawer to the receipt printer\n2. Some drawers require a specific printer model to trigger the kick signal\n3. If using USB cash drawer: verify the driver is installed\n4. Test manual open with the physical key\n5. In POS settings, verify the cash drawer kick code matches your hardware\n\nIf the drawer opens intermittently, the cable may be loose or damaged."},
+    {"name": "Hardware - Weighing Scale Integration", "category": "Hardware",
+     "content": "To integrate a weighing scale with Equip POS:\n\n1. Connect the scale to the POS terminal via RS232 or USB serial\n2. Install the serial port driver if needed\n3. In Equip POS Settings > Scale, select the COM port\n4. Choose the scale protocol (most scales use CAS/AND protocol)\n5. Set the baud rate (typically 9600)\n6. Test by placing an item on the scale and pressing 'Read Weight' in POS\n\nThe weight and price-per-kg will calculate automatically."},
+    {"name": "Hardware - UPS / Power Protection", "category": "Hardware",
+     "content": "Recommended power protection for POS systems:\n\n1. Always use a UPS (Uninterruptible Power Supply) for the POS server\n2. Recommended capacity: minimum 600VA for each POS terminal\n3. Connect: POS terminal, receipt printer, and network switch to the UPS\n4. Configure the UPS software for auto-shutdown during extended outages\n5. Replace the UPS battery every 2-3 years\n\nA sudden power loss without UPS can corrupt the database."},
+
+    # ═══════════════  SOFTWARE & UPDATES (6)  ═══════════════
+    {"name": "Software - Version Check", "category": "Software & Updates",
+     "content": "To check your current Equip version:\n\n1. Open Equip POS\n2. Go to Help > About (or Settings > About)\n3. Note the version number (e.g., V5.2.1.0)\n\nAlternatively, check the version from Back Office > System Info.\n\nTo see if you're on the latest version, please share your version number and I'll verify."},
+    {"name": "Software - Update Instructions", "category": "Software & Updates",
+     "content": "To update your Equip POS software:\n\n1. Backup your database before updating (Settings > Backup)\n2. Download the latest update package from the link we provide\n3. Close the Equip POS application on ALL terminals\n4. Run the update on the SERVER/main terminal first\n5. After server update completes, update each client terminal\n6. Open POS and verify the version number\n\n⚠️ Important: Always update outside of business hours."},
+    {"name": "Software - Database Backup", "category": "Software & Updates",
+     "content": "To backup your Equip database:\n\n1. Go to Back Office > System > Backup\n2. Select backup location (external drive recommended)\n3. Click 'Backup Now'\n4. Verify the backup file is created and has a reasonable size\n\nBest practices:\n• Backup daily after closing\n• Keep at least 7 days of backup files\n• Store a copy off-site (cloud or external drive taken home)\n• Test restoring from backup periodically"},
+    {"name": "Software - License Activation", "category": "Software & Updates",
+     "content": "To activate or renew your Equip license:\n\n1. Go to Back Office > System > License\n2. Enter the license key provided by Edgeworks\n3. Click 'Activate' — requires internet connection\n4. The system will validate and apply the license\n\nIf you receive a license error:\n• Check your internet connection\n• Ensure the system date/time is correct\n• Contact support if the error persists — we can generate a new key."},
+    {"name": "Software - Reinstallation Guide", "category": "Software & Updates",
+     "content": "If a full reinstallation is needed:\n\n1. ⚠️ BACKUP your database first (critical!)\n2. Uninstall Equip POS from Control Panel > Programs\n3. Download the latest installer from the link provided\n4. Run the installer and follow the wizard\n5. During setup, choose 'Restore from Backup' and point to your backup file\n6. Verify all settings, items, and historical data are intact\n7. Reconfigure printer and peripheral settings if needed\n\nWe recommend having our technician assist with reinstallation."},
+    {"name": "Software - SQL Database Maintenance", "category": "Software & Updates",
+     "content": "For database maintenance to improve performance:\n\n1. Schedule maintenance during off-peak hours\n2. In Back Office > System > Database Maintenance\n3. Run 'Shrink Database' to reclaim unused space\n4. Run 'Rebuild Indexes' to optimize query speed\n5. Archive old transactions (e.g., older than 2 years)\n\nFor large databases, our team can perform remote maintenance. This can significantly improve POS speed."},
+
+    # ═══════════════  BILLING & PAYMENT (6)  ═══════════════
+    {"name": "Billing - Subscription Inquiry", "category": "Billing & Payment",
+     "content": "Dear {customer_name},\n\nThank you for your inquiry about your subscription.\n\nTo check your current plan details:\n• Plan name and features included\n• Billing cycle (monthly/annual)\n• Renewal date\n• Number of outlets/terminals covered\n\nI can look this up for you. Could you confirm your company name and registered email address?"},
+    {"name": "Billing - Invoice Request", "category": "Billing & Payment",
+     "content": "Dear {customer_name},\n\nCertainly! I can help you with your invoice.\n\nTo generate or resend an invoice, I'll need:\n• Invoice period or date range\n• Company name for billing\n• Any specific details to include (PO number, department, etc.)\n\nI'll have the invoice prepared and sent to your registered email address."},
+    {"name": "Billing - Payment Received Confirmation", "category": "Billing & Payment",
+     "content": "Dear {customer_name},\n\nThank you! We have received your payment. Here are the details:\n\n• Amount: $[amount]\n• Payment Date: [date]\n• Payment Method: [method]\n• Invoice Reference: [ref]\n\nYour account is now up to date. If you need a receipt, please let us know."},
+    {"name": "Billing - Overdue Payment Reminder", "category": "Billing & Payment",
+     "content": "Dear {customer_name},\n\nThis is a friendly reminder that your invoice #[number] dated [date] for $[amount] is currently overdue.\n\nTo avoid any service interruption, kindly arrange for payment at your earliest convenience.\n\nPayment methods available:\n• Bank Transfer\n• PayNow\n• Cheque\n\nIf payment has already been made, please share the proof of payment so we can update our records."},
+    {"name": "Billing - Plan Upgrade Information", "category": "Billing & Payment",
+     "content": "Dear {customer_name},\n\nThank you for your interest in upgrading your plan!\n\nHere's a summary of available plans:\n• Standard: Up to 3 outlets, basic reporting\n• Professional: Up to 10 outlets, advanced analytics, priority support\n• Enterprise: Unlimited outlets, dedicated account manager, custom integrations\n\nUpgrading takes effect immediately and the cost difference will be prorated for the current billing period.\n\nWould you like me to arrange the upgrade?"},
+    {"name": "Billing - Refund Process", "category": "Billing & Payment",
+     "content": "Dear {customer_name},\n\nRegarding your refund request, here is the process:\n\n1. Our billing team will review the request (1-2 business days)\n2. If approved, the refund will be processed within 5-7 business days\n3. Refund will be credited to the original payment method\n\nCould you please provide:\n• Invoice number\n• Reason for refund\n• Preferred refund method\n\nWe'll keep you updated on the status."},
+
+    # ═══════════════  TRAINING & ONBOARDING (6)  ═══════════════
+    {"name": "Training - New Staff Onboarding", "category": "Training & Onboarding",
+     "content": "Dear {customer_name},\n\nWelcome to the Equip POS system! Here's how to get your new staff onboarded:\n\n1. Create their user account in Back Office > User Management\n2. Assign appropriate role (Cashier, Supervisor, Manager)\n3. Set their PIN code for POS login\n4. Share the Quick Start Guide with them\n5. Have them practice with the Training Mode (no real transactions)\n\nWe also offer remote training sessions. Would you like to schedule one?"},
+    {"name": "Training - Schedule Training Session", "category": "Training & Onboarding",
+     "content": "Dear {customer_name},\n\nWe'd be happy to arrange a training session for your team!\n\nAvailable training options:\n• Remote Training (via Zoom/Teams): 1-2 hours, free for active subscribers\n• On-site Training: Half day, subject to scheduling & travel charges\n• Self-paced: User Guide documents & video tutorials\n\nPlease let us know:\n1. Preferred training type\n2. Number of participants\n3. Preferred date and time\n\nWe'll get it scheduled for you!"},
+    {"name": "Training - User Guide Resources", "category": "Training & Onboarding",
+     "content": "Dear {customer_name},\n\nHere are the available training resources for your team:\n\n📖 User Guides:\n• Equip V5 POS User Guide\n• Equip Inventory Management Guide\n• Equip Rewards & Loyalty Guide\n• KDS Setup & Operation Guide\n\n🎥 Video Tutorials:\n• Available on the Edgeworks Support Portal\n\nI can share the specific guide you need. Which module would you like documentation for?"},
+    {"name": "Training - Cashier Quick Start", "category": "Training & Onboarding",
+     "content": "Quick start guide for new cashiers:\n\n1. Log in with your PIN code\n2. Start of day: Open shift and verify starting cash\n3. Taking orders:\n   • Tap items or scan barcode to add to cart\n   • Apply discounts if applicable\n   • Select payment method and process payment\n   • Receipt prints automatically\n4. End of day: Count cash, enter amounts, close shift\n\nFor F&B: Remember to select the correct table and order type (Dine-in/Takeaway)."},
+    {"name": "Training - Manager Features", "category": "Training & Onboarding",
+     "content": "Key features available to Managers:\n\n1. Override discounts and void transactions\n2. View real-time sales dashboard\n3. Process refunds and exchanges\n4. Access reports: Sales, Inventory, Staff Performance\n5. Manage staff accounts and permissions\n6. Perform end-of-day closing and reconciliation\n7. Adjust stock levels and approve stock adjustments\n\nManagers can access these features using their supervisor PIN when prompted."},
+    {"name": "Training - System Admin Guide", "category": "Training & Onboarding",
+     "content": "Key system administration tasks:\n\n1. User Management: Create/edit users, assign roles, manage permissions\n2. System Backup: Schedule daily automatic backups\n3. Database Maintenance: Run monthly optimization\n4. License Management: Monitor expiry, renew keys\n5. Integration Settings: Manage API connections\n6. Audit Trail: Review all system changes and user activities\n\nFor any admin tasks you're unsure about, please contact our support team first to avoid accidental data loss."},
+
+    # ═══════════════  FEEDBACK & SURVEY (5)  ═══════════════
+    {"name": "Feedback - Request Satisfaction Rating", "category": "Feedback & Survey",
+     "content": "Dear {customer_name},\n\nThank you for contacting Edgeworks Solutions Support.\n\nWe'd love to hear about your experience today. On a scale of 1-5 (5 being excellent), how would you rate:\n\n1. Response time: ___\n2. Quality of assistance: ___\n3. Overall satisfaction: ___\n\nYour feedback helps us improve our support quality. Thank you!"},
+    {"name": "Feedback - Feature Request Received", "category": "Feedback & Survey",
+     "content": "Dear {customer_name},\n\nThank you for the feature suggestion! We really appreciate customers who help us improve our products.\n\nI've logged your request:\n• Feature: [description]\n• Use case: [how it would help]\n\nOur product team reviews all feature requests during our sprint planning. While I can't guarantee a timeline, your input is valuable and will be considered.\n\nWe'll notify you if this feature is implemented."},
+    {"name": "Feedback - Positive Review Response", "category": "Feedback & Survey",
+     "content": "Dear {customer_name},\n\nThank you so much for the kind words! 😊 We're delighted to hear that you're happy with our support.\n\nFeedback like yours motivates our team to keep delivering the best possible service. If you ever need assistance in the future, we're always here for you.\n\nHave a wonderful day!"},
+    {"name": "Feedback - Negative Review Response", "category": "Feedback & Survey",
+     "content": "Dear {customer_name},\n\nThank you for your honest feedback. We sincerely apologize that we didn't meet your expectations.\n\nWe take your concerns seriously and would like to make things right. Could you share more details about what we could improve?\n\nI've flagged your feedback to our team lead for immediate review. We are committed to providing you with a better experience going forward."},
+    {"name": "Feedback - NPS Follow-up", "category": "Feedback & Survey",
+     "content": "Dear {customer_name},\n\nThank you for completing our satisfaction survey. We noticed your feedback and would love to learn more.\n\nCould you share:\n• What aspects of our service do you value most?\n• What areas could we improve?\n• Any specific features or services you'd like to see?\n\nYour detailed feedback helps us serve you better. Thank you for your time!"},
+
+    # ═══════════════  SECURITY & DATA (4)  ═══════════════
+    {"name": "Security - Password Reset", "category": "Security & Data",
+     "content": "To reset a user password:\n\n1. Go to Back Office > User Management\n2. Select the user account\n3. Click 'Reset Password'\n4. Set the new temporary password\n5. The user must change it on their next login\n\nFor admin-level password resets, please contact support with your company registration details for verification."},
+    {"name": "Security - User Access Audit", "category": "Security & Data",
+     "content": "To review user access and activity:\n\n1. Go to Back Office > Audit Trail\n2. Filter by user, date range, and action type\n3. Review: login/logout times, transactions processed, voids, refunds, price changes\n4. Export the audit log for compliance records\n\nWe recommend reviewing the audit trail monthly to ensure no unauthorized activities."},
+    {"name": "Security - Data Privacy Request", "category": "Security & Data",
+     "content": "Dear {customer_name},\n\nRegarding your data privacy request:\n\nEdgeworks Solutions is committed to protecting your data. We comply with PDPA (Personal Data Protection Act) requirements.\n\nFor data-related requests (access, correction, deletion), please provide:\n• Company name and registration number\n• Specific data requested\n• Purpose of the request\n\nWe will process your request within 30 business days as per PDPA guidelines."},
+    {"name": "Security - Backup Verification", "category": "Security & Data",
+     "content": "To verify your backup integrity:\n\n1. Locate your most recent backup file\n2. Check the file size — it should be similar to previous backups\n3. Try a test restore on a separate machine (not your live system)\n4. Verify that key data exists: items, customers, recent transactions\n\n⚠️ Never test a restore on your production system. Always use a separate test environment.\n\nWe recommend quarterly backup verification."},
 
     # ═══════════════  ESCALATION (4)  ═══════════════
     {"name": "Escalate - Technical Team", "category": "Escalation",

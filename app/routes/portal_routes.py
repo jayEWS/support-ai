@@ -33,7 +33,8 @@ router = APIRouter(prefix="/api/portal", tags=["Portal"])
 limiter = Limiter(key_func=get_remote_address)
 
 # --- Security: AI Semaphore to prevent LLM quota exhaustion ---
-AI_SEMAPHORE = asyncio.Semaphore(10) # Max 10 concurrent AI queries
+# Reduced to 5 for single-PC/Ollama deployments (local GPU can't handle 10)
+AI_SEMAPHORE = asyncio.Semaphore(5)
 
 # --- Security: Max query length to prevent prompt injection / abuse ---
 MAX_PORTAL_QUERY_LENGTH = 500

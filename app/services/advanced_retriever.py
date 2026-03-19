@@ -199,7 +199,8 @@ class CrossEncoderReranker:
         self._load_attempted = True
         try:
             from sentence_transformers import CrossEncoder
-            model_name = os.getenv(
+            from app.core.config import settings as _s
+            model_name = getattr(_s, 'CROSS_ENCODER_MODEL', None) or os.getenv(
                 "CROSS_ENCODER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"
             )
             self._model = CrossEncoder(model_name)

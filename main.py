@@ -23,8 +23,8 @@ from app.core.config import settings
 from app.core.logging import logger, set_trace_id, LogLatency
 from app.core.database import db_manager
 
-# Concurrency gate: max 10 simultaneous AI calls to avoid Vertex AI quota exhaustion
-AI_SEMAPHORE = asyncio.Semaphore(10)
+# Concurrency gate: max 5 simultaneous AI calls (tuned for single-PC / Ollama deployment)
+AI_SEMAPHORE = asyncio.Semaphore(5)
 
 # Async wrapper for synchronous DB calls (prevents event loop blocking)
 from app.utils.async_db import run_sync
